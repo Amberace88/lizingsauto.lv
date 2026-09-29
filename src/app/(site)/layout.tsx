@@ -19,7 +19,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     legalName: company.name,
     url: SITE_URL,
     logo: `${SITE_URL}/logo-tavs-auto.png`,
-    image: `${SITE_URL}/opengraph-image`,
+    image: `${SITE_URL}/og.png`,
     telephone: company.phone,
     email: company.email,
     vatID: `LV${company.regNr}`,

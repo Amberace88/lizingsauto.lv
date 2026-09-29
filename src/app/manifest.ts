@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Tavs Auto',
     start_url: '/',
     display: 'standalone',
-    background_color: '#f4f6f5',
+    background_color: '#f5f7f9',
     theme_color: '#d91d2b',
     icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }],
   };

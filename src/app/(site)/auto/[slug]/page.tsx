@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${name} — ${money(car.price)}${car.status === 'sold' ? ' (pārdots)' : ''}`,
     description: desc,
     alternates: { canonical: carUrl(car) },
-    openGraph: { title: `${name} — ${money(car.price)}`, description: desc, url: carUrl(car), images: img ? [{ url: img, width: 1200, height: 900, alt: name }] : [] },
+    openGraph: { title: `${name} — ${money(car.price)}`, description: desc, url: carUrl(car), images: img ? [{ url: img, width: 1200, height: 900, alt: name }] : ['/og.png?v=2'] },
   };
 }
 
