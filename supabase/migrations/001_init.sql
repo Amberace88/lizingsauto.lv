@@ -189,7 +189,7 @@ create table if not exists public.settings (
 );
 
 insert into public.settings(key, value, is_public, technical) values
- ('leasing', '{"rate":9,"term":84,"minTerm":12,"maxTerm":96,"downPct":0,"minDownPct":0,"maxDownPct":50,"residualPct":0,"contractFee":0,"monthlyFee":0}', true),
+ ('leasing', '{"rate":9,"term":84,"minTerm":12,"maxTerm":96,"downPct":0,"minDownPct":0,"maxDownPct":50,"residualPct":0,"contractFee":0,"monthlyFee":0}', true, false),
  ('company', '{"name":"SIA AC Industry","brand":"LīzingsAuto","regNr":"40203125692","legalAddress":"Kvēles iela 23-64, Rīga, LV-1024","address":"Krustabaznīcas iela 24, Rīga, LV-1026","phone":"+371 23776197","email":"lizingsauto@gmail.com","whatsapp":"37123776197","facebook":"https://www.facebook.com/lizingsauto.lv/","instagram":"https://www.instagram.com/lizingsauto.lv","hours":{"weekdays":"9:00–18:00","saturday":"10:00–15:00","sunday":"Pēc vienošanās"}}', true, false),
  ('portals', '{"ss_lv":{"enabled":true},"autoplius":{"enabled":false,"contactId":"","cityId":""},"mobile_de":{"enabled":false,"sellerId":""},"auto24":{"enabled":false}}', false, true)
 on conflict (key) do nothing;
