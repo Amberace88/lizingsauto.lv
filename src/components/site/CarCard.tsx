@@ -3,10 +3,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Gauge, Fuel, Calendar, Cog } from 'lucide-react';
 import type { Car, LeasingSettings } from '@/lib/types';
-import { BADGES, carBadges, carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
+import { BADGES, badgeTextColor, carBadges, type BadgePosition, carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
 import { useFavorites } from './favorites';
-import { useBadgeOrder } from './BadgeOrderContext';
+import { useBadgeStyle } from './BadgeOrderContext';
 
 const TONE: Record<string, string> = {
   signal: 'bg-signal text-white',
@@ -16,18 +16,55 @@ const TONE: Record<string, string> = {
   bad: 'bg-bad text-white',
 };
 
-export function BadgeChips({ badges, max = 99, size = 'sm' }: { badges: string[]; max?: number; size?: 'sm' | 'md' }) {
+const SHAPE = { pill: 'rounded-full', rounded: 'rounded-md', square: 'rounded-[3px]' } as const;
+
+export function BadgeChips({ badges, max = 99, size = 'sm', className = 'flex flex-wrap gap-1.5' }: { badges: string[]; max?: number; size?: 'sm' | 'md'; className?: string }) {
+  const { colors, shape } = useBadgeStyle();
   const shown = badges.slice(0, max);
   const rest = badges.length - shown.length;
   const cls = size === 'md' ? 'px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.8rem]' : 'px-2.5 py-1 text-[0.72rem] leading-tight';
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {shown.map((b) => (
-        <span key={b} className={`${TONE[BADGES[b].tone]} ${cls} rounded-full font-semibold shadow-sm backdrop-blur-sm`}>
-          {BADGES[b].label}
-        </span>
-      ))}
-      {rest > 0 && <span className={`${cls} rounded-full bg-card/90 font-semibold text-ink`}>+{rest}</span>}
+    <div className={className}>
+      {shown.map((b) => {
+        const c = colors[b];
+        return (
+          <span key={b} className={`${c ? '' : TONE[BADGES[b].tone]} ${cls} ${SHAPE[shape]} whitespace-nowrap font-semibold shadow-sm backdrop-blur-sm`} style={c ? { backgroundColor: c, color: badgeTextColor(c) } : undefined}>
+            {BADGES[b].label}
+          </span>
+        );
+      })}
+      {rest > 0 && <span className={`${cls} ${SHAPE[shape]} bg-card/90 font-semibold text-ink`}>+{rest}</span>}
+    </div>
+  );
+}
+
+/** Zīmju slānis uz bildes — novietojums pēc admina iestatījumiem. */
+export function BadgeOverlay({ badges, variant = 'card', ribbon = false }: { badges: string[]; variant?: 'card' | 'gallery'; ribbon?: boolean }) {
+  const { position } = useBadgeStyle();
+  if (!badges.length) return null;
+  const g = variant === 'gallery';
+  const box: Record<BadgePosition, string> = g
+    ? {
+        top: 'left-4 top-4 right-28',
+        left: `left-4 top-4 ${ribbon ? 'bottom-12' : 'bottom-16'}`,
+        right: `right-4 top-16 ${ribbon ? 'bottom-12' : 'bottom-16'}`,
+        bottom: `left-4 right-4 ${ribbon ? 'bottom-12' : 'bottom-4'}`,
+      }
+    : {
+        top: 'left-3 top-3 right-16',
+        left: 'left-3 top-3 bottom-14',
+        right: 'right-3 top-16 bottom-3',
+        bottom: 'left-3 right-3 bottom-14',
+      };
+  const flow: Record<BadgePosition, string> = {
+    top: 'flex flex-wrap gap-1.5',
+    left: 'flex h-full flex-col items-start gap-1.5 overflow-hidden',
+    right: 'flex h-full flex-col items-end gap-1.5 overflow-hidden',
+    bottom: 'flex flex-wrap-reverse gap-1.5',
+  };
+  return (
+    <div className={`pointer-events-none absolute z-10 ${box[position]}`}>
+      <BadgeChips badges={badges} size={g ? 'md' : 'sm'} className={flow[position]} />
     </div>
   );
 }
@@ -43,7 +80,7 @@ export function StatusRibbon({ status }: { status: string }) {
 
 export function CarCard({ car, leasing, priority = false }: { car: Car; leasing: LeasingSettings; priority?: boolean }) {
   const img = coverImage(car);
-  const badges = carBadges(car, useBadgeOrder());
+  const badges = carBadges(car, useBadgeStyle().order);
   const { has, toggle } = useFavorites();
   const fav = has(car.id);
   const monthly = fromPayment(car.price, leasing);
@@ -62,9 +99,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
             className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] ${dim ? 'grayscale-[60%]' : ''}`}
           />
         )}
-        <div className="absolute left-3 top-3 z-10 max-w-[calc(100%-4.25rem)]">
-          <BadgeChips badges={badges} />
-        </div>
+        <BadgeOverlay badges={badges} />
         {car.status !== 'sold' && (
           <div className="price-tag num absolute bottom-3 left-3 z-10 rounded-lg px-2.5 py-1.5 text-sm font-bold shadow-md">
             no {number(monthly)} €/mēn.

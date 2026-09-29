@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { FileText, ShieldCheck, Handshake, BatteryCharging, Plug, Leaf, Percent, Scale, CalendarCheck, ExternalLink } from 'lucide-react';
+import { FileText, ShieldCheck, Handshake, BatteryCharging, Plug, Leaf, Percent, Scale, CalendarCheck, ExternalLink, Users, Recycle, CheckCircle2 } from 'lucide-react';
 import { getPublicCars, getSettings } from '@/lib/data';
 import { PageHead } from '@/components/site/PageHead';
 import { EvCalculator, type EvOption } from '@/components/calc/EvCalculator';
@@ -10,8 +10,8 @@ import { carName, money } from '@/lib/format';
 import { ekiiCalc } from '@/lib/ekii';
 
 export const metadata: Metadata = {
-  title: 'Elektroauto ar EKII valsts atbalstu — cenas kalkulators',
-  description: 'Elektroauto ar EKII valsts atbalstu 2026: lietotam 3000 €, jaunam 4000 €, Goda ģimenēm līdz 9000 €, +2000 € par vecā auto nodošanu. Atbalsts sedz līdz 90% no cenas. Aprēķini gala cenu un līzingu.',
+  title: 'Elektroauto ar EKII valsts atbalstu līdz 90% — cenas kalkulators',
+  description: 'Elektroauto ar EKII valsts atbalstu līdz 90% no cenas: lietotam no 3000 €, jaunam no 4000 €, daudzbērnu ģimenēm vairāk + 1000 € par katru bērnu no ceturtā, +2000 € par vecā auto nodošanu. Aprēķini gala cenu un līzingu.',
   alternates: { canonical: '/elektroauto' },
 };
 
@@ -20,29 +20,30 @@ export default async function EvPage({ searchParams }: { searchParams: Promise<{
   const evs = cars.filter((c) => c.fuel === 'electric');
   const phevs = cars.filter((c) => c.fuel === 'plugin_hybrid' && c.co2 != null && c.co2 <= ekii.phevMaxCo2);
   const options: EvOption[] = [...evs, ...phevs].filter((c) => c.status === 'published').map((c) => ({ slug: c.slug, name: carName(c), price: c.price, vat: c.vat_included, year: c.year, mileage: c.mileage, seats: c.seats, phev: c.fuel === 'plugin_hybrid' }));
-  // Piemērs, kur darbojas 90% ierobežojums: lēts lietots elektroauto + vecā auto nodošana
-  const example = 5000;
-  const ex = ekiiCalc(ekii, { price: example, vatIncluded: false, year: new Date().getFullYear() - 5, mileage: 120000, seats: 5, goda: false, children: 0, scrap: true, isNew: false });
-  const exampleCap = ex.total;
-  const AMOUNTS: [string, number, number][] = [
-    ['Privātpersonai', ekii.newAmount, ekii.usedAmount],
-    ['Goda ģimenei, auto ar 5+ sēdvietām', ekii.familyNew5, ekii.familyUsed5],
-    ['Goda ģimenei, auto ar 7+ sēdvietām', ekii.familyNew7, ekii.familyUsed7],
+  // Reāls scenārijs, kur atbalsts sasniedz 90%: Goda ģimene ar 10 bērniem, jauns 7 vietīgs elektroauto + vecā auto nodošana
+  const famKids = 10;
+  const famPrice = Math.round((ekii.familyNew7 + (famKids - 3) * ekii.extraChild + ekii.scrapBonus) / (ekii.maxIntensityPct / 100) / 100) * 100;
+  const fam = ekiiCalc(ekii, { price: famPrice, vatIncluded: false, year: new Date().getFullYear(), mileage: 0, seats: 7, goda: true, children: famKids, scrap: true, isNew: true });
+  const famPct = Math.round((fam.total / famPrice) * 100);
+  const AMOUNTS: [string, string, number, number, number][] = [
+    ['Privātpersonai', 'katram Latvijas iedzīvotājam', ekii.newAmount, ekii.usedAmount, ekii.newAmount],
+    ['Goda ģimenei', 'auto ar 5+ sēdvietām', ekii.familyNew5, ekii.familyUsed5, ekii.familyNew5],
+    ['Goda ģimenei', 'auto ar 7+ sēdvietām', ekii.familyNew7, ekii.familyUsed7, ekii.familyNew7],
   ];
   const faq: [string, string][] = [
-    ['Kas ir EKII atbalsts?', `Emisijas kvotu izsolīšanas instrumenta (EKII) programma, ko administrē Vides investīciju fonds (MK noteikumi Nr. 238, 21.04.2026). Pieteikties var līdz 31.12.2029 vai kamēr pietiek 40 milj. € finansējuma. Lietotam elektroauto — ${money(ekii.usedAmount)}, jaunam — ${money(ekii.newAmount)}, Goda ģimenēm līdz ${money(ekii.familyNew7)}, par vecā iekšdedzes auto nodošanu vēl +${money(ekii.scrapBonus)}.`],
-    ['Vai tiesa, ka atbalsts ir līdz 90%?', `Atbalsts ir fiksēta summa (tabulā augstāk), bet tas nedrīkst pārsniegt ${ekii.maxIntensityPct}% no auto pārdošanas cenas. Tātad “90%” nav atbalsta apmērs, bet augšējā robeža: lētākam auto valsts var segt līdz ${ekii.maxIntensityPct}% cenas. Piemēram, lietotam elektroauto par ${money(example)} ar vecā auto nodošanu atbalsts ir ${money(exampleCap)} (nevis ${money(ex.sum)}). Dārgākam auto atbalsts ir pilnā fiksētajā apmērā.`],
+    ['Kas ir EKII atbalsts?', `Emisijas kvotu izsolīšanas instrumenta (EKII) programma, ko administrē Vides investīciju fonds (MK noteikumi Nr. 238, 21.04.2026). Pieteikties var līdz 31.12.2029 vai kamēr pietiek 40 milj. € finansējuma. Atbalsts ir fiksēta summa — no ${money(ekii.usedAmount)} lietotam līdz ${money(ekii.familyNew7)} daudzbērnu ģimenei, plus ${money(ekii.extraChild)} par katru bērnu, sākot ar ceturto, un ${money(ekii.scrapBonus)} par vecā auto nodošanu. Kopā — līdz ${ekii.maxIntensityPct}% no auto cenas.`],
+    ['Vai tiešām var saņemt 90% atbalstu?', `Jā. Summas saskaitās: pamatatbalsts + ${money(ekii.extraChild)} par katru bērnu no ceturtā + ${money(ekii.scrapBonus)} par vecā auto nodošanu. Robeža ir ${ekii.maxIntensityPct}% no auto cenas. Piemēram, Goda ģimene ar ${famKids} bērniem, pērkot jaunu 7 vietīgu elektroauto par ${money(famPrice)}, saņem ${money(fam.total)} — ${famPct}% no cenas, un pati maksā tikai ${money(fam.finalPrice)}. Tieši tā nesen pie mums auto iegādājās daudzbērnu ģimene.`],
     ['Kas var saņemt atbalstu?', 'Fiziska persona — Latvijas pastāvīgais iedzīvotājs. Viena persona programmā var iegādāties vienu auto ar atbalstu. Uzņēmumiem šī programma nav paredzēta.'],
-    ['Kādas saistības man būs pēc pirkuma?', 'Auto jāpatur savā īpašumā vai līzingā 5 gadus vai līdz nobraukti 60 000 km (kas iestājas pirmais), tam jābūt reģistrētam Latvijā, un to nedrīkst izmantot saimnieciskajā darbībā. Pārdodot agrāk, atbalsts jāatmaksā.'],
+    ['Kādas saistības man būs pēc pirkuma?', 'Auto jāpatur savā īpašumā vai līzingā 5 gadus vai līdz nobraukti 60 000 km (vidēji 12 000 km gadā), tam jābūt reģistrētam Latvijā, un to nedrīkst izmantot saimnieciskajā darbībā (piem., taksometram). Pārdodot agrāk, atbalsts jāatmaksā.'],
     ['Vai atbalstu var saņemt, pērkot auto līzingā?', 'Jā. Līgumu slēdz četras puses — tirgotājs, Vides investīciju fonds, pircējs un līzinga devējs. Atbalsts samazina finansējamo summu un līdz ar to mēneša maksājumu. Līzingu un dokumentus saskaņojam mēs.'],
     ['Kādām prasībām jāatbilst lietotam elektroauto?', `Pirmā reģistrācija ne senāk kā pirms ${ekii.usedMaxAgeYears} gadiem, nobraukums līdz ${ekii.usedMaxKm.toLocaleString('lv-LV')} km, Latvijā reģistrēts ne ilgāk par 12 mēnešiem, cena bez PVN līdz ${money(ekii.priceCap5)} (6+ sēdvietām ${money(ekii.priceCap6)}). Lietotiem plug-in hibrīdiem atbalsts nepienākas.`],
-    ['Kā saņemt +2000 € par veco auto?', `Nododot savu iekšdedzes auto utilizācijā (ar utilizācijas izziņu) vai ziedojot to Ukrainas bruņotajiem spēkiem. Bonuss pienākas tikai kopā ar atbalstu jauna vai lietota elektroauto iegādei, un vecā auto nodošanai jānotiek ne agrāk kā 12 mēnešus pirms tam.`],
+    ['Kā saņemt +2000 € par veco auto?', `Nododot savu iekšdedzes auto autopārstrādes uzņēmumam (ar likvidācijas sertifikātu un norakstīšanu CSDD) vai ziedojot to Ukrainas bruņotajiem spēkiem. Vecajam auto jābūt tavā īpašumā vismaz pēdējos 3 mēnešus, reģistrētam Latvijā vismaz pēdējo gadu un izmantotam ceļu satiksmē (vismaz 5000 km gadā). Bonuss pienākas tikai kopā ar atbalstu jauna vai lietota elektroauto iegādei.`],
     ['Ko man vajag darīt?', 'Izvēlies auto un piesakies. Mēs pārbaudīsim atbilstību, sagatavosim nepieciešamos dokumentus un pastāstīsim, kā iesniegt pieteikumu programmā — tu nepaliec viens ar birokrātiju.'],
     ['Vai elektroauto jāmaksā ekspluatācijas nodoklis?', 'Nē, elektroauto ir atbrīvoti no transportlīdzekļa ekspluatācijas nodokļa.'],
   ];
   return (
     <>
-      <PageHead crumb="Elektroauto" title={`Elektroauto ar valsts atbalstu līdz ${money(ekii.familyNew7)}`} lead={`EKII atbalsts 2026: lietotam elektroauto ${money(ekii.usedAmount)}, jaunam ${money(ekii.newAmount)}, Goda ģimenēm līdz ${money(ekii.familyNew7)} un +${money(ekii.scrapBonus)} par vecā auto nodošanu — kopā līdz ${ekii.maxIntensityPct}% no auto cenas. Mēs pārdodam auto, sakārtojam līzingu un visas atbalsta formalitātes.`} />
+      <PageHead crumb="Elektroauto" title={`Elektroauto ar valsts atbalstu līdz ${ekii.maxIntensityPct}% no cenas`} lead="EKII programma 2026: atbalsts atkarīgs no auto un ģimenes — daudzbērnu ģimenēm valsts var apmaksāt pat 90% no auto cenas. Mēs pārbaudām atbilstību, sagatavojam dokumentus un saskaņojam līzingu, lai tev atliek tikai braukt." />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {[
@@ -60,52 +61,92 @@ export default async function EvPage({ searchParams }: { searchParams: Promise<{
 
         <section id="nosacijumi" className="mt-16 scroll-mt-24">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="display-md text-3xl text-ink">EKII atbalsta apmērs 2026</h2>
-            <p className="text-sm text-mute">Pēc MK noteikumiem Nr. 238 (21.04.2026) · pieteikšanās līdz 31.12.2029</p>
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-signal">EKII 2026 · atbalsts privātpersonām</p>
+              <h2 className="display-md mt-1 text-3xl text-ink sm:text-4xl">Cik lielu atbalstu vari saņemt</h2>
+            </div>
+            <p className="text-sm text-mute">MK noteikumi Nr. 238 (21.04.2026) · pieteikšanās līdz 31.12.2029</p>
           </div>
-          <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+
+          <div className="mt-6 grid gap-6 xl:grid-cols-[1.35fr_1fr]">
             <div className="overflow-hidden rounded-2xl border border-line bg-card">
-              <table className="w-full text-sm">
-                <thead className="bg-paper text-left text-xs text-mute">
-                  <tr><th className="px-4 py-3 font-semibold">Kam</th><th className="px-4 py-3 text-right font-semibold">Jauns auto*</th><th className="px-4 py-3 text-right font-semibold">Lietots elektroauto</th></tr>
-                </thead>
-                <tbody>
-                  {AMOUNTS.map(([k, n, u]) => (
-                    <tr key={k} className="border-t border-line"><td className="px-4 py-3 text-ink-2">{k}</td><td className="num px-4 py-3 text-right font-bold text-ink">{money(n)}</td><td className="num px-4 py-3 text-right font-bold text-ink">{money(u)}</td></tr>
-                  ))}
-                  <tr className="border-t border-line"><td className="px-4 py-3 text-ink-2">Goda ģimenei — par katru bērnu, sākot ar 4.</td><td colSpan={2} className="num px-4 py-3 text-right font-bold text-ink">+{money(ekii.extraChild)}</td></tr>
-                  <tr className="border-t border-line bg-signal-soft/60"><td className="px-4 py-3 text-ink">Nododot veco iekšdedzes auto utilizācijā vai Ukrainas armijai</td><td colSpan={2} className="num px-4 py-3 text-right font-bold text-signal">+{money(ekii.scrapBonus)}</td></tr>
-                </tbody>
-              </table>
-              <p className="border-t border-line px-4 py-3 text-xs text-mute">* Jauns — lietots mazāk par 6 mēnešiem vai nobraucis mazāk par 6000 km. Jaunam auto atbalsts pieejams arī plug-in hibrīdiem (līdz {ekii.phevMaxCo2} g CO₂/km, vismaz 50 km ar elektrību).</p>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead className="bg-paper text-xs text-mute">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold">Pamatatbalsts</th>
+                      <th className="px-3 py-3 text-right font-semibold"><span className="flex items-center justify-end gap-1"><BatteryCharging className="h-3.5 w-3.5" /> Jauns* EV</span></th>
+                      <th className="px-3 py-3 text-right font-semibold"><span className="flex items-center justify-end gap-1"><BatteryCharging className="h-3.5 w-3.5" /> Lietots EV</span></th>
+                      <th className="px-4 py-3 text-right font-semibold"><span className="flex items-center justify-end gap-1"><Plug className="h-3.5 w-3.5" /> Jauns* PHEV</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {AMOUNTS.map(([k, sub, n, u, ph]) => (
+                      <tr key={k + sub} className="border-t border-line">
+                        <td className="px-4 py-3"><span className="font-semibold text-ink">{k}</span><span className="block text-xs text-mute">{sub}</span></td>
+                        <td className="num px-3 py-3 text-right text-base font-bold text-ink">{money(n)}</td>
+                        <td className="num px-3 py-3 text-right text-base font-bold text-ink">{money(u)}</td>
+                        <td className="num px-4 py-3 text-right text-base font-bold text-ink">{money(ph)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="grid gap-px border-t border-line bg-line sm:grid-cols-2">
+                <div className="flex items-center gap-3 bg-card px-4 py-3.5">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-signal-soft"><Users className="h-5 w-5 text-signal" /></span>
+                  <p className="text-sm text-ink-2"><b className="num text-base text-ink">+{money(ekii.extraChild)}</b> par katru nākamo bērnu, sākot ar ceturto</p>
+                </div>
+                <div className="flex items-center gap-3 bg-card px-4 py-3.5">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-signal-soft"><Recycle className="h-5 w-5 text-signal" /></span>
+                  <p className="text-sm text-ink-2"><b className="num text-base text-ink">+{money(ekii.scrapBonus)}</b> nododot veco iekšdedzes auto utilizācijai vai Ukrainas armijai</p>
+                </div>
+              </div>
+              <p className="border-t border-line px-4 py-3 text-xs text-mute">* Jauns — lietots mazāk par 6 mēnešiem vai nobraucis mazāk par 6000 km. PHEV — plug-in hibrīds līdz {ekii.phevMaxCo2} g CO₂/km un vismaz 50 km ar elektrību. Goda ģimene — ar “Latvijas Goda ģimenes” apliecību.</p>
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="rounded-2xl bg-night p-6 text-white">
-                <Percent className="h-6 w-6 text-signal" />
-                <p className="mt-3 text-lg font-bold">Līdz {ekii.maxIntensityPct}% no auto cenas</p>
-                <p className="mt-1 text-sm text-white/70">Atbalsts ir fiksēta summa, bet kopā ne vairāk kā {ekii.maxIntensityPct}% no pārdošanas cenas. Lētākam auto valsts var segt gandrīz visu: lietotam elektroauto par {money(example)} ar vecā auto nodošanu atbalsts būtu {money(ex.sum)}, bet ar {ekii.maxIntensityPct}% limitu — {money(exampleCap)}. Tev jāmaksā tikai {money(example - exampleCap)}.</p>
+
+            <div className="relative overflow-hidden rounded-2xl bg-night p-6 text-white sm:p-7">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-signal/25 blur-3xl" />
+              <p className="flex items-center gap-2 text-sm font-semibold text-white/70"><Percent className="h-4 w-4 text-signal" /> Kā veidojas līdz {ekii.maxIntensityPct}% atbalsts</p>
+              <p className="mt-2 text-lg font-bold">Goda ģimene ar {famKids} bērniem, jauns 7 vietīgs elektroauto</p>
+              <dl className="mt-4 space-y-1.5 text-sm">
+                <div className="flex justify-between gap-4"><dt className="text-white/65">Pamatatbalsts (7+ vietas)</dt><dd className="num font-semibold">{money(fam.base)}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-white/65">{famKids - 3} bērni, sākot ar 4. × {money(ekii.extraChild)}</dt><dd className="num font-semibold">+{money(fam.childBonus)}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="text-white/65">Vecā auto nodošana</dt><dd className="num font-semibold">+{money(fam.scrap)}</dd></div>
+                <div className="flex justify-between gap-4 border-t border-white/15 pt-2"><dt className="text-white/65">Auto cena</dt><dd className="num font-semibold">{money(famPrice)}</dd></div>
+              </dl>
+              <div className="mt-4 flex items-end justify-between gap-4 rounded-xl bg-white/5 p-4">
+                <div>
+                  <p className="text-xs text-white/60">Valsts atbalsts</p>
+                  <p className="num display text-3xl text-signal">{money(fam.total)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="num display text-4xl">{famPct}%</p>
+                  <p className="text-xs text-white/60">ģimene maksā {money(fam.finalPrice)}</p>
+                </div>
               </div>
-              <div className="rounded-2xl border border-line bg-card p-6">
-                <Scale className="h-6 w-6 text-signal" />
-                <p className="mt-3 font-bold text-ink">Cenas limits</p>
-                <p className="mt-1 text-sm text-ink-2">Līdz {money(ekii.priceCap5)} bez PVN, auto ar 6+ sēdvietām — līdz {money(ekii.priceCap6)} bez PVN.</p>
-              </div>
+              <p className="mt-4 text-sm text-white/70">Tieši tā nesen pie mums elektroauto iegādājās daudzbērnu ģimene. Atbalsts nedrīkst pārsniegt {ekii.maxIntensityPct}% no auto cenas.</p>
             </div>
           </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              { i: ShieldCheck, t: 'Kas var pieteikties', d: 'Fiziska persona — Latvijas pastāvīgais iedzīvotājs. Viens auto ar atbalstu uz personu. Var pirkt arī līzingā.' },
-              { i: BatteryCharging, t: 'Lietotam elektroauto', d: `Ne vecāks par ${ekii.usedMaxAgeYears} gadiem, nobraukums līdz ${ekii.usedMaxKm.toLocaleString('lv-LV')} km, Latvijā reģistrēts ne ilgāk par 12 mēnešiem. Mūsu ievestie auto šo prasību parasti izpilda.` },
-              { i: CalendarCheck, t: 'Saistības pēc pirkuma', d: 'Auto jāpatur 5 gadus vai līdz 60 000 km, reģistrētu Latvijā, un to nedrīkst izmantot uzņēmējdarbībā.' },
-            ].map(({ i: I, t, d }) => (
-              <div key={t} className="rounded-2xl border border-line bg-card p-6">
+              { i: Scale, t: 'Auto cena', l: [`Līdz ${money(ekii.priceCap5)} bez PVN`, `Līdz ${money(ekii.priceCap6)} bez PVN, ja auto ir 6+ sēdvietas`] },
+              { i: BatteryCharging, t: 'Lietotam elektroauto', l: [`Ne vecāks par ${ekii.usedMaxAgeYears} gadiem`, `Nobraukums līdz ${ekii.usedMaxKm.toLocaleString('lv-LV')} km`, 'Latvijā reģistrēts ne ilgāk par 12 mēnešiem', 'Lietotiem PHEV atbalsts nepienākas'] },
+              { i: CalendarCheck, t: 'Pēc pirkuma', l: ['12 000 km gadā vai 60 000 km 5 gados', 'Auto paliek reģistrēts Latvijā', 'Nedrīkst izmantot saimnieciskajai darbībai (piem., taksometram)'] },
+              { i: Recycle, t: 'Vecā auto nodošana', l: ['Likvidācijas sertifikāts, norakstīts CSDD', 'Tavā īpašumā vismaz pēdējos 3 mēnešus', 'Latvijā reģistrēts vismaz pēdējo gadu', 'Izmantots ceļu satiksmē, vismaz 5000 km gadā'] },
+            ].map(({ i: I, t, l }) => (
+              <div key={t} className="rounded-2xl border border-line bg-card p-5">
                 <I className="h-6 w-6 text-signal" />
                 <p className="mt-3 font-bold text-ink">{t}</p>
-                <p className="mt-1 text-sm text-ink-2">{d}</p>
+                <ul className="mt-2 space-y-1.5 text-sm text-ink-2">
+                  {l.map((x) => <li key={x} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-ok" /> {x}</li>)}
+                </ul>
               </div>
             ))}
           </div>
-          <p className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs text-mute">
+          <p className="mt-4 text-sm text-ink-2"><ShieldCheck className="mr-1.5 inline h-4 w-4 text-signal" />Atbalstu var saņemt Latvijas pastāvīgais iedzīvotājs (privātpersona), vienu auto uz personu — arī pērkot līzingā.</p>
+          <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-mute">
             <span>Avoti:</span>
             <a href="https://likumi.lv/ta/id/368128" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-ink">MK noteikumi Nr. 238 <ExternalLink className="h-3 w-3" /></a>
             <a href="https://ekii.lv/" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-ink">ekii.lv <ExternalLink className="h-3 w-3" /></a>

@@ -9,8 +9,8 @@ import { revalidateSite } from '@/components/admin/revalidate';
 import { DEFAULT_LEASING } from '@/lib/leasing';
 import { DEFAULT_EKII } from '@/lib/ekii';
 import { DEFAULT_WARRANTY } from '@/lib/warranty';
-import { normalizeBadgeOrder } from '@/lib/format';
-import { BadgeDefaultOrder } from '@/components/admin/BadgeOrder';
+import { normalizeBadgeStyle, type BadgeStyle } from '@/lib/format';
+import { BadgeDesigner } from '@/components/admin/BadgeOrder';
 
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
@@ -89,7 +89,8 @@ export default function SettingsPage() {
   const [vals, setVals] = useState<Record<string, Record<string, unknown>> | null>(null);
   const [isDev, setDev] = useState(false);
   const [saving, setSaving] = useState('');
-  const [badgeOrder, setBadgeOrder] = useState<string[] | null>(null);
+  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle | null>(null);
+  const [previewImg, setPreviewImg] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -99,14 +100,16 @@ export default function SettingsPage() {
       const m: Record<string, Record<string, unknown>> = {};
       for (const s of SECTIONS) m[s.key] = { ...structuredClone(DEFAULTS[s.key] || {}), ...((data || []).find((r: { key: string }) => r.key === s.key)?.value || {}) };
       setVals(m);
-      setBadgeOrder(normalizeBadgeOrder(((data || []).find((r: { key: string }) => r.key === 'badges')?.value as { order?: string[] } | undefined)?.order));
+      setBadgeStyle(normalizeBadgeStyle((data || []).find((r: { key: string }) => r.key === 'badges')?.value));
+      const { data: img } = await sb.from('car_images').select('url,cars!inner(status)').eq('cars.status', 'published').eq('sort', 0).eq('is_promo', false).limit(1).maybeSingle();
+      if (img?.url) setPreviewImg(img.url as string);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function save(key: string, tech?: boolean) {
     setSaving(key);
-    const value = key === 'badges' ? { order: badgeOrder } : vals![key];
+    const value = key === 'badges' ? badgeStyle : vals![key];
     const { error } = await sb.from('settings').upsert({ key, value, is_public: !tech, technical: !!tech, updated_at: new Date().toISOString() });
     setSaving('');
     if (error) return toast(error.message, 'err');
@@ -146,8 +149,8 @@ export default function SettingsPage() {
             </div>
           </Card>
         ))}
-        <Card title="Zīmju svarīgums" hint="Kādā secībā zīmes rādās uz auto bildēm visā lapā. Velc vai spied bultiņas — svarīgākā augšā. Konkrētam auto secību var mainīt arī auto kartītē.">
-          {badgeOrder && <BadgeDefaultOrder order={badgeOrder} onChange={setBadgeOrder} />}
+        <Card title="Zīmes uz auto bildēm" hint="Novietojums, forma, krāsas un svarīguma secība visā lapā. Konkrētam auto secību var mainīt arī auto kartītē.">
+          {badgeStyle && <BadgeDesigner value={badgeStyle} onChange={setBadgeStyle} previewImg={previewImg} />}
           <div className="mt-5 flex justify-end">
             <button onClick={() => save('badges')} className="btn btn-primary" disabled={saving === 'badges'}>{saving === 'badges' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Saglabāt</button>
           </div>

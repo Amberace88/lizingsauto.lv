@@ -3,13 +3,17 @@ import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Expand, X } from 'lucide-react';
-import { BadgeChips, StatusRibbon } from './CarCard';
+import { BadgeOverlay, StatusRibbon } from './CarCard';
+import { useBadgeStyle } from './BadgeOrderContext';
 
 export function Gallery({ images, alt, badges, status }: { images: string[]; alt: string; badges: string[]; status: string }) {
   const [i, setI] = useState(0);
   const [full, setFull] = useState(false);
   const [dir, setDir] = useState(0);
   const n = images.length;
+  const { position } = useBadgeStyle();
+  const side = position === 'left' || position === 'right';
+  const arrowBottom = status === 'sold' || status === 'reserved' ? 'bottom-12' : 'bottom-3';
   const go = useCallback((d: number) => {
     setDir(d);
     setI((p) => (p + d + n) % n);
@@ -61,12 +65,10 @@ export function Gallery({ images, alt, badges, status }: { images: string[]; alt
     <div>
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-night">
         {slide(false)}
-        <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[calc(100%-8rem)]">
-          <BadgeChips badges={badges} size="md" />
-        </div>
+        <BadgeOverlay badges={badges} variant="gallery" ribbon={status === 'sold' || status === 'reserved'} />
         <StatusRibbon status={status} />
-        <button onClick={() => go(-1)} className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow hover:bg-card" aria-label="Iepriekšējā bilde"><ChevronLeft /></button>
-        <button onClick={() => go(1)} className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow hover:bg-card" aria-label="Nākamā bilde"><ChevronRight /></button>
+        <button onClick={() => go(-1)} className={`absolute z-10 grid h-11 w-11 place-items-center ${side ? `right-16 ${arrowBottom}` : 'left-3 top-1/2 -translate-y-1/2'} rounded-full bg-card/90 shadow hover:bg-card`} aria-label="Iepriekšējā bilde"><ChevronLeft /></button>
+        <button onClick={() => go(1)} className={`absolute z-10 grid h-11 w-11 place-items-center ${side ? `right-3 ${arrowBottom}` : 'right-3 top-1/2 -translate-y-1/2'} rounded-full bg-card/90 shadow hover:bg-card`} aria-label="Nākamā bilde"><ChevronRight /></button>
         <button onClick={() => setFull(true)} className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-night/70 px-3 py-1.5 text-sm font-semibold text-white hover:bg-night" aria-label="Pilnekrāna režīms">
           <Expand className="h-4 w-4" /> <span className="num">{i + 1}/{n}</span>
         </button>

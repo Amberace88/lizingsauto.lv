@@ -40,9 +40,9 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const car = await getCarBySlug(slug);
   if (!car) notFound();
   if (car.slug !== slug) permanentRedirect(carUrl(car));
-  const [{ leasing, company, ekii, warranty, badgeOrder }, all] = await Promise.all([getSettings(), getPublicCars()]);
+  const [{ leasing, company, ekii, warranty, badgeStyle }, all] = await Promise.all([getSettings(), getPublicCars()]);
   const images = sortedImages(car).map((i) => i.url);
-  const badges = carBadges(car, badgeOrder);
+  const badges = carBadges(car, badgeStyle.order);
   const name = carName(car);
   const monthly = fromPayment(car.price, leasing);
   const ev = ekiiForCar(ekii, car);

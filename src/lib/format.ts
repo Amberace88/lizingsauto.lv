@@ -85,6 +85,49 @@ export function normalizeBadgeOrder(order?: unknown): string[] {
   return [...new Set([...valid, ...all])];
 }
 
+export type BadgePosition = 'top' | 'left' | 'right' | 'bottom';
+export type BadgeShape = 'pill' | 'rounded' | 'square';
+export interface BadgeStyle {
+  order: string[];
+  colors: Record<string, string>; // zīmes kods -> fona krāsa (#rrggbb)
+  position: BadgePosition;
+  shape: BadgeShape;
+}
+export const BADGE_POSITIONS: { id: BadgePosition; label: string }[] = [
+  { id: 'top', label: 'Augšā, rindā' },
+  { id: 'left', label: 'Kreisajā pusē, stabiņā' },
+  { id: 'right', label: 'Labajā pusē, stabiņā' },
+  { id: 'bottom', label: 'Apakšā, rindā' },
+];
+export const BADGE_SHAPES: { id: BadgeShape; label: string }[] = [
+  { id: 'pill', label: 'Apaļas' },
+  { id: 'rounded', label: 'Noapaļotas' },
+  { id: 'square', label: 'Taisnstūra' },
+];
+const HEX = /^#[0-9a-f]{6}$/i;
+
+export function normalizeBadgeStyle(v?: unknown): BadgeStyle {
+  const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+  const colors: Record<string, string> = {};
+  if (o.colors && typeof o.colors === 'object') {
+    for (const [k, c] of Object.entries(o.colors as Record<string, unknown>)) if (BADGES[k] && typeof c === 'string' && HEX.test(c)) colors[k] = c.toLowerCase();
+  }
+  const position = BADGE_POSITIONS.some((p) => p.id === o.position) ? (o.position as BadgePosition) : 'top';
+  const shape = BADGE_SHAPES.some((p) => p.id === o.shape) ? (o.shape as BadgeShape) : 'pill';
+  return { order: normalizeBadgeOrder(o.order), colors, position, shape };
+}
+
+/** Lasāma teksta krāsa uz dotā fona (WCAG relatīvais spilgtums). */
+export function badgeTextColor(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (c: number) => {
+    const x = c / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return L > 0.4 ? '#161616' : '#ffffff';
+}
+
 /** Zīmes rādīšanas secībā: admina secība šim auto, ja noteikta, citādi pēc lapas noklusētā svarīguma. */
 export function carBadges(car: BadgeCar, defaultOrder: string[] = DEFAULT_BADGE_ORDER): string[] {
   const rank = (b: string) => {

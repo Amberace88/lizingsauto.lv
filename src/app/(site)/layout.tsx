@@ -3,13 +3,13 @@ import { Footer } from '@/components/site/Footer';
 import { FloatingContact } from '@/components/site/FloatingContact';
 import { CompareBar } from '@/components/site/CompareBar';
 import { getSettings } from '@/lib/data';
-import { BadgeOrderProvider } from '@/components/site/BadgeOrderContext';
+import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const { company, content, badgeOrder } = await getSettings();
+  const { company, content, badgeStyle } = await getSettings();
   const org = {
     '@context': 'https://schema.org',
     '@type': 'AutoDealer',
@@ -31,7 +31,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     areaServed: 'LV',
   };
   return (
-    <BadgeOrderProvider order={badgeOrder}>
+    <BadgeStyleProvider value={badgeStyle}>
     <div className="site min-h-dvh">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }} />
       {content.announcement ? (
@@ -43,6 +43,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
     </div>
-    </BadgeOrderProvider>
+    </BadgeStyleProvider>
   );
 }

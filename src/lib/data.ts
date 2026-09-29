@@ -4,7 +4,7 @@ import type { Car, CompanySettings, LeasingSettings } from './types';
 import { DEFAULT_LEASING } from './leasing';
 import { DEFAULT_EKII, type EkiiSettings } from './ekii';
 import { DEFAULT_WARRANTY, type WarrantySettings } from './warranty';
-import { normalizeBadgeOrder } from './format';
+import { normalizeBadgeStyle } from './format';
 
 export const DEFAULT_COMPANY: CompanySettings = {
   name: 'SIA AC Industry',
@@ -33,7 +33,7 @@ export const getSettings = cache(async () => {
     company: { ...DEFAULT_COMPANY, ...(map.company || {}) } as CompanySettings,
     content: (map.content || {}) as Record<string, string>,
     ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings,
-    badgeOrder: normalizeBadgeOrder((map.badges || {}).order),
+    badgeStyle: normalizeBadgeStyle(map.badges),
     warranty: { ...DEFAULT_WARRANTY, ...(map.warranty || {}), prices: { ...DEFAULT_WARRANTY.prices, ...((map.warranty || {}).prices || {}) } } as WarrantySettings,
   };
 });

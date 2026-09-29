@@ -6,9 +6,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, ImagePlus, Loader2, Save, Star, Trash2, Wand2, X, ExternalLink, GripVertical } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
-import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeOrder, slugify } from '@/lib/format';
+import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, type BadgeStyle } from '@/lib/format';
 import { DEFAULT_LEASING, fromPayment } from '@/lib/leasing';
-import { BadgeChips } from '@/components/site/CarCard';
+import { BadgeOverlay } from '@/components/site/CarCard';
+import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { useToast } from './Toast';
 import { revalidateSite } from './revalidate';
 import { PortalPanel } from './PortalPanel';
@@ -49,10 +50,11 @@ export function CarEditor({ id }: { id?: string }) {
   const [slugTouched, setSlugTouched] = useState(!isNew);
   const [eqInput, setEqInput] = useState('');
   const dragFrom = useRef<number | null>(null);
-  const [badgeOrder, setBadgeOrder] = useState<string[]>(normalizeBadgeOrder());
+  const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>(normalizeBadgeStyle());
+  const badgeOrder = badgeStyle.order;
 
   useEffect(() => {
-    sb.from('settings').select('value').eq('key', 'badges').maybeSingle().then(({ data }: { data: { value: unknown } | null }) => setBadgeOrder(normalizeBadgeOrder((data?.value as { order?: string[] } | null)?.order)));
+    sb.from('settings').select('value').eq('key', 'badges').maybeSingle().then(({ data }: { data: { value: unknown } | null }) => setBadgeStyle(normalizeBadgeStyle(data?.value)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -372,14 +374,16 @@ export function CarEditor({ id }: { id?: string }) {
             {car.price ? <p className="num mt-3 rounded-lg bg-signal-soft px-3 py-2 text-sm">Līzingā no <b>{fromPayment(car.price, DEFAULT_LEASING)} €/mēn.</b></p> : null}
           </Card>
 
-          <Card title="Zīmes uz bildes" hint="Rādās uz galvenās bildes katalogā un auto lapā — visas, izvēlētajā secībā.">
-            {visible[0] && (
-              <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-lg bg-line">
-                <Image src={visible[0].url} alt="" fill sizes="320px" className="object-cover" unoptimized={visible[0].url.startsWith('blob:')} />
-                <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)]"><BadgeChips badges={badges} /></div>
-              </div>
-            )}
-            <BadgeOrder car={car} defaultOrder={badgeOrder} onChange={(b) => set('badges', b)} />
+          <Card title="Zīmes uz bildes" hint="Rādās uz galvenās bildes katalogā un auto lapā. Krāsas un novietojumu maina Iestatījumos.">
+            <BadgeStyleProvider value={badgeStyle}>
+              {visible[0] && (
+                <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-lg bg-line">
+                  <Image src={visible[0].url} alt="" fill sizes="320px" className="object-cover" unoptimized={visible[0].url.startsWith('blob:')} />
+                  <BadgeOverlay badges={badges} />
+                </div>
+              )}
+              <BadgeOrder car={car} defaultOrder={badgeOrder} onChange={(b) => set('badges', b)} />
+            </BadgeStyleProvider>
           </Card>
 
           <Card title="Publicēšana">

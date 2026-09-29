@@ -92,7 +92,7 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
               Auto jau ilgāk par 12 mēnešiem reģistrēts Latvijā
             </label>
           )}
-          {goda && <Slider label="Bērnu skaits ģimenē" value={children} min={3} max={8} step={1} onChange={setChildren} format={String} />}
+          {goda && <Slider label="Bērnu skaits ģimenē" value={children} min={3} max={12} step={1} onChange={setChildren} format={String} />}
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Slider label={`Pirmā iemaksa (${downPct}%)`} value={downPct} min={0} max={50} step={5} onChange={setDownPct} format={(v) => money((price * v) / 100)} />
@@ -134,7 +134,7 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
             <li>Cena līdz {money(ekii.priceCap5)} bez PVN (6+ sēdvietām — {money(ekii.priceCap6)})</li>
             <li>Lietots elektroauto: pirmā reģistrācija ne senāk kā pirms {ekii.usedMaxAgeYears} gadiem, līdz {number(ekii.usedMaxKm)} km, Latvijā reģistrēts ne ilgāk par 12 mēn.</li>
             <li>Plug-in hibrīdiem — tikai jauniem (līdz {ekii.phevMaxCo2} g CO₂/km)</li>
-            <li>Auto jāpatur 5 gadus vai līdz 60 000 km, to nedrīkst izmantot saimnieciskajā darbībā</li>
+            <li>Pēc pirkuma: 12 000 km gadā vai 60 000 km 5 gados, auto nedrīkst izmantot saimnieciskajā darbībā</li>
           </ul>
           <p className="mt-3 text-xs text-mute">Orientējošs aprēķins. Galīgo lēmumu pieņem Vides investīciju fonds.</p>
         </div>

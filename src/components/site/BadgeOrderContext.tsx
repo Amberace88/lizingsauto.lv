@@ -1,12 +1,14 @@
 'use client';
 import { createContext, useContext } from 'react';
-import { DEFAULT_BADGE_ORDER } from '@/lib/format';
+import { DEFAULT_BADGE_ORDER, type BadgeStyle } from '@/lib/format';
 
-const Ctx = createContext<string[]>(DEFAULT_BADGE_ORDER);
+const DEFAULT: BadgeStyle = { order: DEFAULT_BADGE_ORDER, colors: {}, position: 'top', shape: 'pill' };
+const Ctx = createContext<BadgeStyle>(DEFAULT);
 
-/** Lapas noklusētā zīmju svarīguma secība (no admina iestatījumiem). */
-export function BadgeOrderProvider({ order, children }: { order: string[]; children: React.ReactNode }) {
-  return <Ctx.Provider value={order}>{children}</Ctx.Provider>;
+/** Zīmju izskats visā lapā: secība, krāsas, novietojums, forma (no admina iestatījumiem). */
+export function BadgeStyleProvider({ value, children }: { value: BadgeStyle; children: React.ReactNode }) {
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
-export const useBadgeOrder = () => useContext(Ctx);
+export const useBadgeStyle = () => useContext(Ctx);
+export const useBadgeOrder = () => useContext(Ctx).order;
