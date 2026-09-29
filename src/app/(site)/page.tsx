@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShieldCheck, Globe2, Wallet, Repeat2, Zap, FileCheck2, BatteryCharging, ArrowRight, Car as CarIcon, Truck, CarFront, Bus } from 'lucide-react';
+import { ShieldCheck, Globe2, Wallet, Repeat2, Zap, Banknote, Megaphone, ArrowLeftRight, Handshake, BatteryCharging, ArrowRight, Car as CarIcon, Truck, CarFront, Bus } from 'lucide-react';
 import { getPublicCars, getSettings } from '@/lib/data';
 import { BudgetHero, type MiniCar } from '@/components/site/BudgetHero';
 import { CarCard } from '@/components/site/CarCard';
@@ -23,8 +23,8 @@ export default async function HomePage() {
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:pb-24 lg:pt-14">
-          <div>
-            <h1 className="display text-[2.6rem] text-ink sm:text-[3.6rem] lg:text-[4.3rem]">
+          <div className="min-w-0">
+            <h1 className="display text-[2.6rem] text-ink sm:text-[3.6rem] lg:text-[4rem]">
               {content.heroTitle || 'Auto ar līzingu. Arī tad, ja banka atteica.'}
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
@@ -55,7 +55,7 @@ export default async function HomePage() {
               ))}
             </ul>
           </div>
-          <BudgetHero cars={mini} leasing={leasing} />
+          <div className="min-w-0"><BudgetHero cars={mini} leasing={leasing} /></div>
         </div>
       </section>
 
@@ -182,14 +182,14 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-px bg-white/10">
-            {[
-              ['Nauda uzreiz', 'Izmaksājam darījuma dienā'],
-              ['Bez sludinājumu', 'Nav jāsarunā ar pircējiem'],
-              ['Maiņa', 'Nomaini auto ar piemaksu'],
-              ['Komisija', 'Pārdodam tavā vietā'],
-            ].map(([t, d]) => (
+            {([
+              [Banknote, 'Nauda uzreiz', 'Izmaksājam darījuma dienā'],
+              [Megaphone, 'Bez sludinājumiem', 'Nav jāsarunā ar pircējiem'],
+              [ArrowLeftRight, 'Maiņa', 'Nomaini auto ar piemaksu'],
+              [Handshake, 'Komisija', 'Pārdodam tavā vietā'],
+            ] as const).map(([Icon, t, d]) => (
               <div key={t} className="bg-ink p-6 sm:p-8">
-                <FileCheck2 className="h-6 w-6 text-signal" />
+                <Icon className="h-6 w-6 text-signal" />
                 <p className="mt-3 font-bold">{t}</p>
                 <p className="text-sm text-white/60">{d}</p>
               </div>

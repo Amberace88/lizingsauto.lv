@@ -117,7 +117,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
           <Gallery images={images} alt={`${name} ${car.year ?? ''}`} badges={badges} status={car.status} />
         </div>
         <div className="lg:row-span-2">
-          <div className="lg:sticky lg:top-20">
+          <div>
             <div className="mb-5">
               {car.status !== 'published' && (
                 <span className={`mb-2 inline-block rounded-full px-3 py-1 text-xs font-bold text-white ${car.status === 'sold' ? 'bg-bad' : 'bg-warn'}`}>{STATUS_LABEL[car.status]}</span>

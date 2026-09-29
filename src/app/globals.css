@@ -46,6 +46,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@layer components {
 /* Plats, smags virsraksts — zīmola balss */
 .display {
   font-family: var(--font-display);
@@ -177,6 +178,8 @@ input[type="range"].range::-moz-range-thumb {
   margin: 0 0 0.9rem;
   line-height: 1.65;
   color: var(--color-ink-2);
+}
+
 }
 
 @media (prefers-reduced-motion: reduce) {

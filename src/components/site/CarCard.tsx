@@ -62,7 +62,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
           />
         )}
         <div className="absolute left-3 top-3 z-10 max-w-[80%]">
-          <BadgeChips badges={badges} />
+          <BadgeChips badges={badges} max={2} />
         </div>
         {car.status !== 'sold' && (
           <div className="price-tag num absolute bottom-3 left-3 z-10 rounded-lg px-2.5 py-1.5 text-sm font-bold shadow-md">
