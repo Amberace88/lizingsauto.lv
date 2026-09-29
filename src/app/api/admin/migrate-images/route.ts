@@ -20,7 +20,7 @@ export async function POST() {
         const res = await fetch(src, { headers: { 'user-agent': 'LizingsAutoMigrator/1.0' } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const input = Buffer.from(await res.arrayBuffer());
-        const out = await sharp(input).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+        const out = await sharp(input, { failOn: 'none' }).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
         const path = `${im.car_id}/${im.id}.webp`;
         const { error: upErr } = await supabase.storage.from('cars').upload(path, out, { contentType: 'image/webp', upsert: true, cacheControl: '31536000' });
         if (upErr) throw upErr;

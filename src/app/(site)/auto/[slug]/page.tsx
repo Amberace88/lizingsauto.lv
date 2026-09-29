@@ -41,7 +41,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const car = await getCarBySlug(slug);
   if (!car) notFound();
   if (car.slug !== slug) permanentRedirect(carUrl(car));
-  const [{ leasing, company, ekii, warranty, badgeStyle }, all] = await Promise.all([getSettings(), getPublicCars()]);
+  const [{ leasing, company, ekii, warranty, badgeStyle, equipCatalog }, all] = await Promise.all([getSettings(), getPublicCars()]);
   const images = sortedImages(car).map((i) => i.url);
   const badges = carBadges(car, badgeStyle.order);
   const name = carName(car);
@@ -151,7 +151,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
         <div className="min-w-0 space-y-8">
           <KeyFacts car={car} />
 
-          <CarDescription car={car} company={company} monthly={monthly} />
+          <CarDescription car={car} company={company} monthly={monthly} catalog={equipCatalog} />
 
           <section aria-labelledby="specs" className="rounded-[24px] border border-line bg-card p-6 sm:p-8">
             <h2 id="specs" className="display-md text-2xl text-ink">Visi tehniskie dati</h2>

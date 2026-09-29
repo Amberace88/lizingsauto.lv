@@ -13,7 +13,7 @@ import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { useToast } from './Toast';
 import { revalidateSite } from './revalidate';
 import { PortalPanel } from './PortalPanel';
-import { EQUIP_CATALOG, EQUIP_CATS } from '@/lib/equipment';
+import { EquipPicker } from './EquipCatalog';
 import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
 
@@ -364,30 +364,16 @@ export function CarEditor({ id }: { id?: string }) {
                 </span>
               ))}
             </div>
-            <div className="mt-4 space-y-2 border-t border-line pt-4">
-              <p className="text-xs font-semibold text-mute">Ātrā izvēle — atzīmē, kas auto ir (lapā rādīsies sagrupēts pa kategorijām)</p>
-              {EQUIP_CATALOG.map((g) => {
-                const label = EQUIP_CATS.find((c) => c.id === g.id)!.label;
-                const on = g.items.filter((p) => (car.equipment || []).includes(p)).length;
-                return (
-                  <details key={g.id} className="group rounded-xl border border-line" open={g.id === 'comfort'}>
-                    <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-semibold text-ink">
-                      {label}
-                      <span className="flex items-center gap-2 text-xs text-mute">{on > 0 && <span className="rounded-full bg-signal-soft px-2 py-0.5 font-bold text-signal">{on}</span>}<ArrowDown className="h-3.5 w-3.5 transition group-open:rotate-180" /></span>
-                    </summary>
-                    <div className="flex flex-wrap gap-1.5 px-3 pb-3">
-                      {g.items.map((p) => {
-                        const has = (car.equipment || []).includes(p);
-                        return (
-                          <button key={p} type="button" aria-pressed={has} onClick={() => set('equipment', has ? (car.equipment || []).filter((x) => x !== p) : [...(car.equipment || []), p])} className={`rounded-full border px-3 py-1 text-xs font-medium transition ${has ? 'border-signal bg-signal text-white' : 'border-line text-ink-2 hover:border-ink-2 hover:text-ink'}`}>
-                            {has ? '✓ ' : '+ '}{p}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </details>
-                );
-              })}
+            <div className="mt-4 border-t border-line pt-4">
+              <EquipPicker
+                selected={car.equipment || []}
+                onToggle={(p) => {
+                  const cur = car.equipment || [];
+                  const has = cur.some((x) => x.toLowerCase() === p.toLowerCase());
+                  set('equipment', has ? cur.filter((x) => x.toLowerCase() !== p.toLowerCase()) : [...cur, p]);
+                }}
+                onAdd={(p) => { setDirty(true); setCar((c) => ({ ...c, equipment: [...new Set([...(c.equipment || []), p])] })); }}
+              />
             </div>
           </Card>
 

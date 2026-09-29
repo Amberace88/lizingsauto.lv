@@ -11,6 +11,7 @@ import { DEFAULT_EKII } from '@/lib/ekii';
 import { DEFAULT_WARRANTY } from '@/lib/warranty';
 import { normalizeBadgeStyle, type BadgeStyle } from '@/lib/format';
 import { BadgeDesigner } from '@/components/admin/BadgeOrder';
+import { EquipCatalogEditor, useEquipCatalog } from '@/components/admin/EquipCatalog';
 
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
@@ -91,6 +92,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState('');
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const eq = useEquipCatalog();
+  const [eqSaving, setEqSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -149,6 +152,12 @@ export default function SettingsPage() {
             </div>
           </Card>
         ))}
+        <Card title="Aprīkojuma katalogs" hint="Kategorijas un ekstras, ko redz auto redaktorā un pēc kurām lapā sagrupējas aprīkojums. Pievieno, pārdēvē, kārto (velc) un dzēs.">
+          {eq.catalog && <EquipCatalogEditor value={eq.catalog} onChange={eq.setCatalog} />}
+          <div className="mt-5 flex justify-end">
+            <button onClick={async () => { setEqSaving(true); const err = await eq.save(eq.catalog!); setEqSaving(false); toast(err || 'Katalogs saglabāts', err ? 'err' : undefined); }} className="btn btn-primary" disabled={eqSaving || !eq.catalog}>{eqSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Saglabāt</button>
+          </div>
+        </Card>
         <Card title="Zīmes uz auto bildēm" hint="Novietojums, forma, krāsas un svarīguma secība visā lapā. Konkrētam auto secību var mainīt arī auto kartītē.">
           {badgeStyle && <BadgeDesigner value={badgeStyle} onChange={setBadgeStyle} previewImg={previewImg} />}
           <div className="mt-5 flex justify-end">

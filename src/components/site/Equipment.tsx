@@ -1,21 +1,29 @@
 'use client';
 import { useState } from 'react';
-import { Armchair, CarFront, Check, ChevronDown, ClipboardCheck, Lightbulb, MonitorSmartphone, ShieldCheck, Sparkles, Thermometer } from 'lucide-react';
-import type { EquipCat } from '@/lib/equipment';
+import { Armchair, BatteryCharging, CarFront, Check, ChevronDown, ClipboardCheck, Gauge, KeyRound, Lightbulb, MonitorSmartphone, Music, ShieldCheck, Snowflake, Sparkles, Star, Thermometer, Wrench, Zap } from 'lucide-react';
+import type { EquipIcon } from '@/lib/equipment';
 
-const ICON: Record<EquipCat, typeof Check> = {
-  comfort: Thermometer,
-  safety: ShieldCheck,
-  media: MonitorSmartphone,
-  interior: Armchair,
-  lights: Lightbulb,
-  exterior: CarFront,
-  history: ClipboardCheck,
-  other: Sparkles,
+export const EQUIP_ICON: Record<EquipIcon, typeof Check> = {
+  thermometer: Thermometer,
+  shield: ShieldCheck,
+  monitor: MonitorSmartphone,
+  armchair: Armchair,
+  lightbulb: Lightbulb,
+  car: CarFront,
+  clipboard: ClipboardCheck,
+  sparkles: Sparkles,
+  wrench: Wrench,
+  zap: Zap,
+  snowflake: Snowflake,
+  music: Music,
+  battery: BatteryCharging,
+  star: Star,
+  gauge: Gauge,
+  key: KeyRound,
 };
 
 /** Ekstras pa kategorijām; garus sarakstus sakļauj ar “Rādīt visu”. */
-export function EquipmentGroups({ groups }: { groups: { id: EquipCat; label: string; items: string[] }[] }) {
+export function EquipmentGroups({ groups }: { groups: { id: string; label: string; icon: EquipIcon; items: string[] }[] }) {
   const total = groups.reduce((a, g) => a + g.items.length, 0);
   const long = total > 24;
   const [all, setAll] = useState(!long);
@@ -23,7 +31,7 @@ export function EquipmentGroups({ groups }: { groups: { id: EquipCat; label: str
     <div className="relative">
       <div className={`gap-3 sm:columns-2 ${!all ? 'max-h-[34rem] overflow-hidden' : ''}`}>
         {groups.map((g) => {
-          const I = ICON[g.id];
+          const I = EQUIP_ICON[g.icon] || Sparkles;
           return (
             <div key={g.id} className="mb-3 break-inside-avoid rounded-2xl border border-line p-4">
               <p className="mb-3 flex items-center gap-2 text-sm font-bold text-ink">

@@ -42,18 +42,64 @@ export function equipCategory(s: string): EquipCat {
 }
 
 /** Sagrupē ekstras pa kategorijām, bez dublikātiem un tukšiem virsrakstiem. */
-export function groupEquipment(items: string[]) {
+export type EquipIcon = 'thermometer' | 'shield' | 'monitor' | 'armchair' | 'lightbulb' | 'car' | 'clipboard' | 'sparkles' | 'wrench' | 'zap' | 'snowflake' | 'music' | 'battery' | 'star' | 'gauge' | 'key';
+export const EQUIP_ICONS: EquipIcon[] = ['thermometer', 'shield', 'monitor', 'armchair', 'lightbulb', 'car', 'clipboard', 'sparkles', 'wrench', 'zap', 'snowflake', 'music', 'battery', 'star', 'gauge', 'key'];
+const DEFAULT_ICON: Record<EquipCat, EquipIcon> = { comfort: 'thermometer', safety: 'shield', media: 'monitor', interior: 'armchair', lights: 'lightbulb', exterior: 'car', history: 'clipboard', other: 'sparkles' };
+
+/** Admina rediģējama kategorija. `id` iebūvētajām sakrīt ar EquipCat — tām darbojas arī automātiskā atpazīšana. */
+export interface EquipCatDef {
+  id: string;
+  label: string;
+  icon: EquipIcon;
+  items: string[];
+  keywords?: string; // komatiem atdalīti vārdi, pēc kuriem brīvais teksts nonāk šajā kategorijā
+}
+
+export function defaultEquipCatalog(): EquipCatDef[] {
+  return EQUIP_CATS.map((c) => ({ id: c.id, label: c.label, icon: DEFAULT_ICON[c.id], items: EQUIP_CATALOG.find((x) => x.id === c.id)?.items || [], keywords: '' }));
+}
+
+export function normalizeEquipCatalog(v?: unknown): EquipCatDef[] {
+  const arr = (v && typeof v === 'object' && Array.isArray((v as { categories?: unknown }).categories) ? (v as { categories: unknown[] }).categories : null) as Record<string, unknown>[] | null;
+  if (!arr || !arr.length) return defaultEquipCatalog();
+  const out: EquipCatDef[] = [];
+  for (const c of arr) {
+    if (!c || typeof c.id !== 'string' || typeof c.label !== 'string') continue;
+    out.push({
+      id: c.id.slice(0, 40),
+      label: c.label.slice(0, 60),
+      icon: EQUIP_ICONS.includes(c.icon as EquipIcon) ? (c.icon as EquipIcon) : 'sparkles',
+      items: Array.isArray(c.items) ? [...new Set((c.items as unknown[]).filter((x): x is string => typeof x === 'string' && !!x.trim()).map((x) => x.trim().slice(0, 80)))] : [],
+      keywords: typeof c.keywords === 'string' ? c.keywords.slice(0, 300) : '',
+    });
+  }
+  if (!out.some((c) => c.id === 'other')) out.push({ id: 'other', label: 'Citas ekstras', icon: 'sparkles', items: [], keywords: '' });
+  return out;
+}
+
+/** Sagrupē ekstras pēc admina kataloga: precīza atbilstība → atslēgvārdi → automātiskā atpazīšana → “Citas”. */
+export function groupEquipment(items: string[], catalog: EquipCatDef[] = defaultEquipCatalog()) {
+  const exact = new Map<string, string>();
+  for (const c of catalog) for (const it of c.items) exact.set(it.toLowerCase(), c.id);
+  const kw = catalog
+    .filter((c) => c.keywords && c.keywords.trim())
+    .map((c) => ({ id: c.id, words: c.keywords!.split(',').map((w) => w.trim().toLowerCase()).filter(Boolean) }));
+  const ids = new Set(catalog.map((c) => c.id));
   const seen = new Set<string>();
-  const groups = new Map<EquipCat, string[]>();
+  const groups = new Map<string, string[]>();
   for (const raw of items || []) {
     const t = cleanEquip(raw);
     const key = t.toLowerCase();
     if (!t || NOISE.test(t) || seen.has(key)) continue;
     seen.add(key);
-    const c = equipCategory(t);
+    let c = exact.get(key) || kw.find((k) => k.words.some((w) => key.includes(w)))?.id;
+    if (!c) {
+      const auto = equipCategory(t);
+      c = ids.has(auto) ? auto : 'other';
+    }
     groups.set(c, [...(groups.get(c) || []), t]);
   }
-  return EQUIP_CATS.filter((c) => groups.has(c.id)).map((c) => ({ ...c, items: groups.get(c.id)! }));
+  return catalog.filter((c) => groups.has(c.id)).map((c) => ({ id: c.id, label: c.label, icon: c.icon, items: groups.get(c.id)! }));
 }
 
 /** Admina izvēles katalogs (līdzīgi ss.lv / carbuy.lv) — ātrai atzīmēšanai. */
@@ -66,3 +112,17 @@ export const EQUIP_CATALOG: { id: EquipCat; items: string[] }[] = [
   { id: 'exterior', items: ['Vieglmetāla diski', 'Sakabes āķis', 'Pilnpiedziņa 4x4', 'Pneimopiekare', 'Sporta pakete', 'Jumta reliņi', 'Tonēti aizmugurējie logi', 'El. nolokāmi spoguļi', 'Apsildāmi spoguļi', 'Ziemas un vasaras riepu komplekti'] },
   { id: 'history', items: ['Servisa vēsture', 'Servisa grāmatiņa', '1 īpašnieks', 'Ražotāja garantija', 'Svaigi veikta apkope', '2 atslēgas'] },
 ];
+
+/** Kategorijas identifikators no nosaukuma. */
+export function slugCat(label: string) {
+  const map: Record<string, string> = { ā: 'a', č: 'c', ē: 'e', ģ: 'g', ī: 'i', ķ: 'k', ļ: 'l', ņ: 'n', š: 's', ū: 'u', ž: 'z' };
+  return (
+    'c-' +
+    label
+      .toLowerCase()
+      .replace(/[āčēģīķļņšūž]/g, (c) => map[c] || c)
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 30)
+  );
+}

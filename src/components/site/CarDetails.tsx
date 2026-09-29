@@ -1,7 +1,7 @@
 import { CalendarDays, Gauge, Fuel, Zap, Cog, Route, Car as CarIcon, Palette, Users, ClipboardCheck, Leaf, BatteryCharging, MapPin, Repeat2, Wallet, Phone, MessageCircle, ArrowRight, BadgePercent, KeyRound, ShieldCheck, FileText } from 'lucide-react';
 import type { Car, CompanySettings } from '@/lib/types';
 import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, carName, number } from '@/lib/format';
-import { groupEquipment } from '@/lib/equipment';
+import { groupEquipment, type EquipCatDef } from '@/lib/equipment';
 import { EquipmentGroups } from './Equipment';
 
 const mmYYYY = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
@@ -71,10 +71,10 @@ function descriptionBlocks(text: string, title: string) {
 }
 
 /** Apraksts + ekstras pa kategorijām + tirgotāja piedāvājums vienā profesionālā blokā. */
-export function CarDescription({ car, company, monthly }: { car: Car; company: CompanySettings; monthly: number }) {
+export function CarDescription({ car, company, monthly, catalog }: { car: Car; company: CompanySettings; monthly: number; catalog?: EquipCatDef[] }) {
   const name = carName(car);
   const blocks = descriptionBlocks(car.description || '', car.title || '');
-  const groups = groupEquipment(car.equipment || []);
+  const groups = groupEquipment(car.equipment || [], catalog);
   const total = groups.reduce((a, g) => a + g.items.length, 0);
   const sold = car.status === 'sold';
   // Ja apraksta nav, sagatavojam faktu kopsavilkumu no datiem
