@@ -46,6 +46,7 @@ export function Footer({ company }: { company: CompanySettings }) {
             <li><Link href="/garantija" className="hover:text-white">Pagarinātā garantija</Link></li>
             <li><Link href="/kalkulatori" className="hover:text-white">Kalkulatori</Link></li>
             <li><Link href="/parbaudes" className="hover:text-white">Bezmaksas OCTA un TA pārbaude</Link></li>
+            <li><Link href="/vardadienas" className="hover:text-white">Vārda dienas šodien</Link></li>
             <li><Link href="/pardot-auto" className="hover:text-white">Pārdot vai mainīt auto</Link></li>
             <li><Link href="/pasutit-auto" className="hover:text-white">Pasūtīt auto no Eiropas</Link></li>
             <li><Link href="/par-mums" className="hover:text-white">Par mums</Link></li>

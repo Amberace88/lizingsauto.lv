@@ -5,6 +5,7 @@ import { CompareBar } from '@/components/site/CompareBar';
 import { getSettings } from '@/lib/data';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { AdminLiveProvider } from '@/components/site/AdminLive';
+import { NameDayBar } from '@/components/site/NameDays';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
@@ -39,6 +40,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       {content.announcement ? (
         <div className="bg-petrol px-4 py-2 text-center text-sm font-medium text-white">{content.announcement}</div>
       ) : null}
+      <NameDayBar />
       <Header phone={company.phone} />
       <main id="saturs">{children}</main>
       <Footer company={company} />
