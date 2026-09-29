@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: { type: 'website', locale: 'lv_LV', siteName: 'LīzingsAuto', url: SITE_URL },
   twitter: { card: 'summary_large_image' },
   alternates: { canonical: '/' },
-  robots: { index: true, follow: true, 'max-image-preview': 'large' },
+  robots: /^https:\/\/(www\.)?lizingsauto\.lv$/.test(SITE_URL) ? { index: true, follow: true, 'max-image-preview': 'large' } : { index: false, follow: false },
   formatDetection: { telephone: true },
   other: { 'facebook-domain-verification': '0sgvm029tnl2iu11j66ceo05al635m' },
 };
