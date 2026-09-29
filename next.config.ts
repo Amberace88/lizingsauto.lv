@@ -4,11 +4,11 @@ const SUPABASE = 'https://kxnzcwnvtvxrgxkfhbtu.supabase.co';
 
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://lizingsauto.lv ${SUPABASE}`,
+  `img-src 'self' data: blob: https://lizingsauto.lv ${SUPABASE} https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com`,
   "font-src 'self' data:",
-  `connect-src 'self' ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co`,
+  `connect-src 'self' ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net`,
   'frame-src https://maps.google.com https://www.google.com',
   "frame-ancestors 'none'",
   "base-uri 'self'",

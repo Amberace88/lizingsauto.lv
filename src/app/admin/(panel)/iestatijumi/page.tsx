@@ -65,6 +65,24 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
     ],
   },
   {
+    key: 'reviews', title: 'Google atsauksmes', hint: 'Ieraksti tikai īstas atsauksmes no Google profila. Vērtējums un skaits rādās lapā un meklētājiem.',
+    fields: [
+      { key: 'googleUrl', label: 'Saite “Atstāt atsauksmi” (no Google uzņēmuma profila)' },
+      { key: 'profileUrl', label: 'Saite uz Google profilu / karti' },
+      { key: 'rating', label: 'Vidējais vērtējums (piem., 4.9)', type: 'number' },
+      { key: 'count', label: 'Atsauksmju skaits', type: 'number' },
+      { key: 'itemsText', label: 'Atsauksmes lapā (katrā rindā: Vārds | vērtējums 1–5 | teksts)', type: 'textarea' },
+    ],
+  },
+  {
+    key: 'analytics', title: 'Apmeklējumu uzskaite', hint: 'Google Analytics 4 un Meta Pixel ielādējas tikai pēc apmeklētāja piekrišanas sīkdatnēm.',
+    fields: [
+      { key: 'ga4Id', label: 'Google Analytics 4 ID (G-XXXXXXX)' },
+      { key: 'metaPixelId', label: 'Meta Pixel ID' },
+      { key: 'gscVerification', label: 'Google Search Console verifikācijas kods' },
+    ],
+  },
+  {
     key: 'portals', title: 'Portālu integrācijas', hint: 'Tehniskie parametri. Paroles un API atslēgas glabājas tikai servera vidē (Netlify), ne datubāzē.', tech: true,
     fields: [
       { key: 'autoplius.contactId', label: 'Autoplius kontakta (filiāles) ID' }, { key: 'autoplius.cityId', label: 'Autoplius pilsētas ID (Rīga = 161)' },

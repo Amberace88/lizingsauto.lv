@@ -32,6 +32,7 @@ export function Footer({ company }: { company: CompanySettings }) {
           <p className="mb-3 font-semibold text-white">Auto</p>
           <ul className="space-y-2 text-sm">
             <li><Link href="/katalogs" className="hover:text-white">Auto katalogs</Link></li>
+            <li><Link href="/lietoti-auto" className="hover:text-white">Auto pēc budžeta un markas</Link></li>
             <li><Link href="/katalogs?fuel=electric" className="hover:text-white">Elektroauto ar EKII</Link></li>
             <li><Link href="/katalogs?body=suv" className="hover:text-white">Apvidus auto</Link></li>
             <li><Link href="/elektroauto" className="hover:text-white">Elektroauto atbalsts</Link></li>
@@ -46,6 +47,8 @@ export function Footer({ company }: { company: CompanySettings }) {
             <li><Link href="/garantija" className="hover:text-white">Pagarinātā garantija</Link></li>
             <li><Link href="/kalkulatori" className="hover:text-white">Kalkulatori</Link></li>
             <li><Link href="/parbaudes" className="hover:text-white">Bezmaksas OCTA un TA pārbaude</Link></li>
+            <li><Link href="/auto-novertejums" className="hover:text-white">Cik vērts mans auto?</Link></li>
+            <li><Link href="/padomi" className="hover:text-white">Padomi pircējiem</Link></li>
             <li><Link href="/vardadienas" className="hover:text-white">Vārda dienas šodien</Link></li>
             <li><Link href="/pardot-auto" className="hover:text-white">Pārdot vai mainīt auto</Link></li>
             <li><Link href="/pasutit-auto" className="hover:text-white">Pasūtīt auto no Eiropas</Link></li>

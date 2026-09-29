@@ -6,12 +6,13 @@ import { getSettings } from '@/lib/data';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { AdminLiveProvider } from '@/components/site/AdminLive';
 import { NameDayBar } from '@/components/site/NameDays';
+import { Analytics } from '@/components/site/Analytics';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const { company, content, badgeStyle } = await getSettings();
+  const { company, content, badgeStyle, reviews, analytics } = await getSettings();
   const org = {
     '@context': 'https://schema.org',
     '@type': 'AutoDealer',
@@ -31,6 +32,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     ],
     sameAs: [company.facebook, company.instagram],
     areaServed: 'LV',
+    ...(reviews.rating && reviews.count ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: reviews.rating, reviewCount: reviews.count, bestRating: 5 } } : {}),
+    ...(reviews.profileUrl ? { hasMap: reviews.profileUrl } : {}),
   };
   return (
     <BadgeStyleProvider value={badgeStyle}>
@@ -46,6 +49,8 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Footer company={company} />
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
+      <Analytics ga4Id={analytics.ga4Id} metaPixelId={analytics.metaPixelId} />
+      {analytics.gscVerification && <meta name="google-site-verification" content={analytics.gscVerification} />}
     </div>
     </AdminLiveProvider>
     </BadgeStyleProvider>

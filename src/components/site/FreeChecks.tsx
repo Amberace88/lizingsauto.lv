@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Check, Copy, ExternalLink, ShieldCheck } from 'lucide-react';
+import { decodeVin } from '@/lib/vin';
 
 /** OCTA pārbaudes palīgs: sagatavo numuru un atver LTAB oficiālo bezmaksas pārbaudi. */
 export function OctaCheck() {
@@ -60,6 +61,35 @@ export function OctaCheck() {
           </div>
         ))}
       </dl>
+    </div>
+  );
+}
+
+/** VIN atšifrētājs (bez ārējiem servisiem). */
+export function VinDecoder() {
+  const [q, setQ] = useState('');
+  const r = q.replace(/\s/g, '').length >= 11 ? decodeVin(q) : null;
+  return (
+    <div className="rounded-[24px] border border-line bg-card p-6 sm:p-8">
+      <h2 className="display-md text-2xl text-ink">VIN atšifrētājs</h2>
+      <p className="mt-1 text-sm text-ink-2">Uzzini ražotāju, izcelsmes valsti un modeļa gadu no 17 simbolu VIN koda.</p>
+      <input value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} maxLength={20} placeholder="piem., WVWZZZ3CZJE123456" className="field num mt-4 !h-14 !text-lg uppercase tracking-wider" aria-label="VIN kods" />
+      {r && (
+        <div className="mt-4">
+          {!r.valid && <p className="mb-3 rounded-xl bg-warn/10 p-3 text-sm text-warn">{r.problems.join('. ')}.</p>}
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              ['Ražotājs', r.maker || 'Nav datubāzē'],
+              ['Valsts', r.country || '—'],
+              ['Modeļa gads', r.year ? `${r.year}*` : '—'],
+              ['Rūpnīcas kods', r.plant || '—'],
+            ].map(([k, v]) => (
+              <div key={k} className="rounded-xl bg-paper p-3"><dt className="text-xs text-mute">{k}</dt><dd className="mt-0.5 font-bold text-ink">{v}</dd></div>
+            ))}
+          </dl>
+          <p className="mt-3 text-xs text-mute">* Eiropas ražotāji 10. simbolu ne vienmēr izmanto gadam — salīdzini ar reģistrācijas apliecību. {r.checkOk === false ? 'Kontrolcipars neatbilst Ziemeļamerikas standartam (Eiropas auto tas ir normāli).' : r.checkOk ? 'Kontrolcipars pareizs.' : ''}</p>
+        </div>
+      )}
     </div>
   );
 }

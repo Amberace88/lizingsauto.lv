@@ -84,7 +84,7 @@ export function Header({ phone }: { phone: string }) {
             aria-label="Mobilā navigācija"
           >
             <div className="flex flex-col px-4 py-3">
-              {[...NAV, { href: '/parbaudes', label: 'Bezmaksas OCTA pārbaude' }].map((n) => (
+              {[...NAV, { href: '/auto-novertejums', label: 'Cik vērts mans auto?' }, { href: '/padomi', label: 'Padomi' }, { href: '/parbaudes', label: 'Bezmaksas OCTA un VIN pārbaude' }].map((n) => (
                 <Link key={n.href} href={n.href} className="border-b border-line/70 py-3.5 text-lg font-semibold last:border-0">
                   {n.label}
                 </Link>

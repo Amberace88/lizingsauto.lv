@@ -6,12 +6,15 @@ import { BudgetHero, type MiniCar } from '@/components/site/BudgetHero';
 import { CarCard } from '@/components/site/CarCard';
 import { carName, coverImage, money } from '@/lib/format';
 import { Faq } from '@/components/site/Faq';
+import { ReviewsSection } from '@/components/site/Reviews';
+import { STATIC_LANDINGS } from '@/lib/landings';
+import { ARTICLES } from '@/lib/articles';
 import { HOME_FAQ } from '@/lib/faq';
 import { PLANS, PLAN_ORDER, limitLabel } from '@/lib/warranty';
 
 export default async function HomePage() {
   const [cars, settings] = await Promise.all([getPublicCars(), getSettings()]);
-  const { leasing, content, company, ekii, warranty } = settings;
+  const { leasing, content, company, ekii, warranty, reviews } = settings;
   const available = cars.filter((c) => c.status === 'published');
   const mini: MiniCar[] = available.map((c) => ({ id: c.id, slug: c.slug, name: carName(c), year: c.year, price: c.price, img: coverImage(c) }));
   // Sākumlapā: izceltie auto vienmēr + pārējie līdz 8, visi admina noteiktajā secībā
@@ -224,6 +227,40 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <ReviewsSection r={reviews} />
+
+      {/* POPULĀRI MEKLĒJUMI + PADOMI */}
+      <section className="mx-auto mt-24 grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2">
+        <div>
+          <h2 className="display-md text-2xl text-ink sm:text-3xl">Populāri meklējumi</h2>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {STATIC_LANDINGS.map((l) => (
+              <Link key={l.slug} href={`/lietoti-auto/${l.slug}`} className="rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold text-ink-2 transition hover:border-signal hover:text-signal">{l.h1}</Link>
+            ))}
+          </div>
+          <Link href="/auto-novertejums" className="mt-6 flex items-center justify-between gap-4 rounded-2xl bg-night p-5 text-white transition hover:bg-night/90">
+            <span><b className="block">Cik vērts tavs auto?</b><span className="text-sm text-white/70">Bezmaksas novērtējums 24 stundu laikā</span></span>
+            <ArrowRight className="h-5 w-5 text-signal" />
+          </Link>
+        </div>
+        <div>
+          <div className="flex items-end justify-between">
+            <h2 className="display-md text-2xl text-ink sm:text-3xl">Padomi pircējiem</h2>
+            <Link href="/padomi" className="text-sm font-semibold text-signal hover:underline">Visi padomi</Link>
+          </div>
+          <ul className="mt-5 divide-y divide-line rounded-2xl border border-line bg-card">
+            {ARTICLES.slice(0, 5).map((a) => (
+              <li key={a.slug}>
+                <Link href={`/padomi/${a.slug}`} className="group flex items-center justify-between gap-4 px-5 py-4">
+                  <span><span className="text-xs font-bold text-signal">{a.tag}</span><span className="block font-semibold text-ink group-hover:text-signal">{a.title}</span></span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-mute transition group-hover:translate-x-0.5 group-hover:text-signal" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

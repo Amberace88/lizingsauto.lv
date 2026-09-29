@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { supabasePublic } from '@/lib/supabase/public';
 
 const schema = z.object({
-  type: z.enum(['leasing', 'contact', 'sell_car', 'test_drive', 'reserve', 'car_order', 'trade_in', 'warranty']),
+  type: z.enum(['leasing', 'contact', 'sell_car', 'test_drive', 'reserve', 'car_order', 'trade_in', 'warranty', 'alert', 'valuation']),
   car_id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(6).max(40).regex(/^[+0-9 ()-]+$/, 'Nederīgs tālrunis'),
@@ -48,9 +48,12 @@ export async function POST(req: Request) {
     if (['string', 'number', 'boolean'].includes(typeof v)) data[k.slice(0, 40)] = typeof v === 'string' ? v.slice(0, 500) : (v as number | boolean);
   }
   data.ip_hash = await hashIp(ip);
+  // Jaunie veidi tiek glabāti esošajos DB tipos (bez shēmas maiņas), atšķirot ar data.kind
+  const STORE: Record<string, string> = { alert: 'contact', valuation: 'sell_car' };
+  if (STORE[d.type]) data.kind = d.type;
 
   const { error } = await supabasePublic.from('leads').insert({
-    type: d.type,
+    type: STORE[d.type] || d.type,
     car_id: d.car_id || null,
     name: d.name,
     phone: d.phone,

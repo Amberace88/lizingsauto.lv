@@ -27,7 +27,7 @@ export const PUBLIC_CAR_COLUMNS =
 const CAR_FIELDS = `${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id,is_promo)`;
 
 export const getSettings = cache(async () => {
-  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty', 'badges', 'equipment']);
+  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty', 'badges', 'equipment', 'reviews', 'analytics']);
   const map = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
   return {
     leasing: { ...DEFAULT_LEASING, ...(map.leasing || {}) } as LeasingSettings,
@@ -36,6 +36,12 @@ export const getSettings = cache(async () => {
     ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings,
     badgeStyle: normalizeBadgeStyle(map.badges),
     equipCatalog: normalizeEquipCatalog(map.equipment),
+    reviews: parseReviews(map.reviews),
+    analytics: {
+      ga4Id: /^G-[A-Z0-9]{4,15}$/.test(String(map.analytics?.ga4Id || '').trim()) ? String(map.analytics.ga4Id).trim() : '',
+      metaPixelId: /^\d{6,20}$/.test(String(map.analytics?.metaPixelId || '').trim()) ? String(map.analytics.metaPixelId).trim() : '',
+      gscVerification: String(map.analytics?.gscVerification || '').trim().replace(/[^A-Za-z0-9_-]/g, '').slice(0, 100),
+    },
     warranty: { ...DEFAULT_WARRANTY, ...(map.warranty || {}), prices: { ...DEFAULT_WARRANTY.prices, ...((map.warranty || {}).prices || {}) } } as WarrantySettings,
   };
 });
@@ -78,4 +84,18 @@ export function similarCars(all: Car[], car: Car, n = 4) {
     .sort((a, b) => b.score - a.score)
     .slice(0, n)
     .map((x) => x.c);
+}
+
+export type Review = { name: string; rating: number; text: string };
+function parseReviews(v: Record<string, unknown> | undefined) {
+  const o = v || {};
+  const items: Review[] = String(o.itemsText || '')
+    .split('\n')
+    .map((l) => l.split('|').map((x) => x.trim()))
+    .filter((p) => p.length >= 3 && p[0] && p[2])
+    .map(([name, r, ...t]) => ({ name: name.slice(0, 60), rating: Math.min(5, Math.max(1, Math.round(Number(r) || 5))), text: t.join(' | ').slice(0, 600) }));
+  const rating = Number(o.rating) || 0;
+  const count = Math.round(Number(o.count) || 0);
+  const safe = (u: unknown) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : '');
+  return { googleUrl: safe(o.googleUrl), profileUrl: safe(o.profileUrl), rating: rating >= 1 && rating <= 5 ? rating : 0, count, items };
 }

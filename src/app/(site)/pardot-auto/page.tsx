@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { PageHead } from '@/components/site/PageHead';
 import { LeadForm } from '@/components/site/LeadForm';
@@ -12,6 +13,12 @@ export default function SellPage() {
   return (
     <>
       <PageHead crumb="Pārdot auto" title="Pārdod savu auto bez liekas galvassāpes" lead="Ne visiem ir laiks sludinājumiem un zvaniem. Izvēlies sev ērtāko veidu — pārējo izdarīsim mēs." />
+      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6">
+        <Link href="/auto-novertejums" className="group flex items-center justify-between gap-4 rounded-2xl bg-night p-5 text-white sm:p-6">
+          <span><b className="block text-lg">Cik vērts tavs auto? Novērtējums 3 soļos</b><span className="text-sm text-white/70">Bez maksas, atbilde 24 stundu laikā</span></span>
+          <span className="btn btn-signal shrink-0">Sākt</span>
+        </Link>
+      </div>
       <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1.2fr]">
         <div className="mt-10 space-y-4">
           {[

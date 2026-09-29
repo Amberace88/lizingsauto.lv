@@ -22,7 +22,7 @@ export default async function PrivacyPage() {
         <h2 className="display-md mt-8 text-xl text-ink">Tavas tiesības</h2>
         <p>Tu vari pieprasīt piekļuvi saviem datiem, to labošanu vai dzēšanu, apstrādes ierobežošanu, iebilst pret apstrādi un atsaukt piekrišanu, rakstot uz {company.email}. Sūdzību vari iesniegt Datu valsts inspekcijā (www.dvi.gov.lv).</p>
         <h2 className="display-md mt-8 text-xl text-ink">Sīkdatnes</h2>
-        <p>Mājaslapa izmanto tikai darbībai nepieciešamās tehniskās iespējas: izlase un salīdzināmie auto tiek saglabāti tikai tavā pārlūkā. Reklāmas vai izsekošanas sīkdatnes bez tavas piekrišanas neizmantojam.</p>
+        <p>Mājaslapa izmanto darbībai nepieciešamās tehniskās iespējas: izlase, salīdzināmie auto un izvēlētais dienas/nakts režīms tiek saglabāti tikai tavā pārlūkā. Analītikas un reklāmas sīkdatnes (Google Analytics, Meta Pixel) tiek ieslēgtas tikai pēc tavas piekrišanas sīkdatņu paziņojumā — tās palīdz saprast, kā lapa tiek lietota, un rādīt atbilstošus piedāvājumus. Piekrišanu vari atsaukt, notīrot pārlūka datus šai lapai.</p><h2 className="display-md mt-8 text-xl text-ink">Auto meklēšanas paziņojumi</h2><p>Ja saglabā auto meklējumu, tavu vārdu, tālruni un e-pastu izmantojam tikai, lai paziņotu par piemērotiem auto. No paziņojumiem vari atteikties jebkurā brīdī, sazinoties ar mums.</p>
       </article>
     </>
   );

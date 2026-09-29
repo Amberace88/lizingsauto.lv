@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Gauge, Receipt, ClipboardCheck, ShieldCheck, Wrench, FileSearch } from 'lucide-react';
 import { PageHead } from '@/components/site/PageHead';
-import { OctaCheck } from '@/components/site/FreeChecks';
+import { OctaCheck, VinDecoder } from '@/components/site/FreeChecks';
 import { Faq } from '@/components/site/Faq';
 
 export const metadata: Metadata = {
-  title: 'Bezmaksas OCTA, TA un nobraukuma pārbaude',
+  title: 'Bezmaksas OCTA, TA, nobraukuma pārbaude un VIN atšifrētājs',
   description: 'Pārbaudi bez maksas, vai auto ir spēkā esoša OCTA (LTAB), tehniskās apskates datus un nobraukumu (CSDD) un aprēķini ekspluatācijas nodokli. Padomi pirms lietota auto pirkšanas.',
   alternates: { canonical: '/parbaudes' },
 };
@@ -30,6 +30,8 @@ export default function ChecksPage() {
             <CheckCard icon={Receipt} title="Ekspluatācijas nodoklis" text="Cik gadā jāmaksā transportlīdzekļa ekspluatācijas nodoklis pēc CO₂, dzinēja tilpuma un jaudas." href="/kalkulatori#nodoklis" cta="Aprēķināt" />
           </div>
         </div>
+
+        <div className="mt-6"><VinDecoder /></div>
 
         <section className="mt-20">
           <h2 className="display-md text-3xl text-ink">Pirms pērc lietotu auto — 6 soļi</h2>

@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-export type LeadType = 'leasing' | 'contact' | 'sell_car' | 'test_drive' | 'reserve' | 'car_order' | 'trade_in' | 'warranty';
+export type LeadType = 'leasing' | 'contact' | 'sell_car' | 'test_drive' | 'reserve' | 'car_order' | 'trade_in' | 'warranty' | 'alert' | 'valuation';
 
 type Field = { name: string; label: string; type?: 'text' | 'tel' | 'email' | 'textarea' | 'select' | 'number'; required?: boolean; options?: string[]; half?: boolean; placeholder?: string };
 
@@ -54,6 +54,7 @@ export function LeadForm({ type, carId, fields, extra, submitLabel = 'Nosūtīt'
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || 'Neizdevās nosūtīt');
       setState('done');
+      window.dispatchEvent(new CustomEvent('la:lead', { detail: { type } }));
     } catch (e) {
       setState('error');
       setErr(e instanceof Error ? e.message : 'Neizdevās nosūtīt. Mēģini vēlreiz vai zvani mums.');

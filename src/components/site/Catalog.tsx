@@ -7,6 +7,7 @@ import type { Car, LeasingSettings } from '@/lib/types';
 import { BODY_LABEL, FUEL_LABEL, GEAR_LABEL, carName } from '@/lib/format';
 import { monthlyPayment } from '@/lib/leasing';
 import { CarCard } from './CarCard';
+import { SearchAlert } from './SearchAlert';
 
 type F = Record<string, string>;
 const SORTS: Record<string, string> = {
@@ -152,6 +153,9 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
             </AnimatePresence>
           </motion.div>
         )}
+        <div className="mt-10">
+          <SearchAlert criteria={{ make: f.make, model: f.model, fuel: f.fuel, body: f.body, gear: f.gear, drive: f.drive, minPrice: f.minPrice ? +f.minPrice : undefined, maxPrice: f.maxPrice ? +f.maxPrice : undefined, minYear: f.minYear ? +f.minYear : undefined, maxKm: f.maxKm ? +f.maxKm : undefined }} />
+        </div>
       </div>
 
       <AnimatePresence>

@@ -3,13 +3,13 @@ import { Car, Inbox, Eye, Clock, Plus, CalendarClock, Gauge } from 'lucide-react
 import { requireAdmin } from '@/lib/supabase/admin-guard';
 import { AdminTitle } from '@/components/admin/AdminShell';
 import { money, number, STATUS_LABEL } from '@/lib/format';
-import { LEAD_TYPE, describe } from '@/components/admin/labels';
+import { LEAD_TYPE, describe, leadKind } from '@/components/admin/labels';
 
 export default async function Dashboard() {
   const { supabase, profile } = (await requireAdmin())!;
   const [{ data: cars }, { data: leads }, { data: log }] = await Promise.all([
     supabase.from('cars').select('id,slug,title,make,model,status,price,views,updated_at,ta_until,reg_number,csdd_checked_at'),
-    supabase.from('leads').select('id,type,name,phone,status,created_at,cars(title,slug)').order('created_at', { ascending: false }).limit(8),
+    supabase.from('leads').select('id,type,name,phone,status,created_at,data,cars(title,slug)').order('created_at', { ascending: false }).limit(8),
     supabase.from('activity_log').select('action,entity,meta,created_at,user_id').order('created_at', { ascending: false }).limit(8),
   ]);
   const all = cars || [];
@@ -79,7 +79,7 @@ export default async function Dashboard() {
                 <li key={l.id} className="flex items-center gap-3 py-3 text-sm">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${l.status === 'new' ? 'bg-signal' : 'bg-line'}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-ink">{l.name} <span className="font-normal text-mute">· {LEAD_TYPE[l.type] || l.type}</span></p>
+                    <p className="truncate font-semibold text-ink">{l.name} <span className="font-normal text-mute">· {LEAD_TYPE[leadKind(l)] || l.type}</span></p>
                     <p className="truncate text-mute">{(l.cars as { title?: string } | null)?.title || l.phone}</p>
                   </div>
                   <time className="num shrink-0 text-xs text-mute">{new Date(l.created_at).toLocaleString('lv-LV', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</time>

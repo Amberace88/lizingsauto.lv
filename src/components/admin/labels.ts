@@ -9,6 +9,8 @@ export const LEAD_TYPE: Record<string, string> = {
   car_order: 'Auto pasūtījums',
   trade_in: 'Maiņa',
   warranty: 'Garantija',
+  alert: 'Gaida auto',
+  valuation: 'Novērtējums',
 };
 export const LEAD_STATUS: Record<string, string> = { new: 'Jauns', in_progress: 'Procesā', done: 'Pabeigts', rejected: 'Noraidīts' };
 export const PORTALS: Record<string, { name: string; country: string }> = {
@@ -25,3 +27,6 @@ export function describe(action: string, entity: string | null, meta: Record<str
   return `${action} ${entity ?? ''} ${t}`;
 }
 
+
+/** Pieteikuma faktiskais veids (jaunie veidi glabājas data.kind). */
+export const leadKind = (l: { type: string; data?: Record<string, unknown> | null }) => String(l.data?.kind || l.type);

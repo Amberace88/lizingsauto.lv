@@ -16,6 +16,7 @@ import { PortalPanel } from './PortalPanel';
 import { EquipPicker } from './EquipCatalog';
 import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
+import { AlertMatches } from './AlertMatches';
 
 type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean; is_promo?: boolean };
 type Priv = { purchase_price: number | null; seller_name: string | null; seller_phone: string | null; internal_note: string | null };
@@ -336,6 +337,8 @@ export function CarEditor({ id }: { id?: string }) {
               <F label="Tehniskā apskate līdz"><input type="date" className="field" value={car.ta_until || ''} onChange={(e) => set('ta_until', e.target.value || null)} /></F>
             </div>
           </Card>
+
+          {!isNew && car.status === 'published' && <AlertMatches car={car} />}
 
           <CsddPanel car={car} onChange={set} />
 

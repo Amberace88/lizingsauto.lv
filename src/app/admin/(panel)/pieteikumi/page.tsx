@@ -5,11 +5,11 @@ import { Loader2, Phone, Mail, MessageCircle, X, Download } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Lead } from '@/lib/types';
 import { AdminTitle } from '@/components/admin/AdminShell';
-import { LEAD_STATUS, LEAD_TYPE } from '@/components/admin/labels';
+import { LEAD_STATUS, LEAD_TYPE, leadKind } from '@/components/admin/labels';
 import { useToast } from '@/components/admin/Toast';
 
 const TONE: Record<string, string> = { new: 'bg-signal text-white', in_progress: 'bg-petrol-soft text-petrol', done: 'bg-ok/10 text-ok', rejected: 'bg-mute/10 text-mute' };
-const FIELD_LABEL: Record<string, string> = { client_type: 'Pieteicējs', income: 'Ienākumi', employment: 'Darba vieta', work_months: 'Darba stāžs (mēn.)', credit_history: 'Kredītvēsture', company: 'Uzņēmums', down: 'Pirmā iemaksa €', term: 'Termiņš', monthly: 'Maksājums €/mēn.', car: 'Auto', when: 'Vēlamais laiks', make_model: 'Marka/modelis', year: 'Gads', mileage: 'Nobraukums', reg_number: 'Valsts nr.', price_wish: 'Vēlamā cena', deal: 'Darījums', budget: 'Budžets', years: 'Gadi', fuel: 'Degviela', gear: 'Ātrumkārba', page: 'Lapa' };
+const FIELD_LABEL: Record<string, string> = { client_type: 'Pieteicējs', income: 'Ienākumi', employment: 'Darba vieta', work_months: 'Darba stāžs (mēn.)', credit_history: 'Kredītvēsture', company: 'Uzņēmums', down: 'Pirmā iemaksa €', term: 'Termiņš', monthly: 'Maksājums €/mēn.', car: 'Auto', when: 'Vēlamais laiks', make_model: 'Marka/modelis', year: 'Gads', mileage: 'Nobraukums', reg_number: 'Valsts nr.', price_wish: 'Vēlamā cena', deal: 'Darījums', budget: 'Budžets', years: 'Gadi', fuel: 'Degviela', gear: 'Ātrumkārba', page: 'Lapa', summary: 'Meklē', channel: 'Paziņot', c_make: 'Marka', c_model: 'Modelis', c_fuel: 'Degviela', c_body: 'Virsbūve', c_gear: 'Kārba', c_drive: 'Piedziņa', c_minPrice: 'Cena no', c_maxPrice: 'Cena līdz', c_minYear: 'Gads no', c_maxKm: 'Nobraukums līdz', c_minSeats: 'Vietas', make: 'Marka', model: 'Modelis', reg: 'Valsts nr.', condition: 'Stāvoklis', goal: 'Mērķis' };
 
 export default function LeadsPage() {
   const sb = supabaseBrowser();
@@ -18,6 +18,11 @@ export default function LeadsPage() {
   const [status, setStatus] = useState<string>('open');
   const [type, setType] = useState('');
   const [open, setOpen] = useState<Lead | null>(null);
+  const [reviewUrl, setReviewUrl] = useState('');
+  useEffect(() => {
+    sb.from('settings').select('value').eq('key', 'reviews').maybeSingle().then(({ data }: { data: { value: { googleUrl?: string } } | null }) => setReviewUrl(data?.value?.googleUrl || ''));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function load() {
     const { data, error } = await sb.from('leads').select('*, cars(title,slug)').order('created_at', { ascending: false }).limit(500);
@@ -33,7 +38,7 @@ export default function LeadsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const list = useMemo(() => (rows || []).filter((r) => (status === 'open' ? ['new', 'in_progress'].includes(r.status) : status ? r.status === status : true)).filter((r) => !type || r.type === type), [rows, status, type]);
+  const list = useMemo(() => (rows || []).filter((r) => (status === 'open' ? ['new', 'in_progress'].includes(r.status) : status ? r.status === status : true)).filter((r) => !type || leadKind(r) === type), [rows, status, type]);
 
   async function update(l: Lead, p: Partial<Lead>) {
     const { error } = await sb.from('leads').update({ ...p, updated_at: new Date().toISOString() }).eq('id', l.id);
@@ -46,7 +51,7 @@ export default function LeadsPage() {
   function exportCsv() {
     const head = ['Datums', 'Veids', 'Statuss', 'Vārds', 'Tālrunis', 'E-pasts', 'Auto', 'Ziņa'];
     const esc = (s: unknown) => `"${String(s ?? '').replace(/"/g, '""')}"`;
-    const csv = [head.join(';'), ...list.map((l) => [new Date(l.created_at).toLocaleString('lv-LV'), LEAD_TYPE[l.type], LEAD_STATUS[l.status], l.name, l.phone, l.email, l.cars?.title, l.message].map(esc).join(';'))].join('\n');
+    const csv = [head.join(';'), ...list.map((l) => [new Date(l.created_at).toLocaleString('lv-LV'), LEAD_TYPE[leadKind(l)], LEAD_STATUS[l.status], l.name, l.phone, l.email, l.cars?.title, l.message].map(esc).join(';'))].join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv' }));
     a.download = `pieteikumi-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -79,7 +84,7 @@ export default function LeadsPage() {
                 <button onClick={() => { setOpen(l); if (l.status === 'new') update(l, { status: 'in_progress' }); }} className="flex w-full items-center gap-4 px-4 py-3.5 text-left hover:bg-paper/60">
                   <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${TONE[l.status]}`}>{LEAD_STATUS[l.status]}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold text-ink">{l.name} <span className="font-normal text-mute">· {LEAD_TYPE[l.type]}</span></span>
+                    <span className="block truncate font-semibold text-ink">{l.name} <span className="font-normal text-mute">· {LEAD_TYPE[leadKind(l)]}</span></span>
                     <span className="block truncate text-sm text-mute">{l.cars?.title || l.message || l.phone}</span>
                   </span>
                   <span className="num hidden text-sm text-ink-2 sm:block">{l.phone}</span>
@@ -96,7 +101,7 @@ export default function LeadsPage() {
           <aside className="h-full w-full max-w-lg overflow-y-auto bg-white p-6" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Pieteikums">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-mute">{LEAD_TYPE[open.type]} · {new Date(open.created_at).toLocaleString('lv-LV')}</p>
+                <p className="text-sm text-mute">{LEAD_TYPE[leadKind(open)]} · {new Date(open.created_at).toLocaleString('lv-LV')}</p>
                 <h2 className="display-md mt-1 text-2xl">{open.name}</h2>
               </div>
               <button onClick={() => setOpen(null)} className="rounded-lg p-2 hover:bg-paper" aria-label="Aizvērt"><X /></button>
@@ -106,6 +111,9 @@ export default function LeadsPage() {
               <a href={`https://wa.me/${(open.phone || '').replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost !py-2"><MessageCircle className="h-4 w-4" /> WA</a>
               {open.email ? <a href={`mailto:${open.email}`} className="btn btn-ghost !py-2"><Mail className="h-4 w-4" /> E-pasts</a> : <span />}
             </div>
+            {reviewUrl && open.phone && (
+              <a href={`https://wa.me/${open.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Labdien${open.name ? `, ${open.name}` : ''}! Paldies, ka izvēlējāties Tavs Auto. Būsim ļoti pateicīgi, ja atstāsiet īsu atsauksmi: ${reviewUrl}`)}`} target="_blank" rel="noopener noreferrer" className="btn btn-ghost mt-2 w-full !py-2">⭐ Lūgt Google atsauksmi (WhatsApp)</a>
+            )}
             <dl className="mt-6 space-y-2 text-sm">
               <Item k="Tālrunis" v={open.phone} />
               <Item k="E-pasts" v={open.email} />
