@@ -15,6 +15,8 @@ export interface EkiiSettings {
   usedMaxAgeYears: number;
   usedMaxKm: number;
   newMaxKm: number;
+  maxIntensityPct: number; // atbalsts nepārsniedz X% no pārdošanas cenas (MK Nr. 238, 19. p.)
+  phevMaxCo2: number; // jaunam PHEV, g/km
   sourceUrl: string;
 }
 
@@ -33,7 +35,9 @@ export const DEFAULT_EKII: EkiiSettings = {
   usedMaxAgeYears: 7,
   usedMaxKm: 150000,
   newMaxKm: 6000,
-  sourceUrl: 'https://www.lvif.gov.lv/',
+  maxIntensityPct: 90,
+  phevMaxCo2: 50,
+  sourceUrl: 'https://likumi.lv/ta/id/368128',
 };
 
 export type EkiiInput = {
@@ -46,6 +50,9 @@ export type EkiiInput = {
   goda: boolean;
   children: number;
   scrap: boolean;
+  phev?: boolean;
+  /** Lietots auto jau reģistrēts Latvijā ilgāk par 12 mēnešiem */
+  lvOver12m?: boolean;
 };
 
 export function ekiiCalc(s: EkiiSettings, i: EkiiInput) {
@@ -70,18 +77,32 @@ export function ekiiCalc(s: EkiiSettings, i: EkiiInput) {
       reasons.push(`Nobraukums virs ${s.usedMaxKm.toLocaleString('lv-LV')} km`);
     }
   }
+  if (i.phev && !isNew) {
+    eligible = false;
+    reasons.push('Plug-in hibrīdiem atbalsts pieejams tikai jauniem auto');
+  }
+  if (!isNew && i.lvOver12m) {
+    eligible = false;
+    reasons.push('Lietots auto nedrīkst būt reģistrēts Latvijā ilgāk par 12 mēnešiem');
+  }
   let base = 0;
   if (i.goda && i.seats >= 5) base = isNew ? (i.seats >= 7 ? s.familyNew7 : s.familyNew5) : i.seats >= 7 ? s.familyUsed7 : s.familyUsed5;
   else base = isNew ? s.newAmount : s.usedAmount;
   const childBonus = i.goda && i.seats >= 5 && i.children >= 4 ? (i.children - 3) * s.extraChild : 0;
   const scrap = i.scrap ? s.scrapBonus : 0;
-  const total = eligible ? base + childBonus + scrap : 0;
-  return { eligible, isNew, base: eligible ? base : 0, childBonus: eligible ? childBonus : 0, scrap: eligible ? scrap : 0, total, finalPrice: Math.max(0, i.price - total), reasons };
+  const sum = base + childBonus + scrap;
+  const pct = s.maxIntensityPct ?? 90;
+  const limit = Math.floor((i.price * pct) / 100);
+  const capped = eligible && sum > limit;
+  const total = eligible ? Math.min(sum, limit) : 0;
+  return { eligible, isNew, base: eligible ? base : 0, childBonus: eligible ? childBonus : 0, scrap: eligible ? scrap : 0, sum: eligible ? sum : 0, capped, capCut: capped ? sum - limit : 0, pct, total, finalPrice: Math.max(0, i.price - total), reasons };
 }
 
 /** Īss novērtējums auto kartiņai/profilam (bez papildu bonusiem) */
-export function ekiiForCar(s: EkiiSettings, car: Pick<Car, 'fuel' | 'price' | 'vat_included' | 'year' | 'mileage' | 'seats'>) {
-  if (car.fuel !== 'electric') return null;
-  const r = ekiiCalc(s, { price: car.price, vatIncluded: car.vat_included, year: car.year, mileage: car.mileage, seats: car.seats || 5, goda: false, children: 0, scrap: false });
+export function ekiiForCar(s: EkiiSettings, car: Pick<Car, 'fuel' | 'price' | 'vat_included' | 'year' | 'mileage' | 'seats' | 'co2'>) {
+  const phev = car.fuel === 'plugin_hybrid';
+  if (car.fuel !== 'electric' && !phev) return null;
+  if (phev && (car.co2 == null || car.co2 > (s.phevMaxCo2 ?? 50))) return null;
+  const r = ekiiCalc(s, { price: car.price, vatIncluded: car.vat_included, year: car.year, mileage: car.mileage, seats: car.seats || 5, goda: false, children: 0, scrap: false, phev });
   return r.eligible ? r : null;
 }

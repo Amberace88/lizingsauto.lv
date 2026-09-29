@@ -41,7 +41,7 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
     ],
   },
   {
-    key: 'ekii', title: 'EKII atbalsts elektroauto', hint: 'Ja programmas nosacījumi mainās, atjauno summas šeit — kalkulators un auto lapas pielāgosies.',
+    key: 'ekii', title: 'EKII atbalsts elektroauto', hint: 'Pēc MK noteikumiem Nr. 238 (21.04.2026), pieteikšanās līdz 31.12.2029. Ja nosacījumi mainās, atjauno summas šeit — kalkulators un auto lapas pielāgosies.',
     fields: [
       { key: 'active', label: 'Programma aktīva', type: 'bool' },
       { key: 'usedAmount', label: 'Lietots auto, €', type: 'number' }, { key: 'newAmount', label: 'Jauns auto, €', type: 'number' },
@@ -50,6 +50,7 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
       { key: 'scrapBonus', label: 'Par vecā auto nodošanu, €', type: 'number' }, { key: 'extraChild', label: 'Par katru bērnu no 4., €', type: 'number' },
       { key: 'priceCap5', label: 'Cenas limits bez PVN (līdz 5 vietām), €', type: 'number' }, { key: 'priceCap6', label: 'Cenas limits bez PVN (6+ vietas), €', type: 'number' },
       { key: 'usedMaxAgeYears', label: 'Lietota auto maks. vecums, gadi', type: 'number' }, { key: 'usedMaxKm', label: 'Lietota auto maks. nobraukums, km', type: 'number' },
+      { key: 'maxIntensityPct', label: 'Atbalsts ne vairāk kā % no cenas', type: 'number', hint: 'MK noteikumi Nr. 238 — 90%' }, { key: 'phevMaxCo2', label: 'Plug-in hibrīdam maks. CO₂, g/km', type: 'number' },
     ],
   },
   {

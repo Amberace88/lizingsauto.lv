@@ -137,7 +137,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
               <div className="mb-4 flex gap-3 rounded-2xl bg-petrol-2 p-4 text-white">
                 <BatteryCharging className="h-6 w-6 shrink-0 text-signal" />
                 <div className="text-sm">
-                  <p className="font-bold">Pieejams EKII atbalsts — {money(ev.base)}</p>
+                  <p className="font-bold">Pieejams EKII atbalsts — {money(ev.total)}</p>
                   <p className="text-white/75">Cena ar atbalstu no <b className="text-white">{money(ev.finalPrice)}</b>. Nododot veco auto, vēl +{money(ekii.scrapBonus)}. <Link href={`/elektroauto?auto=${car.slug}`} className="font-semibold text-signal underline">Aprēķināt precīzi</Link></p>
                 </div>
               </div>

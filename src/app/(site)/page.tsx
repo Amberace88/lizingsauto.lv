@@ -104,6 +104,7 @@ export default async function HomePage() {
             <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-signal">
               <BatteryCharging className="h-4 w-4" /> {evCount} elektroauto katalogā
             </p>
+            <p className="ml-2 inline-flex items-center rounded-full bg-signal px-3 py-1 text-sm font-semibold text-white">Atbalsts līdz {ekii.maxIntensityPct}% no cenas</p>
             <h2 className="display mt-5 text-[2.3rem] sm:text-[3rem]">Elektroauto ar valsts atbalstu līdz {money(ekii.familyNew7)}</h2>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/75">
               Palīdzam saņemt EKII atbalstu: pārbaudām, vai auto atbilst prasībām, sagatavojam dokumentus un saskaņojam līzingu, lai atbalsts samazinātu tavu maksājumu.
@@ -112,7 +113,7 @@ export default async function HomePage() {
               {[
                 ['Izvēlies elektroauto', 'Parādām, kuri auto atbilst programmai un cik liels atbalsts pienākas.'],
                 ['Mēs sakārtojam formalitātes', 'Pieteikums, rēķins, līzinga saskaņošana — visu nokārtojam kopā ar tevi.'],
-                ['Brauc un maksā mazāk', `Lietotam auto ${money(ekii.usedAmount)}, jaunam ${money(ekii.newAmount)}, par vecā auto nodošanu vēl +${money(ekii.scrapBonus)}.`],
+                ['Brauc un maksā mazāk', `Lietotam auto ${money(ekii.usedAmount)}, jaunam ${money(ekii.newAmount)}, Goda ģimenēm līdz ${money(ekii.familyNew7)}, par vecā auto nodošanu vēl +${money(ekii.scrapBonus)} — kopā līdz ${ekii.maxIntensityPct}% no auto cenas.`],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-4">
                   <span className="num grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal font-bold text-white">{i + 1}</span>
