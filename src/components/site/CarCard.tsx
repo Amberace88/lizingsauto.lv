@@ -7,6 +7,7 @@ import { BADGES, badgeTextColor, carBadges, type BadgePosition, carName, carUrl,
 import { fromPayment } from '@/lib/leasing';
 import { useFavorites } from './favorites';
 import { useBadgeStyle } from './BadgeOrderContext';
+import { AdminCardEdit } from './AdminLive';
 
 const TONE: Record<string, string> = {
   signal: 'bg-signal text-white',
@@ -107,6 +108,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
         )}
         <StatusRibbon status={car.status} />
       </Link>
+      <AdminCardEdit id={car.id} />
       <button
         onClick={() => toggle(car.id)}
         className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow transition hover:scale-105"

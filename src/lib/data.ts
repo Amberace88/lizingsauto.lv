@@ -46,8 +46,8 @@ export const getPublicCars = cache(async (opts: { includeSold?: boolean } = {}) 
     .select(CAR_FIELDS)
     .in('status', statuses)
     .order('status', { ascending: true })
-    .order('published_at', { ascending: false, nullsFirst: false })
-    .order('sort', { ascending: true });
+    .order('sort', { ascending: true })
+    .order('published_at', { ascending: false, nullsFirst: false });
   if (error) console.error('getPublicCars', error.message);
   const cars = (data || []) as Car[];
   // Pārdošanā vispirms, tad rezervētie, tad pārdotie

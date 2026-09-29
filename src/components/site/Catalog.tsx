@@ -10,7 +10,8 @@ import { CarCard } from './CarCard';
 
 type F = Record<string, string>;
 const SORTS: Record<string, string> = {
-  new: 'Jaunākie sludinājumi',
+  new: 'Ieteicamie',
+  recent: 'Jaunākie sludinājumi',
   price_asc: 'Lētākie',
   price_desc: 'Dārgākie',
   year_desc: 'Jaunākie pēc gada',
@@ -65,6 +66,7 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
       if (s === 'price_desc') return b.price - a.price;
       if (s === 'year_desc') return (b.year ?? 0) - (a.year ?? 0);
       if (s === 'km_asc') return (a.mileage ?? 0) - (b.mileage ?? 0);
+      if (s === 'recent') return +new Date(b.published_at || b.created_at) - +new Date(a.published_at || a.created_at);
       return a.sort - b.sort;
     });
   }, [cars, f, down, leasing]);

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
-import { BatteryCharging, CheckCircle2 } from 'lucide-react';
+import { BatteryCharging } from 'lucide-react';
 import { getCarBySlug, getPublicCars, getSettings, similarCars } from '@/lib/data';
 import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, SITE_URL, STATUS_LABEL, carBadges, carName, carUrl, km, money, sortedImages } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
@@ -9,7 +9,8 @@ import { ekiiForCar } from '@/lib/ekii';
 import { Gallery } from '@/components/site/Gallery';
 import { CarActions, CarContactPanel, ViewPing } from '@/components/site/CarDetailClient';
 import { CarCard } from '@/components/site/CarCard';
-import { Equipment } from '@/components/site/Equipment';
+import { CarDescription, KeyFacts } from '@/components/site/CarDetails';
+import { AdminEditButton } from '@/components/site/AdminLive';
 import { OdometerHistory, TaxBox, WarrantyBox } from '@/components/site/CarExtras';
 
 export const revalidate = 60;
@@ -131,7 +132,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
                 {car.vat_included && <span className="mb-1.5 rounded-md bg-petrol-soft px-2 py-0.5 text-xs font-semibold text-petrol">Cena ar PVN</span>}
               </div>
               {car.status !== 'sold' && <p className="num mt-1 text-sm text-ink-2">Līzingā no <b className="text-ink">{monthly} €/mēn.</b></p>}
-              <div className="mt-4"><CarActions id={car.id} title={`${name} ${car.year ?? ''}`} /></div>
+              <div className="mt-4 flex flex-wrap items-center gap-2"><CarActions id={car.id} title={`${name} ${car.year ?? ''}`} /><AdminEditButton id={car.id} /></div>
             </div>
             {ev && car.status !== 'sold' && (
               <div className="mb-4 flex gap-3 rounded-2xl bg-petrol-2 p-4 text-white">
@@ -147,9 +148,13 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
           </div>
         </div>
 
-        <div className="min-w-0 space-y-10">
-          <section aria-labelledby="specs">
-            <h2 id="specs" className="display-md text-2xl text-ink">Tehniskie dati</h2>
+        <div className="min-w-0 space-y-8">
+          <KeyFacts car={car} />
+
+          <CarDescription car={car} company={company} monthly={monthly} />
+
+          <section aria-labelledby="specs" className="rounded-[24px] border border-line bg-card p-6 sm:p-8">
+            <h2 id="specs" className="display-md text-2xl text-ink">Visi tehniskie dati</h2>
             <dl className="mt-4 grid gap-x-8 sm:grid-cols-2">
               {specs.filter(([, v]) => v).map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 border-b border-line py-2.5 text-[0.95rem]">
@@ -162,31 +167,6 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
           </section>
 
           <OdometerHistory car={car} />
-
-          {car.equipment.length > 0 && (
-            <section aria-labelledby="equipment">
-              <h2 id="equipment" className="display-md text-2xl text-ink">Aprīkojums</h2>
-              <Equipment items={car.equipment} />
-            </section>
-          )}
-
-          {car.description && (
-            <section aria-labelledby="desc">
-              <h2 id="desc" className="display-md text-2xl text-ink">Apraksts</h2>
-              <div className="prose-car mt-4 max-w-2xl">
-                {car.description.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
-              </div>
-            </section>
-          )}
-
-          <section className="rounded-2xl border border-line bg-card p-6">
-            <h2 className="display-md text-xl text-ink">Pērkot pie mums</h2>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {['Testa brauciens un pārbaude servisā pēc tavas izvēles', 'Līzings no 0% pirmās iemaksas', 'Līzings arī ar sabojātu kredītvēsturi', 'Vecais auto var būt pirmā iemaksa', 'Pagarinātā garantija līdz 36 mēnešiem (Mango Insurance)', 'Palīdzam ar reģistrāciju CSDD'].map((t) => (
-                <li key={t} className="flex gap-2 text-sm text-ink-2"><CheckCircle2 className="h-5 w-5 shrink-0 text-ok" /> {t}</li>
-              ))}
-            </ul>
-          </section>
         </div>
       </div>
 

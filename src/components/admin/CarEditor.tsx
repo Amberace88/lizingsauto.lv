@@ -13,6 +13,7 @@ import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { useToast } from './Toast';
 import { revalidateSite } from './revalidate';
 import { PortalPanel } from './PortalPanel';
+import { EQUIP_CATALOG, EQUIP_CATS } from '@/lib/equipment';
 import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
 
@@ -20,8 +21,6 @@ type Img = { id?: string; url: string; storage_path?: string | null; sort: numbe
 type Priv = { purchase_price: number | null; seller_name: string | null; seller_phone: string | null; internal_note: string | null };
 
 const MAKES = ['Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Chevrolet', 'Chrysler', 'Citroen', 'Cupra', 'Dacia', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Mazda', 'Mercedes-Benz', 'MG', 'MINI', 'Mitsubishi', 'Nissan', 'Opel', 'Peugeot', 'Polestar', 'Porsche', 'Renault', 'Seat', 'Skoda', 'Subaru', 'Suzuki', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'];
-const EQUIPMENT_PRESETS = ['Klimatkontrole', 'Kruīzkontrole', 'Adaptīvā kruīzkontrole', 'Navigācija', 'Atpakaļskata kamera', '360° kamera', 'Parkošanās sensori', 'Krēslu apsilde', 'Stūres apsilde', 'Ādas salons', 'Elektriski regulējami krēsli', 'Panorāmas lūka', 'LED lukturi', 'Head-Up displejs', 'Apple CarPlay / Android Auto', 'Keyless Go', 'Elektriskais bagāžnieks', 'Sakabes āķis', 'Vieglmetāla diski', 'Līniju asistents', 'Aklo zonu asistents', 'Ziemas un vasaras riepas'];
-
 const EMPTY: Partial<Car> = { status: 'draft', make: '', model: '', title: '', price: 0, fuel: 'diesel', transmission: 'automatic', body_type: 'sedan', equipment: [], badges: [], vat_included: false, vat_deductible: false, featured: false, sort: 0 };
 
 async function resize(file: File): Promise<Blob> {
@@ -108,13 +107,27 @@ export function CarEditor({ id }: { id?: string }) {
   };
 
   const autoDescription = () => {
+    const age = car.year ? Math.max(0.5, new Date().getFullYear() - car.year) : null;
+    const perYear = car.mileage != null && age ? Math.round(car.mileage / age / 100) * 100 : null;
+    const tech = [
+      [car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : '', car.fuel ? FUEL_LABEL[car.fuel].toLowerCase() : ''].filter(Boolean).join(' '),
+      car.power_kw ? `${car.power_kw} kW (${Math.round(car.power_kw * 1.36)} ZS)` : '',
+      car.transmission ? `${GEAR_LABEL[car.transmission].toLowerCase()} ātrumkārba` : '',
+      car.drive ? DRIVE_LABEL[car.drive].toLowerCase() : '',
+    ].filter(Boolean);
+    const b = car.badges || [];
+    const eq = (car.equipment || []).slice(0, 8);
     const lines = [
-      `${car.make} ${car.model}${car.year ? `, ${car.year}. gads` : ''}.`,
-      car.badges?.includes('warranty') ? 'Pieejama garantija, iespējams pagarināt līdz 36 mēnešiem.' : '',
-      car.badges?.includes('fresh_ta') ? 'Svaiga tehniskā apskate.' : '',
-      car.consumption ? `Vidējais degvielas patēriņš ap ${car.consumption} l/100 km.` : '',
-      'Ar auto iespējams veikt testa braucienu, kā arī pašam pārliecināties par tā stāvokli servisā.',
-      'Iespēja atstāt savu veco auto tirdzniecībā vai kā pirmo iemaksu. Līzinga iespējas visiem, arī ar sabojātu kredītvēsturi.',
+      `${car.make} ${car.model}${car.year ? `, ${car.year}. gads` : ''}${tech.length ? ` — ${tech.join(', ')}` : ''}.`,
+      car.mileage != null ? `Nobraukums ${car.mileage.toLocaleString('lv-LV')} km${perYear ? ` (vidēji ~${perYear.toLocaleString('lv-LV')} km gadā)` : ''}.${car.consumption ? ` Vidējais patēriņš ap ${car.consumption} l/100 km.` : ''}` : '',
+      eq.length ? `Aprīkojumā: ${eq.map((x, i) => (i ? x.charAt(0).toLowerCase() + x.slice(1) : x)).join(', ')}${(car.equipment || []).length > eq.length ? ' un citas ekstras' : ''}.` : '',
+      [
+        b.includes('one_owner') ? 'Viens īpašnieks.' : '',
+        b.includes('service_history') ? 'Pieejama servisa vēsture.' : '',
+        b.includes('fresh_ta') || car.ta_until ? `Svaiga tehniskā apskate${car.ta_until ? ` (derīga līdz ${new Date(car.ta_until).toLocaleDateString('lv-LV', { month: '2-digit', year: 'numeric' })})` : ''}.` : '',
+        b.includes('warranty') ? 'Pieejama garantija, ko var pagarināt līdz 36 mēnešiem.' : '',
+        b.includes('like_new') ? 'Auto ir teicamā stāvoklī.' : '',
+      ].filter(Boolean).join(' '),
     ].filter(Boolean);
     set('description', lines.join('\n\n'));
   };
@@ -170,7 +183,9 @@ export function CarEditor({ id }: { id?: string }) {
     delete (payload as Record<string, unknown>).views;
     try {
       if (isNew) {
-        const { error } = await sb.from('cars').insert({ ...payload, id: carId.current, published_at: payload.status === 'published' ? new Date().toISOString() : null });
+        // jauns auto — pirmais sarakstā
+        const { data: first } = await sb.from('cars').select('sort').order('sort', { ascending: true }).limit(1).maybeSingle();
+        const { error } = await sb.from('cars').insert({ ...payload, sort: ((first as { sort: number } | null)?.sort ?? 1) - 1, id: carId.current, published_at: payload.status === 'published' ? new Date().toISOString() : null });
         if (error) throw error;
       } else {
         const { error } = await sb.from('cars').update(payload).eq('id', carId.current);
@@ -324,7 +339,7 @@ export function CarEditor({ id }: { id?: string }) {
 
           <CsddPanel car={car} onChange={set} />
 
-          <Card title="Aprīkojums" hint="Spied Enter, lai pievienotu. Ātri pievieno no populārajiem.">
+          <Card title="Aprīkojums un ekstras" hint="Ieraksti savu ekstru un spied Enter (vairākas — atdalot ar ;) vai atzīmē no saraksta.">
             <div className="flex gap-2">
               <input
                 className="field"
@@ -349,15 +364,35 @@ export function CarEditor({ id }: { id?: string }) {
                 </span>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap gap-1.5 border-t border-line pt-4">
-              {EQUIPMENT_PRESETS.filter((p) => !(car.equipment || []).includes(p)).map((p) => (
-                <button key={p} onClick={() => set('equipment', [...(car.equipment || []), p])} className="rounded-full border border-line px-3 py-1 text-xs font-medium text-ink-2 hover:border-petrol hover:text-petrol">+ {p}</button>
-              ))}
+            <div className="mt-4 space-y-2 border-t border-line pt-4">
+              <p className="text-xs font-semibold text-mute">Ātrā izvēle — atzīmē, kas auto ir (lapā rādīsies sagrupēts pa kategorijām)</p>
+              {EQUIP_CATALOG.map((g) => {
+                const label = EQUIP_CATS.find((c) => c.id === g.id)!.label;
+                const on = g.items.filter((p) => (car.equipment || []).includes(p)).length;
+                return (
+                  <details key={g.id} className="group rounded-xl border border-line" open={g.id === 'comfort'}>
+                    <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-sm font-semibold text-ink">
+                      {label}
+                      <span className="flex items-center gap-2 text-xs text-mute">{on > 0 && <span className="rounded-full bg-signal-soft px-2 py-0.5 font-bold text-signal">{on}</span>}<ArrowDown className="h-3.5 w-3.5 transition group-open:rotate-180" /></span>
+                    </summary>
+                    <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                      {g.items.map((p) => {
+                        const has = (car.equipment || []).includes(p);
+                        return (
+                          <button key={p} type="button" aria-pressed={has} onClick={() => set('equipment', has ? (car.equipment || []).filter((x) => x !== p) : [...(car.equipment || []), p])} className={`rounded-full border px-3 py-1 text-xs font-medium transition ${has ? 'border-signal bg-signal text-white' : 'border-line text-ink-2 hover:border-ink-2 hover:text-ink'}`}>
+                            {has ? '✓ ' : '+ '}{p}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              })}
             </div>
           </Card>
 
           <Card title="Apraksts" actions={<button type="button" onClick={autoDescription} className="btn btn-ghost !px-3 !py-1.5 text-sm"><Wand2 className="h-4 w-4" /> Sagatavot tekstu</button>}>
-            <textarea className="field min-h-[200px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Stāvoklis, apkopes vēsture, īpašas priekšrocības. Tukša rinda = jauna rindkopa." />
+            <textarea className="field min-h-[200px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Stāvoklis, apkopes vēsture, īpašas priekšrocības. Tukša rinda = jauna rindkopa, rinda ar “-” = saraksts. Testa braucienu, līzingu un apmaiņu lapa parāda automātiski." />
           </Card>
 
           {!isNew && <PortalPanel car={car as Car} images={visible.filter((i) => !i.is_promo).map((i) => i.url)} />}

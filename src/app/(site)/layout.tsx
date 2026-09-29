@@ -4,6 +4,7 @@ import { FloatingContact } from '@/components/site/FloatingContact';
 import { CompareBar } from '@/components/site/CompareBar';
 import { getSettings } from '@/lib/data';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
+import { AdminLiveProvider } from '@/components/site/AdminLive';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
@@ -32,6 +33,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   };
   return (
     <BadgeStyleProvider value={badgeStyle}>
+    <AdminLiveProvider>
     <div className="site min-h-dvh">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }} />
       {content.announcement ? (
@@ -43,6 +45,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
     </div>
+    </AdminLiveProvider>
     </BadgeStyleProvider>
   );
 }

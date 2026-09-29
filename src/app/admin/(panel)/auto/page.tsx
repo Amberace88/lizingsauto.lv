@@ -1,8 +1,8 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { Plus, Search, Star, Pencil, ExternalLink, Copy, Trash2, Loader2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Search, Star, Pencil, ExternalLink, Copy, Trash2, Loader2, GripVertical, ArrowUp, ArrowDown, ChevronsUp } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
 import { STATUS_LABEL, money, number } from '@/lib/format';
@@ -20,7 +20,9 @@ export default function CarsAdmin() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [tab, setTab] = useState<(typeof TABS)[number]>('all');
   const [q, setQ] = useState('');
-  const [sort, setSort] = useState<'updated' | 'price' | 'views' | 'name'>('updated');
+  const [sort, setSort] = useState<'order' | 'updated' | 'price' | 'views' | 'name'>('order');
+  const dragFrom = useRef<number | null>(null);
+  const [dragOver, setDragOver] = useState<number | null>(null);
   const [confirm, setConfirm] = useState<Row | null>(null);
 
   async function load() {
@@ -38,7 +40,7 @@ export default function CarsAdmin() {
     return (rows || [])
       .filter((r) => (tab === 'all' ? r.status !== 'archived' : r.status === tab))
       .filter((r) => !s || `${r.make} ${r.model} ${r.title} ${r.vin ?? ''} ${r.reg_number ?? ''}`.toLowerCase().includes(s))
-      .sort((a, b) => sort === 'price' ? b.price - a.price : sort === 'views' ? b.views - a.views : sort === 'name' ? `${a.make}${a.model}`.localeCompare(`${b.make}${b.model}`) : +new Date(b.updated_at) - +new Date(a.updated_at));
+      .sort((a, b) => sort === 'order' ? a.sort - b.sort || +new Date(b.created_at) - +new Date(a.created_at) : sort === 'price' ? b.price - a.price : sort === 'views' ? b.views - a.views : sort === 'name' ? `${a.make}${a.model}`.localeCompare(`${b.make}${b.model}`) : +new Date(b.updated_at) - +new Date(a.updated_at));
   }, [rows, tab, q, sort]);
 
   async function patch(r: Row, p: Partial<Car>) {
@@ -52,6 +54,34 @@ export default function CarsAdmin() {
       revalidateSite([r.slug]);
     }
   }
+
+  const move = (from: number, to: number) => {
+    if (to < 0 || to >= list.length || from === to) return;
+    const arr = [...list];
+    const [m] = arr.splice(from, 1);
+    arr.splice(to, 0, m);
+    // pārnumurē visu redzamo sarakstu pēc to esošajām secības vērtībām
+    const slots = [...list].map((r) => r.sort).sort((a, b) => a - b);
+    const ordered = arr.map((r, i) => ({ ...r, _s: slots[i] }));
+    const changes = ordered.filter((r) => r.sort !== r._s);
+    if (!changes.length) return;
+    const map = new Map(changes.map((c) => [c.id, c._s]));
+    setRows((rs) => rs!.map((x) => (map.has(x.id) ? { ...x, sort: map.get(x.id)! } : x)));
+    Promise.all(changes.map((c) => sb.from('cars').update({ sort: c._s }).eq('id', c.id))).then((res) => {
+      const err = res.find((x) => x.error)?.error;
+      if (err) {
+        toast(err.message, 'err');
+        load();
+      } else {
+        toast('Secība saglabāta');
+        revalidateSite();
+      }
+    });
+  };
+  const toTop = (r: Row) => {
+    const min = Math.min(...(rows || []).map((x) => x.sort));
+    patch(r, { sort: min - 1 });
+  };
 
   async function duplicate(r: Row) {
     const { id, car_images, portal_listings, created_at, updated_at, views, published_at, sold_at, ...rest } = r;
@@ -77,7 +107,7 @@ export default function CarsAdmin() {
 
   return (
     <>
-      <AdminTitle title="Automašīnas" sub="Pievieno, labo un publicē sludinājumus." actions={<Link href="/admin/auto/jauns" className="btn btn-primary"><Plus className="h-4 w-4" /> Pievienot auto</Link>} />
+      <AdminTitle title="Automašīnas" sub="Pievieno, labo un publicē sludinājumus. Velc auto sarakstā — tādā secībā tie rādās lapā." actions={<Link href="/admin/auto/jauns" className="btn btn-primary"><Plus className="h-4 w-4" /> Pievienot auto</Link>} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-white p-1">
           {TABS.map((t) => (
@@ -91,6 +121,7 @@ export default function CarsAdmin() {
           <input className="field !w-64 !py-2 !pl-9" placeholder="Meklēt: marka, VIN, numurs" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className="field !w-auto !py-2" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+          <option value="order">Secība lapā</option>
           <option value="updated">Pēdējie labotie</option>
           <option value="price">Pēc cenas</option>
           <option value="views">Pēc skatījumiem</option>
@@ -105,6 +136,7 @@ export default function CarsAdmin() {
           <table className="w-full min-w-[900px] text-sm">
             <thead className="border-b border-line text-left text-xs font-semibold text-mute">
               <tr>
+                {sort === 'order' && <th className="w-24 p-3 pl-4" title="Velc vai spied bultiņas — tādā secībā auto rādās lapā">Secība</th>}
                 <th className="p-3 pl-4">Auto</th>
                 <th className="p-3">Cena</th>
                 <th className="p-3">Statuss</th>
@@ -115,10 +147,33 @@ export default function CarsAdmin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {list.map((r) => {
+              {list.map((r, k) => {
                 const img = [...(r.car_images || [])].sort((a, b) => a.sort - b.sort)[0]?.url;
+                const ord = sort === 'order';
                 return (
-                  <tr key={r.id} className="hover:bg-paper/60">
+                  <tr
+                    key={r.id}
+                    draggable={ord}
+                    onDragStart={() => (dragFrom.current = k)}
+                    onDragOver={(e) => { if (ord) { e.preventDefault(); setDragOver(k); } }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={() => { if (dragFrom.current != null) move(dragFrom.current, k); dragFrom.current = null; setDragOver(null); }}
+                    onDragEnd={() => { dragFrom.current = null; setDragOver(null); }}
+                    className={`hover:bg-paper/60 ${dragOver === k ? 'outline outline-2 -outline-offset-2 outline-signal' : ''}`}
+                  >
+                    {ord && (
+                      <td className="p-3 pl-4">
+                        <div className="flex items-center gap-0.5">
+                          <GripVertical className="h-4 w-4 cursor-grab text-mute active:cursor-grabbing" />
+                          <span className="num w-6 text-center text-xs font-bold text-mute">{k + 1}</span>
+                          <div className="flex flex-col">
+                            <button onClick={() => move(k, k - 1)} disabled={k === 0} className="rounded p-0.5 text-mute hover:bg-paper hover:text-ink disabled:opacity-25" aria-label="Augstāk"><ArrowUp className="h-3.5 w-3.5" /></button>
+                            <button onClick={() => move(k, k + 1)} disabled={k === list.length - 1} className="rounded p-0.5 text-mute hover:bg-paper hover:text-ink disabled:opacity-25" aria-label="Zemāk"><ArrowDown className="h-3.5 w-3.5" /></button>
+                          </div>
+                          {k > 0 && <button onClick={() => toTop(r)} className="rounded p-1 text-mute hover:bg-paper hover:text-signal" title="Likt pirmo"><ChevronsUp className="h-4 w-4" /></button>}
+                        </div>
+                      </td>
+                    )}
                     <td className="p-3 pl-4">
                       <Link href={`/admin/auto/${r.id}`} className="flex items-center gap-3">
                         <span className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md bg-line">{img && <Image src={img} alt="" fill sizes="64px" className="object-cover" />}</span>
@@ -158,7 +213,7 @@ export default function CarsAdmin() {
                   </tr>
                 );
               })}
-              {list.length === 0 && <tr><td colSpan={7} className="p-10 text-center text-mute">Nekas nav atrasts.</td></tr>}
+              {list.length === 0 && <tr><td colSpan={8} className="p-10 text-center text-mute">Nekas nav atrasts.</td></tr>}
             </tbody>
           </table>
         </div>

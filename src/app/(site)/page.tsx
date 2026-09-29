@@ -14,7 +14,9 @@ export default async function HomePage() {
   const { leasing, content, company, ekii, warranty } = settings;
   const available = cars.filter((c) => c.status === 'published');
   const mini: MiniCar[] = available.map((c) => ({ id: c.id, slug: c.slug, name: carName(c), year: c.year, price: c.price, img: coverImage(c) }));
-  const featured = [...available.filter((c) => c.featured), ...available.filter((c) => !c.featured)].slice(0, 8);
+  // Sākumlapā: izceltie auto vienmēr + pārējie līdz 8, visi admina noteiktajā secībā
+  const picked = new Set([...available.filter((c) => c.featured), ...available.filter((c) => !c.featured)].slice(0, 8).map((c) => c.id));
+  const featured = available.filter((c) => picked.has(c.id));
   const evs = cars.filter((c) => c.fuel === 'electric' && c.status !== 'sold').slice(0, 3);
   const evCount = cars.filter((c) => c.fuel === 'electric' && c.status !== 'sold').length;
   const counts = (fn: (c: (typeof cars)[number]) => boolean) => available.filter(fn).length;
