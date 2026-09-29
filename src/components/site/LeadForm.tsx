@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
-export type LeadType = 'leasing' | 'contact' | 'sell_car' | 'test_drive' | 'reserve' | 'car_order' | 'trade_in';
+export type LeadType = 'leasing' | 'contact' | 'sell_car' | 'test_drive' | 'reserve' | 'car_order' | 'trade_in' | 'warranty';
 
 type Field = { name: string; label: string; type?: 'text' | 'tel' | 'email' | 'textarea' | 'select' | 'number'; required?: boolean; options?: string[]; half?: boolean; placeholder?: string };
 
@@ -101,7 +101,7 @@ export function LeadForm({ type, carId, fields, extra, submitLabel = 'Nosūtīt'
       {/* Aizsardzība pret robotiem */}
       <input type="text" name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
       <label className="col-span-2 flex items-start gap-2.5 text-sm text-ink-2">
-        <input type="checkbox" name="consent" value="1" className="mt-0.5 h-4 w-4 shrink-0 accent-[#0f5a63]" />
+        <input type="checkbox" name="consent" value="1" className="mt-0.5 h-4 w-4 shrink-0 accent-[#d91d2b]" />
         <span>
           Piekrītu, ka SIA AC Industry apstrādā manus datus, lai sagatavotu piedāvājumu. <Link href="/privatuma-politika" className="text-petrol underline">Privātuma politika</Link>
         </span>

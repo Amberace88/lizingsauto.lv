@@ -8,6 +8,7 @@ export const LEAD_TYPE: Record<string, string> = {
   reserve: 'Rezervācija',
   car_order: 'Auto pasūtījums',
   trade_in: 'Maiņa',
+  warranty: 'Garantija',
 };
 export const LEAD_STATUS: Record<string, string> = { new: 'Jauns', in_progress: 'Procesā', done: 'Pabeigts', rejected: 'Noraidīts' };
 export const PORTALS: Record<string, { name: string; country: string }> = {

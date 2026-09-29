@@ -7,10 +7,11 @@ import { CarCard } from '@/components/site/CarCard';
 import { carName, coverImage, money } from '@/lib/format';
 import { Faq } from '@/components/site/Faq';
 import { HOME_FAQ } from '@/lib/faq';
+import { PLANS, PLAN_ORDER, limitLabel } from '@/lib/warranty';
 
 export default async function HomePage() {
   const [cars, settings] = await Promise.all([getPublicCars(), getSettings()]);
-  const { leasing, content, company, ekii } = settings;
+  const { leasing, content, company, ekii, warranty } = settings;
   const available = cars.filter((c) => c.status === 'published');
   const mini: MiniCar[] = available.map((c) => ({ id: c.id, slug: c.slug, name: carName(c), year: c.year, price: c.price, img: coverImage(c) }));
   const featured = [...available.filter((c) => c.featured), ...available.filter((c) => !c.featured)].slice(0, 8);
@@ -71,7 +72,7 @@ export default async function HomePage() {
             { href: '/katalogs?maxPrice=5000', label: 'Līdz 5000 €', n: counts((c) => c.price <= 5000), icon: Wallet },
             { href: '/katalogs?drive=awd', label: '4x4', n: counts((c) => c.drive === 'awd'), icon: Truck },
           ].map((c) => (
-            <Link key={c.href} href={c.href} className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-petrol hover:text-petrol">
+            <Link key={c.href} href={c.href} className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-card px-4 py-2.5 text-sm font-semibold text-ink transition hover:border-petrol hover:text-petrol">
               <c.icon className="h-4 w-4" /> {c.label} <span className="num text-mute">{c.n}</span>
             </Link>
           ))}
@@ -114,7 +115,7 @@ export default async function HomePage() {
                 ['Brauc un maksā mazāk', `Lietotam auto ${money(ekii.usedAmount)}, jaunam ${money(ekii.newAmount)}, par vecā auto nodošanu vēl +${money(ekii.scrapBonus)}.`],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-4">
-                  <span className="num grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal font-bold text-ink">{i + 1}</span>
+                  <span className="num grid h-9 w-9 shrink-0 place-items-center rounded-full bg-signal font-bold text-white">{i + 1}</span>
                   <div>
                     <p className="font-semibold">{t}</p>
                     <p className="text-sm text-white/65">{d}</p>
@@ -137,7 +138,7 @@ export default async function HomePage() {
               return (
                 <Link key={c.id} href={`/auto/${c.slug}`} className={`group relative overflow-hidden rounded-2xl bg-white/5 ${i === 0 ? 'sm:col-span-2 aspect-[16/9]' : 'aspect-[4/3]'}`}>
                   {img && <Image src={img} alt={carName(c)} fill sizes="(max-width:1024px) 100vw, 40vw" className="object-cover transition-transform duration-500 group-hover:scale-105" />}
-                  <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-night/85 via-night/10 to-transparent" />
                   <div className="absolute bottom-0 left-0 p-4">
                     <p className="display-md text-lg">{carName(c)}</p>
                     <p className="num text-sm text-white/80">{c.year} · {money(c.price)}</p>
@@ -160,7 +161,7 @@ export default async function HomePage() {
             ['Saņem lēmumu', 'Sadarbojamies ar vairākiem līzinga devējiem — izvēlamies izdevīgāko.'],
             ['Paraksti un brauc', 'Testa brauciens, līguma parakstīšana, auto reģistrācija.'],
           ].map(([t, d], i) => (
-            <li key={t} className="relative rounded-2xl border border-line bg-white p-6">
+            <li key={t} className="relative rounded-2xl border border-line bg-card p-6">
               <span className="num display text-5xl text-petrol/15">{i + 1}</span>
               <p className="mt-2 text-lg font-bold text-ink">{t}</p>
               <p className="mt-1 text-sm leading-relaxed text-ink-2">{d}</p>
@@ -169,9 +170,34 @@ export default async function HomePage() {
         </ol>
       </section>
 
+      {/* GARANTIJA */}
+      {warranty.enabled && (
+        <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6">
+          <div className="grid gap-8 rounded-[24px] border border-line bg-card p-8 sm:p-12 lg:grid-cols-[1fr_1.3fr] lg:items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-signal-soft px-3 py-1 text-xs font-bold text-signal"><ShieldCheck className="h-4 w-4" /> Sadarbībā ar {warranty.provider}</span>
+              <h2 className="display-md mt-4 text-3xl text-ink sm:text-4xl">Pagarinātā garantija — brauc bez bažām</h2>
+              <p className="mt-4 max-w-md text-ink-2">
+                Dzinējs, pārnesumkārba, turbo, elektronika — līdz 36 mēnešiem, ar neierobežotu gada nobraukumu un evakuatoru. Garantiju var iekļaut arī līzingā.
+              </p>
+              <Link href="/garantija" className="btn btn-signal mt-8">Izvēlēties plānu <ArrowRight className="h-4 w-4" /></Link>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[...PLAN_ORDER].reverse().map((p) => (
+                <Link key={p} href="/garantija#kalkulators" className="group rounded-2xl border border-line bg-paper p-5 transition hover:-translate-y-0.5 hover:border-signal">
+                  <p className="display-md text-lg text-ink">{PLANS[p].name}</p>
+                  <p className="mt-1 text-xs text-mute">līdz {PLANS[p].maxAge} g. · {Math.round(PLANS[p].maxKm / 1000)}k km</p>
+                  <p className="mt-3 text-sm text-ink-2">Kopējais limits <b className="text-ink">{limitLabel(PLANS[p].total)}</b></p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* PĀRDOT / MAINĪT */}
       <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6">
-        <div className="grid overflow-hidden rounded-[24px] bg-ink text-white md:grid-cols-2">
+        <div className="grid overflow-hidden rounded-[24px] bg-night text-white md:grid-cols-2">
           <div className="p-8 sm:p-12">
             <h2 className="display-md text-3xl sm:text-4xl">Tavs vecais auto var būt pirmā iemaksa</h2>
             <p className="mt-4 max-w-md text-white/70">
@@ -188,7 +214,7 @@ export default async function HomePage() {
               [ArrowLeftRight, 'Maiņa', 'Nomaini auto ar piemaksu'],
               [Handshake, 'Komisija', 'Pārdodam tavā vietā'],
             ] as const).map(([Icon, t, d]) => (
-              <div key={t} className="bg-ink p-6 sm:p-8">
+              <div key={t} className="bg-night p-6 sm:p-8">
                 <Icon className="h-6 w-6 text-signal" />
                 <p className="mt-3 font-bold">{t}</p>
                 <p className="text-sm text-white/60">{d}</p>
@@ -209,7 +235,7 @@ export default async function HomePage() {
 
       {/* KARTE */}
       <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6">
-        <div className="grid overflow-hidden rounded-[24px] border border-line bg-white md:grid-cols-[1fr_1.5fr]">
+        <div className="grid overflow-hidden rounded-[24px] border border-line bg-card md:grid-cols-[1fr_1.5fr]">
           <div className="p-8">
             <h2 className="display-md text-2xl text-ink">Brauc apskatīt</h2>
             <p className="mt-3 text-ink-2">{company.address}</p>
@@ -224,7 +250,7 @@ export default async function HomePage() {
             </a>
           </div>
           <iframe
-            title="Karte: LīzingsAuto atrašanās vieta"
+            title="Karte: Tavs Auto atrašanās vieta"
             src={`https://maps.google.com/maps?q=${encodeURIComponent(company.address)}&z=15&output=embed`}
             className="h-80 w-full border-0 md:h-full"
             loading="lazy"

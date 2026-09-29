@@ -10,6 +10,7 @@ import { Gallery } from '@/components/site/Gallery';
 import { CarActions, CarContactPanel, ViewPing } from '@/components/site/CarDetailClient';
 import { CarCard } from '@/components/site/CarCard';
 import { Equipment } from '@/components/site/Equipment';
+import { OdometerHistory, TaxBox, WarrantyBox } from '@/components/site/CarExtras';
 
 export const revalidate = 60;
 
@@ -39,7 +40,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const car = await getCarBySlug(slug);
   if (!car) notFound();
   if (car.slug !== slug) permanentRedirect(carUrl(car));
-  const [{ leasing, company, ekii }, all] = await Promise.all([getSettings(), getPublicCars()]);
+  const [{ leasing, company, ekii, warranty }, all] = await Promise.all([getSettings(), getPublicCars()]);
   const images = sortedImages(car).map((i) => i.url);
   const badges = carBadges(car);
   const name = carName(car);
@@ -141,6 +142,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
                 </div>
               </div>
             )}
+            <WarrantyBox car={car} w={warranty} />
             <CarContactPanel carId={car.id} carTitle={`${name} ${car.year ?? ''}`} price={car.price} leasing={leasing} phone={company.phone} whatsapp={company.whatsapp} sold={car.status === 'sold'} />
           </div>
         </div>
@@ -156,7 +158,10 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
                 </div>
               ))}
             </dl>
+            <div className="mt-5"><TaxBox car={car} /></div>
           </section>
+
+          <OdometerHistory car={car} />
 
           {car.equipment.length > 0 && (
             <section aria-labelledby="equipment">
@@ -174,10 +179,10 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
             </section>
           )}
 
-          <section className="rounded-2xl border border-line bg-white p-6">
+          <section className="rounded-2xl border border-line bg-card p-6">
             <h2 className="display-md text-xl text-ink">Pērkot pie mums</h2>
             <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {['Testa brauciens un pārbaude servisā pēc tavas izvēles', 'Līzings no 0% pirmās iemaksas', 'Līzings arī ar sabojātu kredītvēsturi', 'Vecais auto var būt pirmā iemaksa', 'Pagarinātā garantija līdz 36 mēnešiem', 'Palīdzam ar reģistrāciju CSDD'].map((t) => (
+              {['Testa brauciens un pārbaude servisā pēc tavas izvēles', 'Līzings no 0% pirmās iemaksas', 'Līzings arī ar sabojātu kredītvēsturi', 'Vecais auto var būt pirmā iemaksa', 'Pagarinātā garantija līdz 36 mēnešiem (Mango Insurance)', 'Palīdzam ar reģistrāciju CSDD'].map((t) => (
                 <li key={t} className="flex gap-2 text-sm text-ink-2"><CheckCircle2 className="h-5 w-5 shrink-0 text-ok" /> {t}</li>
               ))}
             </ul>

@@ -8,6 +8,7 @@ import { useToast } from '@/components/admin/Toast';
 import { revalidateSite } from '@/components/admin/revalidate';
 import { DEFAULT_LEASING } from '@/lib/leasing';
 import { DEFAULT_EKII } from '@/lib/ekii';
+import { DEFAULT_WARRANTY } from '@/lib/warranty';
 
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
@@ -50,6 +51,16 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
     ],
   },
   {
+    key: 'warranty', title: 'Pagarinātā garantija (Mango Insurance)', hint: 'Cenas par katru plānu un termiņu. Atstāj tukšu — lapā rādīs “cena pēc pieprasījuma”.',
+    fields: [
+      { key: 'enabled', label: 'Rādīt garantijas piedāvājumu', type: 'bool' }, { key: 'provider', label: 'Partneris' },
+      ...(['plus', 'comfort', 'advantage', 'deluxe'] as const).flatMap((p) => (['12', '24', '36'] as const).map((m) => ({ key: `prices.${p}.${m}`, label: `${p.toUpperCase()} — ${m} mēn., €`, type: 'number' as const }))),
+      { key: 'rentalPerDay', label: 'Maiņas auto, € dienā', type: 'number' }, { key: 'rentalDays', label: 'Maiņas auto, maks. dienas', type: 'number' },
+      { key: 'towing', label: 'Evakuators, € gadījumā', type: 'number' },
+      { key: 'examples', label: 'Remontu piemēri (katrā rindā: nosaukums; summa)', type: 'textarea' },
+    ],
+  },
+  {
     key: 'portals', title: 'Portālu integrācijas', hint: 'Tehniskie parametri. Paroles un API atslēgas glabājas tikai servera vidē (Netlify), ne datubāzē.', tech: true,
     fields: [
       { key: 'autoplius.contactId', label: 'Autoplius kontakta (filiāles) ID' }, { key: 'autoplius.cityId', label: 'Autoplius pilsētas ID (Rīga = 161)' },
@@ -58,7 +69,7 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
   },
 ];
 
-const DEFAULTS: Record<string, Record<string, unknown>> = { leasing: DEFAULT_LEASING as unknown as Record<string, unknown>, ekii: DEFAULT_EKII as unknown as Record<string, unknown> };
+const DEFAULTS: Record<string, Record<string, unknown>> = { leasing: DEFAULT_LEASING as unknown as Record<string, unknown>, ekii: DEFAULT_EKII as unknown as Record<string, unknown>, warranty: DEFAULT_WARRANTY as unknown as Record<string, unknown> };
 const get = (o: Record<string, unknown>, path: string) => path.split('.').reduce<unknown>((a, k) => (a as Record<string, unknown>)?.[k], o);
 const setDeep = (o: Record<string, unknown>, path: string, v: unknown) => {
   const keys = path.split('.');
@@ -82,7 +93,7 @@ export default function SettingsPage() {
       const [{ data }, { data: me }] = await Promise.all([sb.from('settings').select('key,value'), sb.from('admins').select('role').eq('user_id', user?.id).maybeSingle()]);
       setDev(me?.role === 'developer');
       const m: Record<string, Record<string, unknown>> = {};
-      for (const s of SECTIONS) m[s.key] = { ...(DEFAULTS[s.key] || {}), ...((data || []).find((r: { key: string }) => r.key === s.key)?.value || {}) };
+      for (const s of SECTIONS) m[s.key] = { ...structuredClone(DEFAULTS[s.key] || {}), ...((data || []).find((r: { key: string }) => r.key === s.key)?.value || {}) };
       setVals(m);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -101,7 +112,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <AdminTitle title="Lapas iestatījumi" sub="Teksti, kontakti, līzinga un EKII parametri. Izmaiņas lapā redzamas uzreiz." />
+      <AdminTitle title="Lapas iestatījumi" sub="Teksti, kontakti, līzinga, EKII un garantijas parametri. Izmaiņas lapā redzamas uzreiz." />
       <div className="space-y-6">
         {SECTIONS.filter((s) => !s.tech || isDev).map((s) => (
           <Card key={s.key} title={s.title} hint={s.hint} actions={s.tech ? <span className="flex items-center gap-1 text-xs font-semibold text-mute"><Lock className="h-3.5 w-3.5" /> Tikai izstrādātājam</span> : undefined}>
@@ -113,7 +124,7 @@ export default function SettingsPage() {
                   <label key={f.key} className={f.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}>
                     <span className="label">{f.label}</span>
                     {f.type === 'bool' ? (
-                      <input type="checkbox" checked={!!v} onChange={(e) => on(e.target.checked)} className="h-5 w-5 accent-[#0f5a63]" />
+                      <input type="checkbox" checked={!!v} onChange={(e) => on(e.target.checked)} className="h-5 w-5 accent-[#d91d2b]" />
                     ) : f.type === 'textarea' ? (
                       <textarea className="field" rows={3} value={String(v ?? '')} onChange={(e) => on(e.target.value)} />
                     ) : (

@@ -98,7 +98,7 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
         <Num label="Līdz €/mēn." value={f.maxMonthly} onChange={(v) => set('maxMonthly', v)} />
       </div>
       <label className="flex items-center gap-2 text-sm font-medium text-ink-2">
-        <input type="checkbox" checked={f.status === 'all'} onChange={(e) => set('status', e.target.checked ? 'all' : '')} className="h-4 w-4 accent-[#0f5a63]" />
+        <input type="checkbox" checked={f.status === 'all'} onChange={(e) => set('status', e.target.checked ? 'all' : '')} className="h-4 w-4 accent-[#d91d2b]" />
         Rādīt arī pārdotos auto
       </label>
       {active > 0 && (
@@ -112,7 +112,7 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
   return (
     <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
       <aside className="hidden lg:block">
-        <div className="sticky top-24 rounded-2xl border border-line bg-white p-5">{panel}</div>
+        <div className="sticky top-24 rounded-2xl border border-line bg-card p-5">{panel}</div>
       </aside>
       <div>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -131,7 +131,7 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
           </div>
         </div>
         {list.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-line bg-white p-10 text-center">
+          <div className="rounded-2xl border border-dashed border-line bg-card p-10 text-center">
             <p className="font-semibold text-ink">Pēc šiem kritērijiem auto nav.</p>
             <p className="mt-1 text-sm text-ink-2">Noņem kādu filtru vai pasūti auto — atradīsim to Eiropā.</p>
             <div className="mt-5 flex justify-center gap-3">
@@ -155,7 +155,7 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
       <AnimatePresence>
         {drawer && (
           <motion.div className="fixed inset-0 z-50 lg:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-ink/50" onClick={() => setDrawer(false)} />
+            <div className="absolute inset-0 bg-night/50" onClick={() => setDrawer(false)} />
             <motion.div
               className="absolute inset-x-0 bottom-0 max-h-[88dvh] overflow-y-auto rounded-t-3xl bg-paper p-5"
               initial={{ y: '100%' }}

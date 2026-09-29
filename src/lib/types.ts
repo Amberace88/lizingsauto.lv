@@ -8,6 +8,7 @@ export interface CarImage {
   storage_path: string | null;
   source_url: string | null;
   sort: number;
+  is_promo?: boolean;
 }
 
 export interface Car {
@@ -49,6 +50,8 @@ export interface Car {
   sort: number;
   views: number;
   video_url: string | null;
+  odometer_history?: { date: string; km: number }[] | null;
+  csdd_checked_at?: string | null;
   internal_note?: string | null;
   created_at: string;
   updated_at: string;

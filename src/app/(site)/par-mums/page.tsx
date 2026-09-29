@@ -5,7 +5,7 @@ import { PageHead } from '@/components/site/PageHead';
 
 export const metadata: Metadata = {
   title: 'Par mums — auto tirdzniecība un līzings Rīgā',
-  description: 'LīzingsAuto (SIA AC Industry) — auto tirdzniecība un līzings Rīgā, Teikā. Sadarbība ar Eiropas izsoļu portāliem un partneriem Vācijā, Nīderlandē, Itālijā, Francijā un Zviedrijā.',
+  description: 'Tavs Auto (SIA AC Industry) — auto tirdzniecība un līzings Rīgā, Teikā. Sadarbība ar Eiropas izsoļu portāliem un partneriem Vācijā, Nīderlandē, Itālijā, Francijā un Zviedrijā.',
   alternates: { canonical: '/par-mums' },
 };
 
@@ -32,7 +32,7 @@ export default async function AboutPage() {
             ['36 mēn.', 'pagarinātā garantija'],
             ['0 %', 'minimālā pirmā iemaksa'],
           ].map(([v, l]) => (
-            <div key={l} className="flex flex-col-reverse rounded-2xl border border-line bg-white p-6">
+            <div key={l} className="flex flex-col-reverse rounded-2xl border border-line bg-card p-6">
               <dt className="text-sm text-mute">{l}</dt>
               <dd className="num display text-4xl text-petrol">{v}</dd>
             </div>
@@ -40,7 +40,7 @@ export default async function AboutPage() {
         </dl>
       </div>
       <div className="mx-auto mt-14 max-w-7xl px-4 sm:px-6">
-        <div className="rounded-2xl bg-white p-6 text-sm text-ink-2">
+        <div className="rounded-2xl bg-card p-6 text-sm text-ink-2">
           <p className="font-semibold text-ink">Rekvizīti</p>
           <p className="mt-2">{company.name}, reģ. nr. {company.regNr}</p>
           <p>Juridiskā adrese: {company.legalAddress}</p>

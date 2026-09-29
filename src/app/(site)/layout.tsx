@@ -16,7 +16,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     name: company.brand,
     legalName: company.name,
     url: SITE_URL,
-    logo: `${SITE_URL}/logo-mark.svg`,
+    logo: `${SITE_URL}/logo-tavs-auto.png`,
     image: `${SITE_URL}/opengraph-image`,
     telephone: company.phone,
     email: company.email,
@@ -30,7 +30,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
     areaServed: 'LV',
   };
   return (
-    <>
+    <div className="site min-h-dvh">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }} />
       {content.announcement ? (
         <div className="bg-petrol px-4 py-2 text-center text-sm font-medium text-white">{content.announcement}</div>
@@ -40,6 +40,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Footer company={company} />
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
-    </>
+    </div>
   );
 }

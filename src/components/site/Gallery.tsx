@@ -59,15 +59,15 @@ export function Gallery({ images, alt, badges, status }: { images: string[]; alt
 
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-ink">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-night">
         {slide(false)}
         <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[75%]">
           <BadgeChips badges={badges} max={6} size="md" />
         </div>
         <StatusRibbon status={status} />
-        <button onClick={() => go(-1)} className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow hover:bg-white" aria-label="Iepriekšējā bilde"><ChevronLeft /></button>
-        <button onClick={() => go(1)} className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 shadow hover:bg-white" aria-label="Nākamā bilde"><ChevronRight /></button>
-        <button onClick={() => setFull(true)} className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-ink/70 px-3 py-1.5 text-sm font-semibold text-white hover:bg-ink" aria-label="Pilnekrāna režīms">
+        <button onClick={() => go(-1)} className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow hover:bg-card" aria-label="Iepriekšējā bilde"><ChevronLeft /></button>
+        <button onClick={() => go(1)} className="absolute right-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow hover:bg-card" aria-label="Nākamā bilde"><ChevronRight /></button>
+        <button onClick={() => setFull(true)} className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-night/70 px-3 py-1.5 text-sm font-semibold text-white hover:bg-night" aria-label="Pilnekrāna režīms">
           <Expand className="h-4 w-4" /> <span className="num">{i + 1}/{n}</span>
         </button>
       </div>

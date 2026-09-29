@@ -21,7 +21,7 @@ export function FloatingContact({ phone, whatsapp }: { phone: string; whatsapp: 
       </AnimatePresence>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="grid h-14 w-14 place-items-center rounded-full bg-signal text-ink shadow-[0_8px_24px_-6px_rgba(21,32,43,.5)] transition hover:scale-105"
+        className="grid h-14 w-14 place-items-center rounded-full bg-signal text-white shadow-[0_8px_24px_-6px_rgba(21,32,43,.5)] transition hover:scale-105"
         aria-expanded={open}
         aria-label={open ? 'Aizvērt saziņas izvēlni' : 'Sazināties'}
       >

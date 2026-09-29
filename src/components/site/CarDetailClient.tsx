@@ -82,10 +82,10 @@ export function CarContactPanel({ carId, carTitle, price, leasing, phone, whatsa
         <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Labdien! Interesē: ${carTitle} ${typeof window !== 'undefined' ? location.href : ''}`)}`} target="_blank" rel="noopener noreferrer" className="btn bg-[#25D366] text-white hover:bg-[#1fb857]"><MessageCircle className="h-4 w-4" /> WhatsApp</a>
       </div>
       {!sold && (
-        <div ref={formRef} id="pieteikums" className="scroll-mt-24 rounded-2xl border border-line bg-white p-5">
+        <div ref={formRef} id="pieteikums" className="scroll-mt-24 rounded-2xl border border-line bg-card p-5">
           <div className="mb-4 flex rounded-xl bg-paper p-1" role="tablist">
             {TABS.map((t) => (
-              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t.id ? 'bg-white text-ink shadow-sm' : 'text-mute hover:text-ink'}`}>
+              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${tab === t.id ? 'bg-card text-ink shadow-sm' : 'text-mute hover:text-ink'}`}>
                 {t.label}
               </button>
             ))}

@@ -15,7 +15,7 @@ export function CompareTable({ cars, leasing }: { cars: Car[]; leasing: LeasingS
   const list = ids.map((id) => cars.find((c) => c.id === id)).filter(Boolean) as Car[];
   if (list.length === 0)
     return (
-      <div className="rounded-2xl border border-dashed border-line bg-white p-10 text-center">
+      <div className="rounded-2xl border border-dashed border-line bg-card p-10 text-center">
         <p className="font-semibold">Nav izvēlēts neviens auto.</p>
         <p className="mt-1 text-sm text-ink-2">Auto lapā spied “Salīdzināt” (līdz 3 auto).</p>
         <Link href="/katalogs" className="btn btn-primary mt-5">Uz katalogu</Link>
@@ -36,7 +36,7 @@ export function CompareTable({ cars, leasing }: { cars: Car[]; leasing: LeasingS
     ['Aprīkojuma vienības', (c) => String(c.equipment.length)],
   ];
   return (
-    <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+    <div className="overflow-x-auto rounded-2xl border border-line bg-card">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr>
@@ -45,7 +45,7 @@ export function CompareTable({ cars, leasing }: { cars: Car[]; leasing: LeasingS
               <th key={c.id} className="p-4 text-left align-top">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-line">
                   {coverImage(c) && <Image src={coverImage(c)!} alt={carName(c)} fill sizes="300px" className="object-cover" />}
-                  <button onClick={() => cmp.toggle(c.id)} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white/90" aria-label="Noņemt"><X className="h-4 w-4" /></button>
+                  <button onClick={() => cmp.toggle(c.id)} className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-card/90" aria-label="Noņemt"><X className="h-4 w-4" /></button>
                 </div>
                 <Link href={carUrl(c)} className="display-md mt-3 block text-lg text-ink hover:text-petrol">{carName(c)}</Link>
               </th>

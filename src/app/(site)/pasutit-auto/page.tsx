@@ -13,7 +13,7 @@ export default function OrderPage() {
     <>
       <PageHead crumb="Pasūtīt auto" title="Atradīsim tieši tavu auto Eiropā" lead="Sadarbojamies ar Eiropas izsoļu portāliem un partneriem Vācijā, Nīderlandē, Itālijā, Francijā un Zviedrijā. Palīdzam ar piegādi, reģistrāciju un līzingu." />
       <div className="mx-auto mt-10 max-w-3xl px-4 sm:px-6">
-        <div className="rounded-2xl bg-white p-6 shadow-[var(--shadow-lift)] sm:p-8">
+        <div className="rounded-2xl bg-card p-6 shadow-[var(--shadow-lift)] sm:p-8">
           <LeadForm
             type="car_order"
             submitLabel="Pasūtīt meklēšanu"

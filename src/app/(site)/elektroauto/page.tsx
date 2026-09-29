@@ -35,7 +35,7 @@ export default async function EvPage({ searchParams }: { searchParams: Promise<{
             { i: FileText, t: 'Sagatavojam dokumentus', d: 'Rēķins, līgums un pieteikuma dokumenti — sagatavoti pareizi no pirmās reizes.' },
             { i: Handshake, t: 'Saskaņojam ar līzingu', d: 'Atbalsts samazina finansējamo summu, tātad arī mēneša maksājumu.' },
           ].map(({ i: I, t, d }) => (
-            <div key={t} className="rounded-2xl border border-line bg-white p-6">
+            <div key={t} className="rounded-2xl border border-line bg-card p-6">
               <I className="h-7 w-7 text-petrol" />
               <p className="mt-3 text-lg font-bold">{t}</p>
               <p className="mt-1 text-sm text-ink-2">{d}</p>
@@ -43,7 +43,7 @@ export default async function EvPage({ searchParams }: { searchParams: Promise<{
           ))}
         </div>
 
-        <section id="kalkulators" className="mt-14 scroll-mt-24 rounded-[24px] bg-white p-5 shadow-[var(--shadow-lift)] sm:p-8">
+        <section id="kalkulators" className="mt-14 scroll-mt-24 rounded-[24px] bg-card p-5 shadow-[var(--shadow-lift)] sm:p-8">
           <h2 className="display-md flex items-center gap-2 text-3xl text-ink"><BatteryCharging className="h-8 w-8 text-petrol" /> Elektroauto gala cenas kalkulators</h2>
           <p className="mb-8 mt-2 max-w-2xl text-ink-2">Izvēlies auto vai ievadi savus datus — redzēsi cenu ar atbalstu un līzinga maksājumu.</p>
           <EvCalculator ekii={ekii} leasing={leasing} cars={options} initialSlug={sp.auto} />

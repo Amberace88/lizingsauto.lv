@@ -31,7 +31,7 @@ export function AdminShell({ profile, newLeads, children }: { profile: AdminProf
             <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${active ? 'bg-white/12 text-white' : 'text-white/65 hover:bg-white/5 hover:text-white'}`}>
               <n.icon className="h-[18px] w-[18px]" />
               <span className="flex-1">{n.label}</span>
-              {n.badge ? <span className="num rounded-full bg-signal px-2 text-xs font-bold text-ink">{n.badge}</span> : null}
+              {n.badge ? <span className="num rounded-full bg-signal px-2 text-xs font-bold text-white">{n.badge}</span> : null}
             </Link>
           );
         })}

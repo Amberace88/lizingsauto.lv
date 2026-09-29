@@ -12,7 +12,7 @@ import { Logo } from './Header';
 
 export function Footer({ company }: { company: CompanySettings }) {
   return (
-    <footer className="mt-24 bg-ink text-white/80">
+    <footer className="mt-24 bg-night text-white/80">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.3fr_1fr_1fr_1.2fr]">
         <div>
           <Logo light />
@@ -34,6 +34,7 @@ export function Footer({ company }: { company: CompanySettings }) {
             <li><Link href="/katalogs" className="hover:text-white">Auto katalogs</Link></li>
             <li><Link href="/katalogs?fuel=electric" className="hover:text-white">Elektroauto ar EKII</Link></li>
             <li><Link href="/katalogs?body=suv" className="hover:text-white">Apvidus auto</Link></li>
+            <li><Link href="/elektroauto" className="hover:text-white">Elektroauto atbalsts</Link></li>
             <li><Link href="/salidzinat" className="hover:text-white">Salīdzināt auto</Link></li>
             <li><Link href="/izlase" className="hover:text-white">Mana izlase</Link></li>
           </ul>
@@ -42,7 +43,9 @@ export function Footer({ company }: { company: CompanySettings }) {
           <p className="mb-3 font-semibold text-white">Pakalpojumi</p>
           <ul className="space-y-2 text-sm">
             <li><Link href="/lizings" className="hover:text-white">Auto līzings</Link></li>
+            <li><Link href="/garantija" className="hover:text-white">Pagarinātā garantija</Link></li>
             <li><Link href="/kalkulatori" className="hover:text-white">Kalkulatori</Link></li>
+            <li><Link href="/parbaudes" className="hover:text-white">Bezmaksas OCTA un TA pārbaude</Link></li>
             <li><Link href="/pardot-auto" className="hover:text-white">Pārdot vai mainīt auto</Link></li>
             <li><Link href="/pasutit-auto" className="hover:text-white">Pasūtīt auto no Eiropas</Link></li>
             <li><Link href="/par-mums" className="hover:text-white">Par mums</Link></li>
@@ -61,9 +64,13 @@ export function Footer({ company }: { company: CompanySettings }) {
           <p>
             © {new Date().getFullYear()} {company.name}, reģ. nr. {company.regNr}. Jur. adrese: {company.legalAddress}.
           </p>
-          <p className="flex gap-4">
+          <p className="flex flex-wrap items-center gap-4">
             <Link href="/privatuma-politika" className="hover:text-white">Privātuma politika</Link>
             <Link href="/lietosanas-noteikumi" className="hover:text-white">Lietošanas noteikumi</Link>
+            {/* Darbinieku ieeja: apzināti neuzkrītoša, bez indeksēšanas */}
+            <a href="/admin/login" rel="nofollow" className="text-white/20 transition hover:text-white/70" title="Darbinieku ieeja">
+              Darbiniekiem
+            </a>
           </p>
         </div>
       </div>

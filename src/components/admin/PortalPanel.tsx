@@ -115,7 +115,7 @@ export function PortalPanel({ car, images }: { car: Car; images: string[] }) {
         {/* AUTOPLIUS */}
         <Row name={PORTALS.autoplius.name} sub="Automātiski caur XML plūsmu (atjaunojas pati)" status={status('autoplius')}>
           <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" checked={!!list.autoplius?.enabled} onChange={(e) => upsert('autoplius', { enabled: e.target.checked, status: e.target.checked ? 'ready' : 'removed' })} className="h-4 w-4 accent-[#0f5a63]" /> Iekļaut plūsmā
+            <input type="checkbox" checked={!!list.autoplius?.enabled} onChange={(e) => upsert('autoplius', { enabled: e.target.checked, status: e.target.checked ? 'ready' : 'removed' })} className="h-4 w-4 accent-[#d91d2b]" /> Iekļaut plūsmā
           </label>
         </Row>
         {/* MOBILE.DE */}

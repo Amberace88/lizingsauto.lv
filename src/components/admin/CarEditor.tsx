@@ -12,8 +12,9 @@ import { BadgeChips } from '@/components/site/CarCard';
 import { useToast } from './Toast';
 import { revalidateSite } from './revalidate';
 import { PortalPanel } from './PortalPanel';
+import { CsddPanel } from './CsddPanel';
 
-type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean };
+type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean; is_promo?: boolean };
 type Priv = { purchase_price: number | null; seller_name: string | null; seller_phone: string | null; internal_note: string | null };
 
 const MAKES = ['Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Chevrolet', 'Chrysler', 'Citroen', 'Cupra', 'Dacia', 'Fiat', 'Ford', 'Honda', 'Hyundai', 'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Mazda', 'Mercedes-Benz', 'MG', 'MINI', 'Mitsubishi', 'Nissan', 'Opel', 'Peugeot', 'Polestar', 'Porsche', 'Renault', 'Seat', 'Skoda', 'Subaru', 'Suzuki', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'];
@@ -52,7 +53,7 @@ export function CarEditor({ id }: { id?: string }) {
     if (isNew) return;
     (async () => {
       const [{ data, error }, { data: p }] = await Promise.all([
-        sb.from('cars').select('*, car_images(id,url,storage_path,sort)').eq('id', id).single(),
+        sb.from('cars').select('*, car_images(id,url,storage_path,sort,is_promo)').eq('id', id).single(),
         sb.from('car_private').select('*').eq('car_id', id).maybeSingle(),
       ]);
       if (error || !data) {
@@ -203,7 +204,7 @@ export function CarEditor({ id }: { id?: string }) {
     }
   }
 
-  const badges = useMemo(() => carBadges({ badges: car.badges || [], fuel: car.fuel || null, old_price: car.old_price || null, price: car.price || 0, vat_included: !!car.vat_included, drive: car.drive || null }), [car]);
+  const badges = useMemo(() => carBadges({ badges: car.badges || [], fuel: car.fuel || null, old_price: car.old_price || null, price: car.price || 0, vat_included: !!car.vat_included, drive: car.drive || null, odometer_history: car.odometer_history || null }), [car]);
 
   if (loading) return <div className="grid place-items-center p-20"><Loader2 className="h-6 w-6 animate-spin text-mute" /></div>;
 
@@ -250,7 +251,8 @@ export function CarEditor({ id }: { id?: string }) {
                   >
                     <Image src={im.url} alt="" fill sizes="220px" className="object-cover" unoptimized={im.url.startsWith('blob:')} />
                     {im.uploading && <div className="absolute inset-0 grid place-items-center bg-white/60"><Loader2 className="h-6 w-6 animate-spin" /></div>}
-                    {k === 0 && <span className="absolute left-1.5 top-1.5 rounded bg-signal px-1.5 text-[10px] font-bold">GALVENĀ</span>}
+                    {k === 0 && <span className="absolute left-1.5 top-1.5 rounded bg-signal px-1.5 text-[10px] font-bold text-white">GALVENĀ</span>}
+                    {im.is_promo && <span className="absolute bottom-9 left-1.5 rounded bg-ink/80 px-1.5 text-[10px] font-bold text-white" title="Reklāmas baneris no vecās lapas — pircējiem un portālos netiek rādīts">BANERIS · slēpts</span>}
                     <GripVertical className="absolute right-1.5 top-1.5 h-5 w-5 rounded bg-white/80 p-0.5 text-ink opacity-0 group-hover:opacity-100" />
                     <div className="absolute inset-x-1.5 bottom-1.5 flex justify-between gap-1 opacity-0 transition group-hover:opacity-100">
                       <div className="flex gap-1">
@@ -311,6 +313,8 @@ export function CarEditor({ id }: { id?: string }) {
             </div>
           </Card>
 
+          <CsddPanel car={car} onChange={set} />
+
           <Card title="Aprīkojums" hint="Spied Enter, lai pievienotu. Ātri pievieno no populārajiem.">
             <div className="flex gap-2">
               <input
@@ -347,7 +351,7 @@ export function CarEditor({ id }: { id?: string }) {
             <textarea className="field min-h-[200px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Stāvoklis, apkopes vēsture, īpašas priekšrocības. Tukša rinda = jauna rindkopa." />
           </Card>
 
-          {!isNew && <PortalPanel car={car as Car} images={visible.map((i) => i.url)} />}
+          {!isNew && <PortalPanel car={car as Car} images={visible.filter((i) => !i.is_promo).map((i) => i.url)} />}
         </div>
 
         <div className="space-y-6">
@@ -442,7 +446,7 @@ function Select({ value, onChange, options, allowEmpty }: { value?: string | nul
 function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex cursor-pointer items-center gap-2 rounded-lg px-1 py-1 text-sm text-ink hover:bg-paper">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#0f5a63]" />
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="h-4 w-4 accent-[#d91d2b]" />
       {label}
     </label>
   );

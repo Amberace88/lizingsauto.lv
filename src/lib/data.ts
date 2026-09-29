@@ -3,10 +3,11 @@ import { supabasePublic } from './supabase/public';
 import type { Car, CompanySettings, LeasingSettings } from './types';
 import { DEFAULT_LEASING } from './leasing';
 import { DEFAULT_EKII, type EkiiSettings } from './ekii';
+import { DEFAULT_WARRANTY, type WarrantySettings } from './warranty';
 
 export const DEFAULT_COMPANY: CompanySettings = {
   name: 'SIA AC Industry',
-  brand: 'LīzingsAuto',
+  brand: 'Tavs Auto',
   regNr: '40203125692',
   legalAddress: 'Kvēles iela 23-64, Rīga, LV-1024',
   address: 'Krustabaznīcas iela 24, Rīga, LV-1026',
@@ -20,17 +21,18 @@ export const DEFAULT_COMPANY: CompanySettings = {
 
 // Publiski drīkst lasīt tikai šīs kolonnas (arī DB līmenī — skat. 002 migrāciju)
 export const PUBLIC_CAR_COLUMNS =
-  'id,slug,legacy_slug,status,title,make,model,year,first_registration,fuel,engine_volume,power_kw,battery_kwh,range_km,body_type,transmission,drive,mileage,color,doors,seats,vin,ta_until,euro_class,co2,consumption,price,old_price,vat_included,vat_deductible,description,equipment,badges,featured,sort,views,video_url,created_at,updated_at,published_at,sold_at';
-const CAR_FIELDS = `${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id)`;
+  'id,slug,legacy_slug,status,title,make,model,year,first_registration,fuel,engine_volume,power_kw,battery_kwh,range_km,body_type,transmission,drive,mileage,color,doors,seats,vin,ta_until,euro_class,co2,consumption,price,old_price,vat_included,vat_deductible,description,equipment,badges,featured,sort,views,video_url,odometer_history,csdd_checked_at,created_at,updated_at,published_at,sold_at';
+const CAR_FIELDS = `${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id,is_promo)`;
 
 export const getSettings = cache(async () => {
-  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii']);
+  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty']);
   const map = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
   return {
     leasing: { ...DEFAULT_LEASING, ...(map.leasing || {}) } as LeasingSettings,
     company: { ...DEFAULT_COMPANY, ...(map.company || {}) } as CompanySettings,
     content: (map.content || {}) as Record<string, string>,
     ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings,
+    warranty: { ...DEFAULT_WARRANTY, ...(map.warranty || {}), prices: { ...DEFAULT_WARRANTY.prices, ...((map.warranty || {}).prices || {}) } } as WarrantySettings,
   };
 });
 

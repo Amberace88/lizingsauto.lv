@@ -28,7 +28,7 @@ export default async function LeasingPage() {
             { i: Repeat2, t: 'Vecais auto kā iemaksa', d: 'Tavu auto novērtēsim un ieskaitīsim pirmajā iemaksā.' },
             { i: Building2, t: 'Uzņēmumiem', d: 'Finanšu un operatīvais līzings juridiskām personām, cenas ar PVN.' },
           ].map(({ i: I, t, d }) => (
-            <li key={t} className="flex gap-4 rounded-2xl border border-line bg-white p-5">
+            <li key={t} className="flex gap-4 rounded-2xl border border-line bg-card p-5">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-petrol-soft text-petrol"><I className="h-5 w-5" /></span>
               <div><p className="font-bold text-ink">{t}</p><p className="text-sm text-ink-2">{d}</p></div>
             </li>
@@ -39,7 +39,7 @@ export default async function LeasingPage() {
             <h2 className="display-md mb-4 text-2xl text-ink">Aprēķini maksājumu</h2>
             <LeasingCalculator price={12000} leasing={leasing} priceEditable />
           </div>
-          <div id="pieteikums" className="scroll-mt-24 rounded-2xl bg-white p-6 shadow-[var(--shadow-lift)] sm:p-8">
+          <div id="pieteikums" className="scroll-mt-24 rounded-2xl bg-card p-6 shadow-[var(--shadow-lift)] sm:p-8">
             <h2 className="display-md text-2xl text-ink">Līzinga pieteikums</h2>
             <p className="mb-6 mt-1 text-sm text-ink-2">Aizpildīšana aizņem 2 minūtes. Sazināsimies 24 stundu laikā — parasti ātrāk.</p>
             <LeadForm type="leasing" fields={LEASING_FIELDS} submitLabel="Nosūtīt pieteikumu" />

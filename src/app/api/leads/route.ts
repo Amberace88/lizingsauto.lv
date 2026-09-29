@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { supabasePublic } from '@/lib/supabase/public';
 
 const schema = z.object({
-  type: z.enum(['leasing', 'contact', 'sell_car', 'test_drive', 'reserve', 'car_order', 'trade_in']),
+  type: z.enum(['leasing', 'contact', 'sell_car', 'test_drive', 'reserve', 'car_order', 'trade_in', 'warranty']),
   car_id: z.string().uuid().nullable().optional(),
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().min(6).max(40).regex(/^[+0-9 ()-]+$/, 'Nederīgs tālrunis'),

@@ -17,6 +17,8 @@ const NAV = [
   ['elektroauto', 'Elektroauto ar EKII'],
   ['nodoklis', 'Ekspluatācijas nodoklis'],
   ['izmaksas', 'Degviela pret elektrību'],
+  ['garantija', 'Garantijas cena'],
+  ['parbaudes', 'OCTA pārbaude bez maksas'],
 ];
 
 export default async function CalcPage() {
@@ -27,9 +29,9 @@ export default async function CalcPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <nav className="no-scrollbar sticky top-16 z-20 -mx-4 mt-8 flex gap-2 overflow-x-auto bg-paper/95 px-4 py-3 backdrop-blur sm:mx-0 sm:px-0" aria-label="Kalkulatori">
           {NAV.map(([id, t]) => (
-            id === 'elektroauto'
-              ? <Link key={id} href="/elektroauto" className="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold hover:border-petrol">{t}</Link>
-              : <a key={id} href={`#${id}`} className="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold hover:border-petrol">{t}</a>
+            ['elektroauto', 'garantija', 'parbaudes'].includes(id)
+              ? <Link key={id} href={`/${id}`} className="shrink-0 rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold hover:border-petrol">{t}</Link>
+              : <a key={id} href={`#${id}`} className="shrink-0 rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold hover:border-petrol">{t}</a>
           ))}
         </nav>
         <Section id="lizings" title="Līzinga maksājums" lead="Ievadi auto cenu, pirmo iemaksu un termiņu.">

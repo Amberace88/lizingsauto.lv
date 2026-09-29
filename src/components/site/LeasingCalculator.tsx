@@ -24,7 +24,7 @@ export function LeasingCalculator({ price, leasing, onApply, compact = false, pr
   const s = useMemo(() => leasingSummary({ price: p, downPct, rate: leasing.rate, term, residualPct: leasing.residualPct, contractFee: leasing.contractFee, monthlyFee: leasing.monthlyFee }), [p, downPct, term, leasing]);
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-5">
+    <div className="rounded-2xl border border-line bg-card p-5">
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-ink-2">Mēneša maksājums</p>

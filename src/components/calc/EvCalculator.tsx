@@ -70,13 +70,13 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
           <span className="label">Sēdvietu skaits</span>
           <div className="flex gap-2">{[2, 4, 5, 7].map((s) => <Toggle key={s} on={seats === s} onClick={() => setSeats(s)}>{s}</Toggle>)}</div>
         </div>
-        <div className="space-y-3 rounded-2xl border border-line bg-white p-4">
+        <div className="space-y-3 rounded-2xl border border-line bg-card p-4">
           <label className="flex items-center gap-3 text-sm font-medium text-ink">
-            <input type="checkbox" checked={scrap} onChange={(e) => setScrap(e.target.checked)} className="h-5 w-5 accent-[#0f5a63]" />
+            <input type="checkbox" checked={scrap} onChange={(e) => setScrap(e.target.checked)} className="h-5 w-5 accent-[#d91d2b]" />
             Nododu savu iekšdedzes auto utilizācijai vai Ukrainas armijai (+{money(ekii.scrapBonus)})
           </label>
           <label className="flex items-center gap-3 text-sm font-medium text-ink">
-            <input type="checkbox" checked={goda} onChange={(e) => setGoda(e.target.checked)} className="h-5 w-5 accent-[#0f5a63]" />
+            <input type="checkbox" checked={goda} onChange={(e) => setGoda(e.target.checked)} className="h-5 w-5 accent-[#d91d2b]" />
             Mums ir “Goda ģimenes” apliecība
           </label>
           {goda && <Slider label="Bērnu skaits ģimenē" value={children} min={3} max={8} step={1} onChange={setChildren} format={String} />}
@@ -112,7 +112,7 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
             </div>
           )}
         </div>
-        <div className="rounded-2xl border border-line bg-white p-5 text-sm text-ink-2">
+        <div className="rounded-2xl border border-line bg-card p-5 text-sm text-ink-2">
           <p className="font-semibold text-ink">Galvenās prasības</p>
           <ul className="mt-2 space-y-1">
             <li>Cenas limits: {money(ekii.priceCap5)} bez PVN (6+ vietām {money(ekii.priceCap6)})</li>

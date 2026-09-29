@@ -19,14 +19,14 @@ export default function SellPage() {
             ['Pārdodam tavā vietā', 'Izstādām auto mūsu laukumā, ko ik dienu pamana vidēji 300 cilvēki. Tev ziņosim, tiklīdz būs pircējs.'],
             ['Maiņa pret citu auto', 'Tavs auto kalpo kā pirmā iemaksa jebkuram auto no mūsu kataloga.'],
           ].map(([t, d], i) => (
-            <div key={t} className="flex gap-4 rounded-2xl border border-line bg-white p-6">
-              <span className="num display grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-signal text-xl text-ink">{i + 1}</span>
+            <div key={t} className="flex gap-4 rounded-2xl border border-line bg-card p-6">
+              <span className="num display grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-signal text-xl text-white">{i + 1}</span>
               <div><p className="text-lg font-bold">{t}</p><p className="mt-1 text-ink-2">{d}</p></div>
             </div>
           ))}
           <p className="rounded-2xl bg-petrol-soft p-5 text-sm text-petrol">Bezmaksas novērtējums un datora diagnostika, kad atbrauksi pie mums.</p>
         </div>
-        <div className="mt-10 rounded-2xl bg-white p-6 shadow-[var(--shadow-lift)] sm:p-8">
+        <div className="mt-10 rounded-2xl bg-card p-6 shadow-[var(--shadow-lift)] sm:p-8">
           <h2 className="display-md text-2xl">Uzzini sava auto vērtību</h2>
           <p className="mb-6 mt-1 text-sm text-ink-2">Pastāsti par auto — piezvanīsim ar provizorisku cenu.</p>
           <LeadForm

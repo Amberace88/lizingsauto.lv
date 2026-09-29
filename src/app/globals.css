@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 /*
-  LīzingsAuto dizaina sistēma
-  - Ink (tumši zili-pelēks) teksts uz vēsi baltas "asfalta marķējuma" bāzes
-  - Petrol (Baltijas jūras zilzaļš) = zīmols, darbības
-  - Signal (pagrieziena rādītāja dzintars) = mēneša maksājums — vienīgais spilgtais akcents
-  - Archivo ar platuma asi: plats un smags virsrakstiem (kā auto emblēmas), normāls tekstam
+  Tavs Auto (lizingsauto.lv) dizaina sistēma — zīmola krāsas no esošās lapas un logo:
+  - melns #161616 teksts un tumšās sadaļas (kā "START ENGINE" poga)
+  - sarkans #D91D2B = logo atslēga: akcenti, mēneša maksājums, darbības
+  - gaiši pelēks #F5F7F9 fons, balts saturs
 */
 
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
 @theme {
-  --color-ink: #15202b;
-  --color-ink-2: #3b4a57;
-  --color-mute: #6b7884;
-  --color-line: #dde2e6;
-  --color-paper: #f4f6f5;
+  --color-ink: #161616;
+  --color-ink-2: #3a3a3a;
+  --color-mute: #767676;
+  --color-line: #dcdcdc;
+  --color-paper: #f5f7f9;
   --color-card: #ffffff;
-  --color-petrol: #0f5a63;
-  --color-petrol-2: #0b464d;
-  --color-petrol-soft: #e3efef;
-  --color-signal: #f5b301;
-  --color-signal-soft: #fff4d1;
+  --color-night: #161616;
+  --color-petrol: #d91d2b;
+  --color-petrol-2: #161616;
+  --color-petrol-soft: #fbecec;
+  --color-signal: #d91d2b;
+  --color-signal-soft: #fbecec;
   --color-ok: #1f8a4c;
   --color-warn: #c77700;
   --color-bad: #c0392b;
@@ -29,7 +31,41 @@
 
   --radius-card: 14px;
   --radius-chip: 999px;
-  --shadow-lift: 0 1px 0 rgba(21, 32, 43, 0.04), 0 10px 30px -12px rgba(21, 32, 43, 0.25);
+  --shadow-lift: 0 1px 0 rgba(0, 0, 0, 0.04), 0 10px 30px -12px rgba(0, 0, 0, 0.28);
+}
+
+/* Nakts režīms — tikai publiskajai lapai (.site), admin panelis paliek gaišs */
+.site {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  --btn-bg: #161616;
+  --btn-fg: #fff;
+  --btn-hover: #000;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+html[data-theme='dark'] body:has(.site) {
+  background: #0e0f11;
+}
+html[data-theme='dark'] .site {
+  --color-ink: #eeeeee;
+  --color-ink-2: #c9c9cc;
+  --color-mute: #9b9ca1;
+  --color-line: #2d2f34;
+  --color-paper: #0e0f11;
+  --color-card: #17181b;
+  --color-night: #050506;
+  --color-petrol-2: #1c1d21;
+  --color-petrol-soft: #2a1517;
+  --color-signal-soft: #2a1517;
+  --btn-bg: #f1f1f1;
+  --btn-fg: #111;
+  --btn-hover: #fff;
+  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 34px -14px rgba(0, 0, 0, 0.8);
+}
+.site {
+  transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 html {
@@ -69,7 +105,7 @@ body {
 /* Mēneša maksājuma "birka" — signāla dzintars */
 .price-tag {
   background: var(--color-signal);
-  color: var(--color-ink);
+  color: #fff;
   font-feature-settings: "tnum" 1;
   font-variation-settings: "wdth" 112;
 }
@@ -86,7 +122,7 @@ input[type="range"].range {
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(to right, var(--color-petrol) var(--fill, 50%), var(--color-line) var(--fill, 50%));
+  background: linear-gradient(to right, var(--color-ink) var(--fill, 50%), var(--color-line) var(--fill, 50%));
   outline: none;
 }
 input[type="range"].range::-webkit-slider-thumb {
@@ -95,8 +131,8 @@ input[type="range"].range::-webkit-slider-thumb {
   height: 26px;
   border-radius: 50%;
   background: var(--color-signal);
-  border: 4px solid #fff;
-  box-shadow: 0 2px 8px rgba(21, 32, 43, 0.35);
+  border: 4px solid var(--color-card);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   cursor: grab;
 }
 input[type="range"].range::-moz-range-thumb {
@@ -105,14 +141,14 @@ input[type="range"].range::-moz-range-thumb {
   border-radius: 50%;
   background: var(--color-signal);
   border: 4px solid #fff;
-  box-shadow: 0 2px 8px rgba(21, 32, 43, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   cursor: grab;
 }
 
 .field {
   width: 100%;
   border: 1px solid var(--color-line);
-  background: #fff;
+  background: var(--color-card);
   border-radius: 10px;
   padding: 0.7rem 0.85rem;
   font-size: 0.95rem;
@@ -122,7 +158,7 @@ input[type="range"].range::-moz-range-thumb {
 .field:focus {
   outline: none;
   border-color: var(--color-petrol);
-  box-shadow: 0 0 0 3px rgba(15, 90, 99, 0.15);
+  box-shadow: 0 0 0 3px rgba(217, 29, 43, 0.15);
 }
 .label {
   display: block;
@@ -148,21 +184,21 @@ input[type="range"].range::-moz-range-thumb {
   transform: translateY(1px);
 }
 .btn-primary {
-  background: var(--color-petrol);
-  color: #fff;
+  background: var(--btn-bg, #161616);
+  color: var(--btn-fg, #fff);
 }
 .btn-primary:hover {
-  background: var(--color-petrol-2);
+  background: var(--btn-hover, #000);
 }
 .btn-signal {
   background: var(--color-signal);
-  color: var(--color-ink);
+  color: #fff;
 }
 .btn-signal:hover {
-  background: #e9a900;
+  background: #b8141f;
 }
 .btn-ghost {
-  background: #fff;
+  background: var(--color-card);
   color: var(--color-ink);
   border: 1px solid var(--color-line);
 }

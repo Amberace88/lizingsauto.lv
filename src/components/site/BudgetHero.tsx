@@ -22,11 +22,11 @@ function Gauge({ value }: { value: number }) {
   const ny = 150 - Math.sin(angle) * (R - 22);
   return (
     <svg viewBox="0 0 300 165" className="w-full max-w-[340px]" aria-hidden>
-      <path d="M30 150 A120 120 0 0 1 270 150" fill="none" stroke="#dde2e6" strokeWidth="18" strokeLinecap="round" />
+      <path d="M30 150 A120 120 0 0 1 270 150" fill="none" stroke="var(--color-line)" strokeWidth="18" strokeLinecap="round" />
       <motion.path
         d="M30 150 A120 120 0 0 1 270 150"
         fill="none"
-        stroke="#f5b301"
+        stroke="#d91d2b"
         strokeWidth="18"
         strokeLinecap="round"
         strokeDasharray={len}
@@ -36,10 +36,10 @@ function Gauge({ value }: { value: number }) {
       />
       {[0, 0.25, 0.5, 0.75, 1].map((t) => {
         const a = Math.PI * (1 - t);
-        return <line key={t} x1={150 + Math.cos(a) * 98} y1={150 - Math.sin(a) * 98} x2={150 + Math.cos(a) * 88} y2={150 - Math.sin(a) * 88} stroke="#6b7884" strokeWidth="2" />;
+        return <line key={t} x1={150 + Math.cos(a) * 98} y1={150 - Math.sin(a) * 98} x2={150 + Math.cos(a) * 88} y2={150 - Math.sin(a) * 88} stroke="var(--color-mute)" strokeWidth="2" />;
       })}
-      <motion.line x1="150" y1="150" animate={{ x2: nx, y2: ny }} transition={{ type: 'spring', stiffness: 120, damping: 18 }} stroke="#15202b" strokeWidth="5" strokeLinecap="round" />
-      <circle cx="150" cy="150" r="9" fill="#15202b" />
+      <motion.line x1="150" y1="150" animate={{ x2: nx, y2: ny }} transition={{ type: 'spring', stiffness: 120, damping: 18 }} stroke="var(--color-ink)" strokeWidth="5" strokeLinecap="round" />
+      <circle cx="150" cy="150" r="9" fill="var(--color-ink)" />
     </svg>
   );
 }
@@ -59,7 +59,7 @@ export function BudgetHero({ cars, leasing }: { cars: MiniCar[]; leasing: Leasin
   const fill = `${((budget - MIN) / (MAX - MIN)) * 100}%`;
 
   return (
-    <div className="rounded-[20px] bg-white p-5 shadow-[var(--shadow-lift)] sm:p-7">
+    <div className="rounded-[20px] bg-card p-5 shadow-[var(--shadow-lift)] sm:p-7">
       <div className="flex flex-col items-center">
         <label htmlFor="budget" className="text-sm font-semibold text-ink-2">
           Cik vari atļauties mēnesī?
@@ -106,7 +106,7 @@ export function BudgetHero({ cars, leasing }: { cars: MiniCar[]; leasing: Leasin
               <motion.div key={c.id} layout initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.2 }}>
                 <Link href={`/auto/${c.slug}`} className="relative block h-[72px] w-[96px] shrink-0 overflow-hidden rounded-lg bg-line" title={`${c.name} — ${c.pmt} €/mēn.`}>
                   {c.img && <Image src={c.img} alt={c.name} fill sizes="96px" className="object-cover" />}
-                  <span className="num absolute bottom-1 left-1 rounded bg-signal px-1 text-[10px] font-bold text-ink">{c.pmt}€</span>
+                  <span className="num absolute bottom-1 left-1 rounded bg-signal px-1 text-[10px] font-bold text-white">{c.pmt}€</span>
                 </Link>
               </motion.div>
             ))}

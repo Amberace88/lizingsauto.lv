@@ -8,7 +8,7 @@ import { AdminTitle } from '@/components/admin/AdminShell';
 import { LEAD_STATUS, LEAD_TYPE } from '@/components/admin/labels';
 import { useToast } from '@/components/admin/Toast';
 
-const TONE: Record<string, string> = { new: 'bg-signal text-ink', in_progress: 'bg-petrol-soft text-petrol', done: 'bg-ok/10 text-ok', rejected: 'bg-mute/10 text-mute' };
+const TONE: Record<string, string> = { new: 'bg-signal text-white', in_progress: 'bg-petrol-soft text-petrol', done: 'bg-ok/10 text-ok', rejected: 'bg-mute/10 text-mute' };
 const FIELD_LABEL: Record<string, string> = { client_type: 'Pieteicējs', income: 'Ienākumi', employment: 'Darba vieta', work_months: 'Darba stāžs (mēn.)', credit_history: 'Kredītvēsture', company: 'Uzņēmums', down: 'Pirmā iemaksa €', term: 'Termiņš', monthly: 'Maksājums €/mēn.', car: 'Auto', when: 'Vēlamais laiks', make_model: 'Marka/modelis', year: 'Gads', mileage: 'Nobraukums', reg_number: 'Valsts nr.', price_wish: 'Vēlamā cena', deal: 'Darījums', budget: 'Budžets', years: 'Gadi', fuel: 'Degviela', gear: 'Ātrumkārba', page: 'Lapa' };
 
 export default function LeadsPage() {

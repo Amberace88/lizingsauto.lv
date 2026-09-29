@@ -8,10 +8,10 @@ import { fromPayment } from '@/lib/leasing';
 import { useFavorites } from './favorites';
 
 const TONE: Record<string, string> = {
-  signal: 'bg-signal text-ink',
-  petrol: 'bg-petrol text-white',
+  signal: 'bg-signal text-white',
+  petrol: 'bg-card/95 text-ink',
   ok: 'bg-ok text-white',
-  ink: 'bg-ink/85 text-white',
+  ink: 'bg-night/85 text-white',
   bad: 'bg-bad text-white',
 };
 
@@ -26,7 +26,7 @@ export function BadgeChips({ badges, max = 3, size = 'sm' }: { badges: string[];
           {BADGES[b].label}
         </span>
       ))}
-      {rest > 0 && <span className={`${cls} rounded-full bg-white/90 font-semibold text-ink`}>+{rest}</span>}
+      {rest > 0 && <span className={`${cls} rounded-full bg-card/90 font-semibold text-ink`}>+{rest}</span>}
     </div>
   );
 }
@@ -49,7 +49,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
   const dim = car.status === 'sold';
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[0_1px_0_#dde2e6] transition-shadow hover:shadow-[var(--shadow-lift)]">
+    <article className="group relative flex flex-col overflow-hidden rounded-[var(--radius-card)] bg-card shadow-[0_1px_0_var(--color-line)] transition-shadow hover:shadow-[var(--shadow-lift)]">
       <Link href={carUrl(car)} className="relative block aspect-[4/3] overflow-hidden bg-line" aria-label={`${carName(car)}, ${car.year}`}>
         {img && (
           <Image
@@ -73,7 +73,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
       </Link>
       <button
         onClick={() => toggle(car.id)}
-        className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow transition hover:scale-105"
+        className="absolute right-3 top-3 z-20 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow transition hover:scale-105"
         aria-pressed={fav}
         aria-label={fav ? 'Noņemt no izlases' : 'Pievienot izlasei'}
       >

@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { CC, CO2, KW, MASS, pickRate } from '@/lib/tax';
 import { Slider } from '@/components/site/LeasingCalculator';
 import { money, number } from '@/lib/format';
 import { priceForPayment } from '@/lib/leasing';
@@ -30,7 +31,7 @@ export function AffordabilityCalc({ leasing }: { leasing: LeasingSettings }) {
         <Slider label="Pirmā iemaksa" value={down} min={0} max={20000} step={250} onChange={setDown} format={money} />
         <Slider label="Termiņš" value={term} min={leasing.minTerm} max={leasing.maxTerm} step={6} onChange={setTerm} format={(v) => `${v} mēn.`} />
       </div>
-      <div className="flex flex-col justify-between rounded-2xl bg-ink p-6 text-white">
+      <div className="flex flex-col justify-between rounded-2xl bg-night p-6 text-white">
         <div>
           <p className="text-sm text-white/60">Ērts budžets (25% no ienākumiem)</p>
           <p className="num display text-4xl">līdz {money(Math.round(r.safePrice / 100) * 100)}</p>
@@ -45,12 +46,7 @@ export function AffordabilityCalc({ leasing }: { leasing: LeasingSettings }) {
   );
 }
 
-/** Transportlīdzekļa ekspluatācijas nodoklis (M1) — 2026. gada likmes pēc likuma 4. panta. */
-const CO2: [number, number][] = [[50, 0], [95, 15], [115, 54], [130, 93], [155, 132], [175, 159], [200, 186], [225, 237], [250, 291], [275, 369], [300, 450], [350, 609], [Infinity, 831]];
-const CC: [number, number][] = [[1500, 12], [2000, 27], [2500, 42], [3000, 60], [3500, 102], [4000, 177], [5000, 252], [Infinity, 327]];
-const KW: [number, number][] = [[55, 12], [92, 27], [129, 42], [166, 60], [203, 102], [240, 177], [300, 252], [Infinity, 327]];
-const MASS: [number, number][] = [[1500, 42], [1800, 90], [2100, 150], [2600, 192], [3000, 231], [3500, 267], [Infinity, 303]];
-const pick = (t: [number, number][], v: number) => t.find(([lim]) => v <= lim)![1];
+const pick = pickRate;
 
 export function TaxCalc() {
   const [after2008, setAfter] = useState(true);
@@ -83,7 +79,7 @@ export function TaxCalc() {
         {!electric && !after2008 && <Slider label="Pilnā masa" value={mass} min={1000} max={4000} step={10} onChange={setMass} format={(v) => `${number(v)} kg`} />}
         {electric && <p className="rounded-xl bg-petrol-soft p-4 text-sm text-petrol">Elektroauto ir atbrīvoti no transportlīdzekļa ekspluatācijas nodokļa.</p>}
       </div>
-      <div className="rounded-2xl bg-ink p-6 text-white">
+      <div className="rounded-2xl bg-night p-6 text-white">
         <p className="text-sm text-white/60">Ekspluatācijas nodoklis gadā</p>
         <p className="num display text-5xl">{money(res.total)}</p>
         <dl className="mt-5 space-y-1.5 text-sm">
@@ -118,17 +114,17 @@ export function RunningCostCalc() {
         <Slider label="Elektrības cena (mājās)" value={elPrice} min={0.08} max={0.6} step={0.01} onChange={setElPrice} format={(v) => `${v.toFixed(2)} €/kWh`} />
       </div>
       <div className="grid gap-3">
-        <div className="rounded-2xl border border-line bg-white p-5">
+        <div className="rounded-2xl border border-line bg-card p-5">
           <p className="text-sm text-mute">Iekšdedzes auto</p>
           <p className="num display-md text-3xl text-ink">{money(ice / 12)}<span className="text-base text-mute"> /mēn.</span></p>
           <p className="num text-sm text-mute">{money(ice)} gadā</p>
         </div>
-        <div className="rounded-2xl border border-line bg-white p-5">
+        <div className="rounded-2xl border border-line bg-card p-5">
           <p className="text-sm text-mute">Elektroauto</p>
           <p className="num display-md text-3xl text-petrol">{money(ev / 12)}<span className="text-base text-mute"> /mēn.</span></p>
           <p className="num text-sm text-mute">{money(ev)} gadā</p>
         </div>
-        <div className="rounded-2xl bg-signal p-5 text-ink">
+        <div className="rounded-2xl bg-signal p-5 text-white">
           <p className="text-sm font-medium">Ietaupījums ar elektroauto</p>
           <p className="num display-md text-3xl">{money(Math.max(0, ice - ev))} gadā</p>
         </div>
@@ -139,7 +135,7 @@ export function RunningCostCalc() {
 
 export function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} aria-pressed={on} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${on ? 'border-petrol bg-petrol text-white' : 'border-line bg-white text-ink-2 hover:border-ink-2'}`}>
+    <button type="button" onClick={onClick} aria-pressed={on} className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${on ? 'border-petrol bg-petrol text-white' : 'border-line bg-card text-ink-2 hover:border-ink-2'}`}>
       {children}
     </button>
   );

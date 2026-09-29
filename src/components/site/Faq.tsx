@@ -13,7 +13,7 @@ export function Faq({ items }: { items: [string, string][] }) {
     mainEntity: items.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
   };
   return (
-    <div className="divide-y divide-line rounded-2xl border border-line bg-white">
+    <div className="divide-y divide-line rounded-2xl border border-line bg-card">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
       {items.map(([q, a], i) => (
         <div key={q}>

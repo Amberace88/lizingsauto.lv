@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  const { data: car } = await supabase.from('cars').select('*, car_images(url,sort)').eq('id', carId).single<Car>();
+  const { data: car } = await supabase.from('cars').select('*, car_images(url,sort,is_promo)').eq('id', carId).single<Car>();
   if (!car) return fail('Auto nav atrasts', 404);
 
   const make = await refKey('classes/Car/makes', car.make);
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
 
   // Bildes: mobile.de pieņem JPEG kā bināru failu
   const images: { ref: string; hash?: string }[] = [];
-  for (const im of [...(car.car_images || [])].sort((a, b) => a.sort - b.sort).slice(0, 20)) {
+  for (const im of [...(car.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort).slice(0, 20)) {
     try {
       const src = Buffer.from(await (await fetch(im.url)).arrayBuffer());
       const jpg = await sharp(src).jpeg({ quality: 85 }).toBuffer();

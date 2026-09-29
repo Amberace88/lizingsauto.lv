@@ -51,6 +51,7 @@ export const BADGES: Record<string, { label: string; tone: 'signal' | 'petrol' |
   just_arrived: { label: 'Tikko ievests', tone: 'signal' },
   top_offer: { label: 'Top piedāvājums', tone: 'signal' },
   vat: { label: 'Ar PVN', tone: 'ink', auto: true, hint: 'Ja atzīmēts “Cena ar PVN”' },
+  csdd: { label: 'CSDD nobraukums', tone: 'ok', auto: true, hint: 'Ja ievadīta CSDD nobraukuma vēsture' },
   awd: { label: '4x4', tone: 'ink', auto: true, hint: 'Pēc piedziņas' },
   seven_seats: { label: '7 vietas', tone: 'ink' },
   tow_hook: { label: 'Sakabe', tone: 'ink' },
@@ -58,8 +59,9 @@ export const BADGES: Record<string, { label: string; tone: 'signal' | 'petrol' |
 
 export const MANUAL_BADGES = Object.entries(BADGES).filter(([, b]) => !b.auto).map(([k]) => k);
 
-export function carBadges(car: Pick<Car, 'badges' | 'fuel' | 'old_price' | 'price' | 'vat_included' | 'drive'>): string[] {
+export function carBadges(car: Pick<Car, 'badges' | 'fuel' | 'old_price' | 'price' | 'vat_included' | 'drive'> & { odometer_history?: Car['odometer_history'] }): string[] {
   const out = new Set<string>(car.badges || []);
+  if (car.odometer_history && car.odometer_history.length > 0 && odometerOk(car.odometer_history)) out.add('csdd');
   if (car.old_price && car.old_price > car.price) out.add('price_drop');
   if (car.fuel === 'electric') out.add('electric');
   if (car.fuel === 'hybrid' || car.fuel === 'plugin_hybrid') out.add('hybrid');
@@ -102,11 +104,16 @@ export function carUrl(car: Pick<Car, 'slug'>) {
   return `/auto/${car.slug}`;
 }
 
+export function odometerOk(h: { date: string; km: number }[]) {
+  const s = [...h].sort((a, b) => a.date.localeCompare(b.date));
+  return s.every((p, i) => i === 0 || p.km >= s[i - 1].km);
+}
+
 export function coverImage(car: Car): string | null {
-  const imgs = [...(car.car_images || [])].sort((a, b) => a.sort - b.sort);
+  const imgs = [...(car.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort);
   return imgs[0]?.url || null;
 }
 
 export function sortedImages(car: Car) {
-  return [...(car.car_images || [])].sort((a, b) => a.sort - b.sort);
+  return [...(car.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort);
 }

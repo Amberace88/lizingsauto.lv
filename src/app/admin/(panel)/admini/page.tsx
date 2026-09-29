@@ -68,7 +68,7 @@ export default function AdminsPage() {
                       </select>
                     </td>
                     <td className="num text-xs text-mute">{a.last_login_at ? new Date(a.last_login_at).toLocaleString('lv-LV') : '—'}</td>
-                    <td><input type="checkbox" checked={a.active} onChange={(e) => patch(a.user_id, { active: e.target.checked })} className="h-4 w-4 accent-[#0f5a63]" /></td>
+                    <td><input type="checkbox" checked={a.active} onChange={(e) => patch(a.user_id, { active: e.target.checked })} className="h-4 w-4 accent-[#d91d2b]" /></td>
                   </tr>
                 ))}
               </tbody>
