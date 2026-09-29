@@ -61,8 +61,8 @@ export function Gallery({ images, alt, badges, status }: { images: string[]; alt
     <div>
       <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-night">
         {slide(false)}
-        <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[75%]">
-          <BadgeChips badges={badges} max={6} size="md" />
+        <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[calc(100%-8rem)]">
+          <BadgeChips badges={badges} size="md" />
         </div>
         <StatusRibbon status={status} />
         <button onClick={() => go(-1)} className="absolute left-3 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-card/90 shadow hover:bg-card" aria-label="Iepriekšējā bilde"><ChevronLeft /></button>

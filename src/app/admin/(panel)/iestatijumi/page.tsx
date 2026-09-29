@@ -9,6 +9,8 @@ import { revalidateSite } from '@/components/admin/revalidate';
 import { DEFAULT_LEASING } from '@/lib/leasing';
 import { DEFAULT_EKII } from '@/lib/ekii';
 import { DEFAULT_WARRANTY } from '@/lib/warranty';
+import { normalizeBadgeOrder } from '@/lib/format';
+import { BadgeDefaultOrder } from '@/components/admin/BadgeOrder';
 
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
@@ -86,6 +88,7 @@ export default function SettingsPage() {
   const [vals, setVals] = useState<Record<string, Record<string, unknown>> | null>(null);
   const [isDev, setDev] = useState(false);
   const [saving, setSaving] = useState('');
+  const [badgeOrder, setBadgeOrder] = useState<string[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -95,13 +98,15 @@ export default function SettingsPage() {
       const m: Record<string, Record<string, unknown>> = {};
       for (const s of SECTIONS) m[s.key] = { ...structuredClone(DEFAULTS[s.key] || {}), ...((data || []).find((r: { key: string }) => r.key === s.key)?.value || {}) };
       setVals(m);
+      setBadgeOrder(normalizeBadgeOrder(((data || []).find((r: { key: string }) => r.key === 'badges')?.value as { order?: string[] } | undefined)?.order));
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function save(key: string, tech?: boolean) {
     setSaving(key);
-    const { error } = await sb.from('settings').upsert({ key, value: vals![key], is_public: !tech, technical: !!tech, updated_at: new Date().toISOString() });
+    const value = key === 'badges' ? { order: badgeOrder } : vals![key];
+    const { error } = await sb.from('settings').upsert({ key, value, is_public: !tech, technical: !!tech, updated_at: new Date().toISOString() });
     setSaving('');
     if (error) return toast(error.message, 'err');
     toast('Iestatījumi saglabāti');
@@ -140,6 +145,12 @@ export default function SettingsPage() {
             </div>
           </Card>
         ))}
+        <Card title="Zīmju svarīgums" hint="Kādā secībā zīmes rādās uz auto bildēm visā lapā. Velc vai spied bultiņas — svarīgākā augšā. Konkrētam auto secību var mainīt arī auto kartītē.">
+          {badgeOrder && <BadgeDefaultOrder order={badgeOrder} onChange={setBadgeOrder} />}
+          <div className="mt-5 flex justify-end">
+            <button onClick={() => save('badges')} className="btn btn-primary" disabled={saving === 'badges'}>{saving === 'badges' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Saglabāt</button>
+          </div>
+        </Card>
       </div>
     </>
   );

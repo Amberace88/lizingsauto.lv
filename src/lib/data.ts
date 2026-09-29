@@ -4,6 +4,7 @@ import type { Car, CompanySettings, LeasingSettings } from './types';
 import { DEFAULT_LEASING } from './leasing';
 import { DEFAULT_EKII, type EkiiSettings } from './ekii';
 import { DEFAULT_WARRANTY, type WarrantySettings } from './warranty';
+import { normalizeBadgeOrder } from './format';
 
 export const DEFAULT_COMPANY: CompanySettings = {
   name: 'SIA AC Industry',
@@ -25,13 +26,14 @@ export const PUBLIC_CAR_COLUMNS =
 const CAR_FIELDS = `${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id,is_promo)`;
 
 export const getSettings = cache(async () => {
-  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty']);
+  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty', 'badges']);
   const map = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
   return {
     leasing: { ...DEFAULT_LEASING, ...(map.leasing || {}) } as LeasingSettings,
     company: { ...DEFAULT_COMPANY, ...(map.company || {}) } as CompanySettings,
     content: (map.content || {}) as Record<string, string>,
     ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings,
+    badgeOrder: normalizeBadgeOrder((map.badges || {}).order),
     warranty: { ...DEFAULT_WARRANTY, ...(map.warranty || {}), prices: { ...DEFAULT_WARRANTY.prices, ...((map.warranty || {}).prices || {}) } } as WarrantySettings,
   };
 });

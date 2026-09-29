@@ -6,6 +6,7 @@ import type { Car, LeasingSettings } from '@/lib/types';
 import { BADGES, carBadges, carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
 import { useFavorites } from './favorites';
+import { useBadgeOrder } from './BadgeOrderContext';
 
 const TONE: Record<string, string> = {
   signal: 'bg-signal text-white',
@@ -15,10 +16,10 @@ const TONE: Record<string, string> = {
   bad: 'bg-bad text-white',
 };
 
-export function BadgeChips({ badges, max = 3, size = 'sm' }: { badges: string[]; max?: number; size?: 'sm' | 'md' }) {
+export function BadgeChips({ badges, max = 99, size = 'sm' }: { badges: string[]; max?: number; size?: 'sm' | 'md' }) {
   const shown = badges.slice(0, max);
   const rest = badges.length - shown.length;
-  const cls = size === 'md' ? 'px-3 py-1.5 text-[0.8rem]' : 'px-2.5 py-1 text-[0.72rem]';
+  const cls = size === 'md' ? 'px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.8rem]' : 'px-2.5 py-1 text-[0.72rem] leading-tight';
   return (
     <div className="flex flex-wrap gap-1.5">
       {shown.map((b) => (
@@ -42,7 +43,7 @@ export function StatusRibbon({ status }: { status: string }) {
 
 export function CarCard({ car, leasing, priority = false }: { car: Car; leasing: LeasingSettings; priority?: boolean }) {
   const img = coverImage(car);
-  const badges = carBadges(car);
+  const badges = carBadges(car, useBadgeOrder());
   const { has, toggle } = useFavorites();
   const fav = has(car.id);
   const monthly = fromPayment(car.price, leasing);
@@ -61,8 +62,8 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
             className={`object-cover transition-transform duration-500 group-hover:scale-[1.04] ${dim ? 'grayscale-[60%]' : ''}`}
           />
         )}
-        <div className="absolute left-3 top-3 z-10 max-w-[80%]">
-          <BadgeChips badges={badges} max={2} />
+        <div className="absolute left-3 top-3 z-10 max-w-[calc(100%-4.25rem)]">
+          <BadgeChips badges={badges} />
         </div>
         {car.status !== 'sold' && (
           <div className="price-tag num absolute bottom-3 left-3 z-10 rounded-lg px-2.5 py-1.5 text-sm font-bold shadow-md">

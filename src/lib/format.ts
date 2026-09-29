@@ -59,16 +59,58 @@ export const BADGES: Record<string, { label: string; tone: 'signal' | 'petrol' |
 
 export const MANUAL_BADGES = Object.entries(BADGES).filter(([, b]) => !b.auto).map(([k]) => k);
 
-export function carBadges(car: Pick<Car, 'badges' | 'fuel' | 'old_price' | 'price' | 'vat_included' | 'drive'> & { odometer_history?: Car['odometer_history'] }): string[] {
-  const out = new Set<string>(car.badges || []);
-  if (car.odometer_history && car.odometer_history.length > 0 && odometerOk(car.odometer_history)) out.add('csdd');
-  if (car.old_price && car.old_price > car.price) out.add('price_drop');
-  if (car.fuel === 'electric') out.add('electric');
-  if (car.fuel === 'hybrid' || car.fuel === 'plugin_hybrid') out.add('hybrid');
-  if (car.vat_included) out.add('vat');
-  if (car.drive === 'awd') out.add('awd');
-  const order = Object.keys(BADGES);
-  return [...out].filter((b) => BADGES[b]).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+/** Noklusētā svarīguma secība (ja admins auto zīmes nav kārtojis pats). */
+export const DEFAULT_BADGE_ORDER = ['top_offer', 'ekii', 'price_drop', 'low_price', 'just_arrived', 'fresh_ta', 'warranty', 'csdd', 'electric', 'hybrid', 'like_new', 'low_mileage', 'one_owner', 'service_history', 'awd', 'seven_seats', 'tow_hook', 'vat'];
+/** Marķieris `badges` masīvā: admins secību noteicis pats. `!kods` = paslēpta automātiskā zīme. */
+export const BADGE_ORDER_MARK = '*';
+
+type BadgeCar = Pick<Car, 'badges' | 'fuel' | 'old_price' | 'price' | 'vat_included' | 'drive'> & { odometer_history?: Car['odometer_history'] };
+
+/** Automātiskās zīmes, kuru nosacījums šim auto izpildās. */
+export function autoBadges(car: BadgeCar): string[] {
+  const out: string[] = [];
+  if (car.odometer_history && car.odometer_history.length > 0 && odometerOk(car.odometer_history)) out.push('csdd');
+  if (car.old_price && car.old_price > car.price) out.push('price_drop');
+  if (car.fuel === 'electric') out.push('electric');
+  if (car.fuel === 'hybrid' || car.fuel === 'plugin_hybrid') out.push('hybrid');
+  if (car.vat_included) out.push('vat');
+  if (car.drive === 'awd') out.push('awd');
+  return out;
+}
+
+/** Pilna secība: saglabātā + trūkstošās zīmes noklusētajā secībā. */
+export function normalizeBadgeOrder(order?: unknown): string[] {
+  const valid = Array.isArray(order) ? order.filter((b): b is string => typeof b === 'string' && !!BADGES[b]) : [];
+  const all = [...DEFAULT_BADGE_ORDER, ...Object.keys(BADGES)];
+  return [...new Set([...valid, ...all])];
+}
+
+/** Zīmes rādīšanas secībā: admina secība šim auto, ja noteikta, citādi pēc lapas noklusētā svarīguma. */
+export function carBadges(car: BadgeCar, defaultOrder: string[] = DEFAULT_BADGE_ORDER): string[] {
+  const rank = (b: string) => {
+    const i = defaultOrder.indexOf(b);
+    return i < 0 ? 99 : i;
+  };
+  const raw = car.badges || [];
+  const hidden = new Set(raw.filter((b) => b.startsWith('!')).map((b) => b.slice(1)));
+  const auto = autoBadges(car).filter((b) => !hidden.has(b));
+  const manual = raw.filter((b) => BADGES[b] && !BADGES[b].auto);
+  if (!raw.includes(BADGE_ORDER_MARK)) {
+    return [...new Set([...manual, ...auto])].sort((a, b) => rank(a) - rank(b));
+  }
+  const out: string[] = [];
+  for (const b of raw) {
+    if (!BADGES[b] || out.includes(b)) continue;
+    if (BADGES[b].auto ? auto.includes(b) : true) out.push(b);
+  }
+  // jaunas automātiskās zīmes, kuras admins vēl nav redzējis — beigās
+  for (const b of auto.sort((a, c) => rank(a) - rank(c))) if (!out.includes(b)) out.push(b);
+  return out;
+}
+
+/** Saglabājamā forma: marķieris + secība + paslēptās automātiskās zīmes. */
+export function encodeBadges(order: string[], hiddenAuto: string[]): string[] {
+  return [BADGE_ORDER_MARK, ...order, ...hiddenAuto.map((b) => `!${b}`)];
 }
 
 const eur = new Intl.NumberFormat('lv-LV', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });

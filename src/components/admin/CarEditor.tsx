@@ -6,12 +6,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, ImagePlus, Loader2, Save, Star, Trash2, Wand2, X, ExternalLink, GripVertical } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
-import { BADGES, BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, MANUAL_BADGES, STATUS_LABEL, carBadges, money, slugify } from '@/lib/format';
+import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeOrder, slugify } from '@/lib/format';
 import { DEFAULT_LEASING, fromPayment } from '@/lib/leasing';
 import { BadgeChips } from '@/components/site/CarCard';
 import { useToast } from './Toast';
 import { revalidateSite } from './revalidate';
 import { PortalPanel } from './PortalPanel';
+import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
 
 type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean; is_promo?: boolean };
@@ -48,6 +49,12 @@ export function CarEditor({ id }: { id?: string }) {
   const [slugTouched, setSlugTouched] = useState(!isNew);
   const [eqInput, setEqInput] = useState('');
   const dragFrom = useRef<number | null>(null);
+  const [badgeOrder, setBadgeOrder] = useState<string[]>(normalizeBadgeOrder());
+
+  useEffect(() => {
+    sb.from('settings').select('value').eq('key', 'badges').maybeSingle().then(({ data }: { data: { value: unknown } | null }) => setBadgeOrder(normalizeBadgeOrder((data?.value as { order?: string[] } | null)?.order)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isNew) return;
@@ -204,7 +211,7 @@ export function CarEditor({ id }: { id?: string }) {
     }
   }
 
-  const badges = useMemo(() => carBadges({ badges: car.badges || [], fuel: car.fuel || null, old_price: car.old_price || null, price: car.price || 0, vat_included: !!car.vat_included, drive: car.drive || null, odometer_history: car.odometer_history || null }), [car]);
+  const badges = useMemo(() => carBadges({ badges: car.badges || [], fuel: car.fuel || null, old_price: car.old_price || null, price: car.price || 0, vat_included: !!car.vat_included, drive: car.drive || null, odometer_history: car.odometer_history || null }, badgeOrder), [car, badgeOrder]);
 
   if (loading) return <div className="grid place-items-center p-20"><Loader2 className="h-6 w-6 animate-spin text-mute" /></div>;
 
@@ -365,19 +372,14 @@ export function CarEditor({ id }: { id?: string }) {
             {car.price ? <p className="num mt-3 rounded-lg bg-signal-soft px-3 py-2 text-sm">Līzingā no <b>{fromPayment(car.price, DEFAULT_LEASING)} €/mēn.</b></p> : null}
           </Card>
 
-          <Card title="Zīmes uz bildes" hint="Parādās uz galvenās bildes katalogā un auto lapā.">
+          <Card title="Zīmes uz bildes" hint="Rādās uz galvenās bildes katalogā un auto lapā — visas, izvēlētajā secībā.">
             {visible[0] && (
               <div className="relative mb-4 aspect-[4/3] overflow-hidden rounded-lg bg-line">
                 <Image src={visible[0].url} alt="" fill sizes="320px" className="object-cover" unoptimized={visible[0].url.startsWith('blob:')} />
-                <div className="absolute left-2 top-2 max-w-[90%]"><BadgeChips badges={badges} max={4} /></div>
+                <div className="absolute left-2 top-2 max-w-[calc(100%-1rem)]"><BadgeChips badges={badges} /></div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-1.5">
-              {MANUAL_BADGES.map((b) => (
-                <Check key={b} label={BADGES[b].label} checked={(car.badges || []).includes(b)} onChange={(v) => set('badges', v ? [...(car.badges || []), b] : (car.badges || []).filter((x) => x !== b))} />
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-mute">Automātiski: “Cena samazināta”, “Elektroauto”, “Hibrīds”, “Ar PVN”, “4x4”.</p>
+            <BadgeOrder car={car} defaultOrder={badgeOrder} onChange={(b) => set('badges', b)} />
           </Card>
 
           <Card title="Publicēšana">
