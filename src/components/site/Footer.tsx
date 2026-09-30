@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InstallButton } from './InstallApp';
 import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 const Facebook = (p: { className?: string }) => (
@@ -26,6 +27,10 @@ export function Footer({ company }: { company: CompanySettings }) {
             <a href={company.instagram} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white/10 p-2.5 hover:bg-white/20" aria-label="Instagram">
               <Instagram className="h-5 w-5" />
             </a>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <InstallButton />
+            <Link href="/lietotne" className="text-xs text-white/50 hover:text-white">Par lietotni</Link>
           </div>
         </div>
         <nav aria-label="Kājenes navigācija">

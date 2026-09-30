@@ -8,6 +8,7 @@ import { AdminLiveProvider } from '@/components/site/AdminLive';
 import { NameDayBar } from '@/components/site/NameDays';
 import { Analytics } from '@/components/site/Analytics';
 import { Tracker } from '@/components/site/Tracker';
+import { InstallPrompt } from '@/components/site/InstallApp';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
@@ -51,6 +52,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
       <Tracker />
+      <InstallPrompt />
       <Analytics ga4Id={analytics.ga4Id} metaPixelId={analytics.metaPixelId} />
       {analytics.gscVerification && <meta name="google-site-verification" content={analytics.gscVerification} />}
     </div>

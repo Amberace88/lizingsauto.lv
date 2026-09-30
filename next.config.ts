@@ -41,6 +41,8 @@ const nextConfig: NextConfig = {
         ],
       },
       { source: '/admin/(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }, { key: 'Cache-Control', value: 'no-store' }] },
+      { source: '/sw.js', headers: [{ key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' }, { key: 'Service-Worker-Allowed', value: '/' }] },
+      { source: '/icons/(.*)', headers: [{ key: 'Cache-Control', value: 'public, max-age=604800' }] },
       { source: '/api/(.*)', headers: [{ key: 'X-Robots-Tag', value: 'noindex' }] },
     ];
   },

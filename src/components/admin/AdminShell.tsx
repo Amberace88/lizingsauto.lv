@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { LayoutDashboard, Car, Inbox, Settings, Share2, Users, History, Wrench, UserCircle, LogOut, Menu, X, ExternalLink, BarChart3 } from 'lucide-react';
+import { InstallButton } from '@/components/site/InstallApp';
 import type { AdminProfile } from '@/lib/types';
 import { Logo } from '@/components/site/Header';
 import { ToastProvider } from './Toast';
@@ -46,6 +47,7 @@ export function AdminShell({ profile, newLeads, children }: { profile: AdminProf
             <button className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-white/10 py-2 text-xs font-semibold text-white hover:bg-white/15"><LogOut className="h-3.5 w-3.5" /> Iziet</button>
           </form>
         </div>
+        <div className="mt-2"><InstallButton variant="admin" /></div>
       </div>
     </div>
   );
