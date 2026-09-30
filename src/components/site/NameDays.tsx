@@ -47,7 +47,7 @@ export function NameDayBar() {
   const W = wx ? wxInfo(wx.code, wx.day) : null;
   const icy = wx && wx.min <= 1;
 
-  const items: { key: string; node: React.ReactNode; href?: string }[] = [
+  const items: { key: string; node: React.ReactNode; href?: string; mobile?: boolean }[] = [
     {
       key: 'names',
       href: '/vardadienas',
@@ -55,17 +55,18 @@ export function NameDayBar() {
         <>
           <span className="relative grid h-5 w-5 shrink-0 place-items-center rounded-full bg-signal"><Cake className="h-3 w-3" /><span className="absolute inset-0 animate-ping rounded-full bg-signal/60 [animation-duration:2.5s]" /></span>
           <span className="shrink-0 font-semibold text-white/60">{dayLabel(day.key)}</span>
-          <span className="truncate">{names.length ? <>Vārda dienu svin <b className="text-white">{names.join(', ')}</b></> : 'Šodien vārda dienu nesvin neviens'}</span>
+          <span className="truncate">{names.length ? <>Vārda dienu svin <b className="text-white">{names.join(', ')}</b></> : 'Šodien vārda dienu nesvin neviens'}{tomorrow.length > 0 && <span className="hidden text-white/50 xl:inline"> · rīt {tomorrow.join(', ')}</span>}</span>
         </>
       ),
     },
+    tomorrow.length ? { key: 'tom', mobile: true, href: '/vardadienas', node: <><Cake className="h-4 w-4 shrink-0 text-white/50" /><span className="truncate"><span className="text-white/60">Rīt svin</span> <b className="text-white">{tomorrow.join(', ')}</b></span></> } : null,
     hol.today.length
       ? { key: 'hol', href: '/vardadienas#svetki', node: <><PartyPopper className="h-4 w-4 shrink-0 text-signal" /><span className="truncate">Šodien: <b className="text-white">{hol.today.map((h) => h.name).join(', ')}</b></span></> }
       : hol.next
         ? { key: 'hol', href: '/vardadienas#svetki', node: <><CalendarDays className="h-4 w-4 shrink-0 text-signal" /><span className="truncate">{hol.next.in === 1 ? 'Rīt' : `Pēc ${hol.next.in} d.`}: <b className="text-white">{hol.next.name}</b>{hol.nextOff && hol.nextOff.date !== hol.next.date && <span className="text-white/50"> · brīvdiena pēc {hol.nextOff.in} d.</span>}</span></> }
         : null,
     tyre ? { key: 'tyre', node: <><Snowflake className="h-4 w-4 shrink-0 text-sky-300" /><span className="truncate">{tyre.text}{tyre.sub && <span className="text-white/50"> · {tyre.sub}</span>}</span></> } : null,
-  ].filter(Boolean) as { key: string; node: React.ReactNode; href?: string }[];
+  ].filter(Boolean) as { key: string; node: React.ReactNode; href?: string; mobile?: boolean }[];
   const cur = items[slot % items.length];
   const Item = ({ it, className = '' }: { it: (typeof items)[number]; className?: string }) =>
     it.href ? <Link href={it.href} className={`flex min-w-0 items-center gap-2 hover:text-white ${className}`}>{it.node}</Link> : <span className={`flex min-w-0 items-center gap-2 ${className}`}>{it.node}</span>;
@@ -75,13 +76,12 @@ export function NameDayBar() {
       <div className="mx-auto flex h-9 max-w-7xl items-center gap-4 px-4 sm:px-6">
         {/* Plašiem ekrāniem — viss vienā rindā */}
         <div className="hidden min-w-0 flex-1 items-center gap-5 xl:flex">
-          {items.map((it, i) => (
+          {items.filter((it) => !it.mobile).map((it, i) => (
             <span key={it.key} className="flex min-w-0 items-center gap-5">
               {i > 0 && <span className="h-4 w-px shrink-0 bg-white/15" />}
               <Item it={it} />
             </span>
           ))}
-          {tomorrow.length > 0 && items.length < 3 && <span className="truncate text-white/50">rīt {tomorrow.join(', ')}</span>}
         </div>
         {/* Mazākiem ekrāniem — mainās pa vienam */}
         <div className="relative h-9 min-w-0 flex-1 overflow-hidden xl:hidden">
