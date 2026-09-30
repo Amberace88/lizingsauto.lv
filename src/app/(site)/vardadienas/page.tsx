@@ -3,20 +3,24 @@ import Link from 'next/link';
 import { CarFront, ArrowRight } from 'lucide-react';
 import { PageHead } from '@/components/site/PageHead';
 import { NameDayHero, NameSearch } from '@/components/site/NameDays';
-import { NAMEDAYS, MONTHS, slugName } from '@/lib/namedays';
+import { NAMEDAYS, MONTHS, MONTHS_GEN, rigaDay, slugName } from '@/lib/namedays';
+import { holidays } from '@/lib/holidays';
 import { nameIndex } from '@/lib/namedays-index';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Vārda dienas šodien — latviešu vārda dienu kalendārs',
-  description: 'Kam šodien ir vārda diena? Latviešu vārda dienu kalendārs: šodienas, rītdienas un visa gada vārda dienas, meklēšana pēc vārda.',
+  title: 'Vārda dienas šodien un svētku dienas — latviešu kalendārs',
+  description: 'Kam šodien ir vārda diena? Latviešu vārda dienu kalendārs, meklēšana pēc vārda, kā arī Latvijas svētku dienas, brīvdienas un atzīmējamās dienas.',
   alternates: { canonical: '/vardadienas' },
 };
 
 export default function NameDaysPage() {
   const index = [...nameIndex().values()].sort((a, b) => Number(b.main) - Number(a.main) || a.name.localeCompare(b.name, 'lv')).map((e) => [e.name, e.slug, e.days] as [string, string, string[]]);
+  const today = rigaDay();
+  const todayIso = `${today.y}-${String(today.m).padStart(2, '0')}-${String(today.d).padStart(2, '0')}`;
+  const hol = holidays(today.y);
   const byMonth = MONTHS.map((label, i) => ({ label, days: Object.entries(NAMEDAYS).filter(([k]) => Number(k.slice(0, 2)) === i + 1) }));
   const ld = {
     '@context': 'https://schema.org',
@@ -58,6 +62,24 @@ export default function NameDaysPage() {
                 </ul>
               </details>
             ))}
+          </div>
+        </section>
+
+        <section id="svetki" className="mt-16 scroll-mt-24">
+          <h2 className="display-md text-3xl text-ink">Svētku dienas un brīvdienas {today.y}</h2>
+          <p className="mt-2 text-ink-2">Latvijas svētku, atceres un atzīmējamās dienas. <span className="rounded-full bg-signal px-2 py-0.5 text-xs font-bold text-white">Brīvdiena</span> — oficiālā svētku (brīvā) diena.</p>
+          <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {hol.map((h) => {
+              const [, m, d] = h.date.split('-').map(Number);
+              const past = h.date < todayIso;
+              return (
+                <div key={h.date + h.name} className={`flex items-center gap-4 rounded-2xl border p-4 ${h.off ? 'border-signal/30 bg-signal-soft/50' : 'border-line bg-card'} ${past ? 'opacity-50' : ''}`}>
+                  <span className="w-14 shrink-0 text-center"><span className="num display-md block text-2xl leading-none text-ink">{d}</span><span className="text-[11px] text-mute">{MONTHS_GEN[m - 1]}</span></span>
+                  <span className="min-w-0 flex-1 text-sm font-semibold leading-snug text-ink">{h.name}</span>
+                  {h.off && <span className="shrink-0 rounded-full bg-signal px-2 py-0.5 text-[11px] font-bold text-white">Brīvdiena</span>}
+                </div>
+              );
+            })}
           </div>
         </section>
 

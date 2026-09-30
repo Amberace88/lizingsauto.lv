@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useTrackUse } from '@/lib/track';
 import Link from 'next/link';
 import { BatteryCharging, Check, X } from 'lucide-react';
 import { Slider } from '@/components/site/LeasingCalculator';
@@ -24,6 +25,7 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
   const [scrap, setScrap] = useState(false);
   const [phev, setPhev] = useState(first?.phev ?? false);
   const [lvOver12m, setLvOver12m] = useState(false);
+  useTrackUse('EKII kalkulators', [price, year, mileage, seats, goda, children, scrap, phev, slug]);
   const [downPct, setDownPct] = useState(leasing.downPct);
   const [term, setTerm] = useState(leasing.term);
 

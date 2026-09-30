@@ -8,6 +8,7 @@ import { BODY_LABEL, FUEL_LABEL, GEAR_LABEL, carName } from '@/lib/format';
 import { monthlyPayment } from '@/lib/leasing';
 import { CarCard } from './CarCard';
 import { SearchAlert } from './SearchAlert';
+import { track } from '@/lib/track';
 
 type F = Record<string, string>;
 const SORTS: Record<string, string> = {
@@ -31,7 +32,10 @@ export function Catalog({ cars, leasing }: { cars: Car[]; leasing: LeasingSettin
     router.replace(qs ? `${path}?${qs}` : path, { scroll: false });
   }, [f, path, router]);
 
-  const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
+  const set = (k: string, v: string) => {
+    if (v) track('catalog_filter', { filter: k }, k);
+    setF((p) => ({ ...p, [k]: v }));
+  };
   const clear = () => setF({});
 
   const makes = useMemo(() => [...new Set(cars.map((c) => c.make))].sort(), [cars]);

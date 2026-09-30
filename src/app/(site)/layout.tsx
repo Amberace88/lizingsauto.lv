@@ -7,6 +7,7 @@ import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
 import { AdminLiveProvider } from '@/components/site/AdminLive';
 import { NameDayBar } from '@/components/site/NameDays';
 import { Analytics } from '@/components/site/Analytics';
+import { Tracker } from '@/components/site/Tracker';
 import { SITE_URL } from '@/lib/format';
 
 export const revalidate = 60;
@@ -49,6 +50,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <Footer company={company} />
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />
+      <Tracker />
       <Analytics ga4Id={analytics.ga4Id} metaPixelId={analytics.metaPixelId} />
       {analytics.gscVerification && <meta name="google-site-verification" content={analytics.gscVerification} />}
     </div>

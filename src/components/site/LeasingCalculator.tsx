@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useTrackUse } from '@/lib/track';
 import type { LeasingSettings } from '@/lib/types';
 import { leasingSummary } from '@/lib/leasing';
 import { money, number } from '@/lib/format';
@@ -21,6 +22,7 @@ export function LeasingCalculator({ price, leasing, onApply, compact = false, pr
   const [p, setP] = useState(price);
   const [downPct, setDownPct] = useState(leasing.downPct);
   const [term, setTerm] = useState(leasing.term);
+  useTrackUse('Līzinga kalkulators', [p, downPct, term]);
   const s = useMemo(() => leasingSummary({ price: p, downPct, rate: leasing.rate, term, residualPct: leasing.residualPct, contractFee: leasing.contractFee, monthlyFee: leasing.monthlyFee }), [p, downPct, term, leasing]);
 
   return (

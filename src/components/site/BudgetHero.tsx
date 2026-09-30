@@ -1,5 +1,6 @@
 'use client';
 import Image from 'next/image';
+import { useTrackUse } from '@/lib/track';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -47,6 +48,7 @@ function Gauge({ value }: { value: number }) {
 export function BudgetHero({ cars, leasing }: { cars: MiniCar[]; leasing: LeasingSettings }) {
   const [budget, setBudget] = useState(250);
   const [downPct, setDownPct] = useState(leasing.downPct);
+  useTrackUse('Budžeta mērītājs (sākumlapa)', [budget, downPct]);
 
   const matches = useMemo(
     () =>

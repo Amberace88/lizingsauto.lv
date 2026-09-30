@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { useTrackUse } from '@/lib/track';
 import { useMemo, useState } from 'react';
 import { Check, Minus, ShieldCheck, ChevronDown } from 'lucide-react';
 import { COVERAGE, PLANS, PLAN_LETTER, eligiblePlans, limitLabel, parseExamples, planPrice, type PlanId, type WarrantySettings } from '@/lib/warranty';
@@ -19,6 +20,7 @@ export function WarrantyCalculator({ w, leasing, cars, initialSlug }: { w: Warra
   const [km, setKm] = useState(first?.mileage ?? 150000);
   const [carPrice, setCarPrice] = useState(first?.price || 10000);
   const [months, setMonths] = useState<12 | 24 | 36>(24);
+  useTrackUse('Garantijas kalkulators', [slug, year, km, carPrice, months]);
   const elig = useMemo(() => eligiblePlans(year, km), [year, km]);
   const available = elig.filter((e) => e.ok).map((e) => e.plan);
   const [plan, setPlan] = useState<PlanId>(available.includes('comfort') ? 'comfort' : available[0] || 'plus');

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Check, Copy, ExternalLink, ShieldCheck } from 'lucide-react';
 import { decodeVin } from '@/lib/vin';
+import { track, useTrackUse } from '@/lib/track';
 
 /** OCTA pārbaudes palīgs: sagatavo numuru un atver LTAB oficiālo bezmaksas pārbaudi. */
 export function OctaCheck() {
@@ -16,6 +17,7 @@ export function OctaCheck() {
       await navigator.clipboard.writeText(clean);
     } catch {}
     setDone(true);
+    track('tool_use', { tool: 'OCTA pārbaude' });
     window.open('https://services.ltab.lv/lv/CheckOcta', '_blank', 'noopener,noreferrer');
   };
 
@@ -69,6 +71,7 @@ export function OctaCheck() {
 export function VinDecoder() {
   const [q, setQ] = useState('');
   const r = q.replace(/\s/g, '').length >= 11 ? decodeVin(q) : null;
+  useTrackUse('VIN atšifrētājs', [r?.vin.length === 17 ? r.vin : '']);
   return (
     <div className="rounded-[24px] border border-line bg-card p-6 sm:p-8">
       <h2 className="display-md text-2xl text-ink">VIN atšifrētājs</h2>

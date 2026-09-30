@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useTrackUse } from '@/lib/track';
 import { CC, CO2, KW, MASS, pickRate } from '@/lib/tax';
 import { Slider } from '@/components/site/LeasingCalculator';
 import { money, number } from '@/lib/format';
@@ -13,6 +14,7 @@ export function AffordabilityCalc({ leasing }: { leasing: LeasingSettings }) {
   const [obligations, setObligations] = useState(0);
   const [down, setDown] = useState(0);
   const [term, setTerm] = useState(leasing.term);
+  useTrackUse('Cik varu atļauties', [income, obligations, down, term]);
   const r = useMemo(() => {
     const maxPay = Math.max(0, income * 0.4 - obligations);
     const safePay = Math.max(0, income * 0.25 - obligations);
@@ -55,6 +57,7 @@ export function TaxCalc() {
   const [cc, setCc] = useState(1990);
   const [kw, setKw] = useState(110);
   const [mass, setMass] = useState(1900);
+  useTrackUse('Nodokļa kalkulators', [after2008, electric, co2, cc, kw, mass]);
   const res = useMemo(() => {
     if (electric) return { total: 0, parts: [['Elektroauto', 0]] as [string, number][] };
     if (!after2008) return { total: pick(MASS, mass), parts: [['Pēc pilnās masas', pick(MASS, mass)]] as [string, number][] };
@@ -102,6 +105,7 @@ export function RunningCostCalc() {
   const [fuelPrice, setFuelPrice] = useState(1.65);
   const [kwh, setKwh] = useState(17);
   const [elPrice, setElPrice] = useState(0.22);
+  useTrackUse('Degviela pret elektrību', [kmYear, cons, fuelPrice, kwh, elPrice]);
   const ice = (kmYear / 100) * cons * fuelPrice;
   const ev = (kmYear / 100) * kwh * elPrice;
   return (

@@ -1,35 +1,106 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Cake, ChevronRight, Search } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Cake, CalendarDays, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudMoon, CloudRain, CloudSnow, CloudSun, Moon, PartyPopper, Search, Snowflake, Sun } from 'lucide-react';
+import { holidayInfo, tyreInfo } from '@/lib/holidays';
+import { useTrackUse } from '@/lib/track';
 import { MONTHS, NAMEDAYS, dayLabel, rigaDay, slugName } from '@/lib/namedays';
 
-/** Plāna josla lapas augšā: šodienas vārda dienas (Rīgas laikā, atjaunojas pati pusnaktī). */
+type Wx = { t: number; feels: number; code: number; wind: number; day: boolean; max: number; min: number };
+
+function wxInfo(code: number, day: boolean): { I: typeof Sun; label: string } {
+  if (code === 0) return { I: day ? Sun : Moon, label: 'Skaidrs' };
+  if (code <= 2) return { I: day ? CloudSun : CloudMoon, label: 'Mākoņains ar skaidrību' };
+  if (code === 3) return { I: Cloud, label: 'Apmācies' };
+  if (code === 45 || code === 48) return { I: CloudFog, label: 'Migla' };
+  if (code >= 51 && code <= 57) return { I: CloudDrizzle, label: 'Smidzina' };
+  if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return { I: CloudRain, label: 'Lietus' };
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return { I: CloudSnow, label: 'Sniegs' };
+  if (code >= 95) return { I: CloudLightning, label: 'Pērkona negaiss' };
+  return { I: Cloud, label: 'Mākoņains' };
+}
+
+/** Plāna informatīvā josla lapas augšā: vārda dienas, svētki, ziemas riepas un laikapstākļi Rīgā. */
 export function NameDayBar() {
   const [day, setDay] = useState(() => rigaDay());
+  const [wx, setWx] = useState<Wx | null>(null);
+  const [slot, setSlot] = useState(0);
   useEffect(() => {
     const tick = () => setDay(rigaDay());
     tick();
     const id = setInterval(tick, 60_000);
-    return () => clearInterval(id);
+    const load = () => fetch('/api/weather').then((r) => (r.ok ? r.json() : null)).then((j) => j && !j.error && setWx(j)).catch(() => {});
+    load();
+    const w = setInterval(load, 15 * 60_000);
+    const rot = setInterval(() => setSlot((x) => x + 1), 5000);
+    return () => {
+      clearInterval(id);
+      clearInterval(w);
+      clearInterval(rot);
+    };
   }, []);
   const names = NAMEDAYS[day.key] || [];
   const tomorrow = NAMEDAYS[rigaDay(1).key] || [];
+  const hol = holidayInfo(day);
+  const tyre = tyreInfo(day);
+  const W = wx ? wxInfo(wx.code, wx.day) : null;
+  const icy = wx && wx.min <= 1;
+
+  const items: { key: string; node: React.ReactNode; href?: string }[] = [
+    {
+      key: 'names',
+      href: '/vardadienas',
+      node: (
+        <>
+          <span className="relative grid h-5 w-5 shrink-0 place-items-center rounded-full bg-signal"><Cake className="h-3 w-3" /><span className="absolute inset-0 animate-ping rounded-full bg-signal/60 [animation-duration:2.5s]" /></span>
+          <span className="shrink-0 font-semibold text-white/60">{dayLabel(day.key)}</span>
+          <span className="truncate">{names.length ? <>Vārda dienu svin <b className="text-white">{names.join(', ')}</b></> : 'Šodien vārda dienu nesvin neviens'}</span>
+        </>
+      ),
+    },
+    hol.today.length
+      ? { key: 'hol', href: '/vardadienas#svetki', node: <><PartyPopper className="h-4 w-4 shrink-0 text-signal" /><span className="truncate">Šodien: <b className="text-white">{hol.today.map((h) => h.name).join(', ')}</b></span></> }
+      : hol.next
+        ? { key: 'hol', href: '/vardadienas#svetki', node: <><CalendarDays className="h-4 w-4 shrink-0 text-signal" /><span className="truncate">{hol.next.in === 1 ? 'Rīt' : `Pēc ${hol.next.in} d.`}: <b className="text-white">{hol.next.name}</b>{hol.nextOff && hol.nextOff.date !== hol.next.date && <span className="text-white/50"> · brīvdiena pēc {hol.nextOff.in} d.</span>}</span></> }
+        : null,
+    tyre ? { key: 'tyre', node: <><Snowflake className="h-4 w-4 shrink-0 text-sky-300" /><span className="truncate">{tyre.text}{tyre.sub && <span className="text-white/50"> · {tyre.sub}</span>}</span></> } : null,
+  ].filter(Boolean) as { key: string; node: React.ReactNode; href?: string }[];
+  const cur = items[slot % items.length];
+  const Item = ({ it, className = '' }: { it: (typeof items)[number]; className?: string }) =>
+    it.href ? <Link href={it.href} className={`flex min-w-0 items-center gap-2 hover:text-white ${className}`}>{it.node}</Link> : <span className={`flex min-w-0 items-center gap-2 ${className}`}>{it.node}</span>;
+
   return (
-    <div className="border-b border-white/10 bg-night text-white">
-      <Link href="/vardadienas" className="group mx-auto flex h-9 max-w-7xl items-center gap-2 overflow-hidden px-4 text-[13px] sm:px-6" suppressHydrationWarning>
-        <span className="relative grid h-5 w-5 shrink-0 place-items-center rounded-full bg-signal">
-          <Cake className="h-3 w-3" />
-          <span className="absolute inset-0 animate-ping rounded-full bg-signal/60 [animation-duration:2.5s]" />
-        </span>
-        <span className="shrink-0 font-semibold text-white/60" suppressHydrationWarning>{dayLabel(day.key)}</span>
-        <span className="truncate" suppressHydrationWarning>
-          {names.length ? <>Vārda dienu svin <b className="text-white">{names.join(', ')}</b></> : 'Šodien vārda dienu nesvin neviens'}
-          {tomorrow.length > 0 && <span className="hidden text-white/50 md:inline"> · rīt {tomorrow.join(', ')}</span>}
-        </span>
-        <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-white/40 transition group-hover:translate-x-0.5 group-hover:text-white" />
-      </Link>
+    <div className="border-b border-white/10 bg-night text-[13px] text-white/85" suppressHydrationWarning>
+      <div className="mx-auto flex h-9 max-w-7xl items-center gap-4 px-4 sm:px-6">
+        {/* Plašiem ekrāniem — viss vienā rindā */}
+        <div className="hidden min-w-0 flex-1 items-center gap-5 xl:flex">
+          {items.map((it, i) => (
+            <span key={it.key} className="flex min-w-0 items-center gap-5">
+              {i > 0 && <span className="h-4 w-px shrink-0 bg-white/15" />}
+              <Item it={it} />
+            </span>
+          ))}
+          {tomorrow.length > 0 && items.length < 3 && <span className="truncate text-white/50">rīt {tomorrow.join(', ')}</span>}
+        </div>
+        {/* Mazākiem ekrāniem — mainās pa vienam */}
+        <div className="relative h-9 min-w-0 flex-1 overflow-hidden xl:hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={cur.key} initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0 flex items-center">
+              <Item it={cur} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        {W && wx && (
+          <span className="flex shrink-0 items-center gap-1.5" title={`${W.label}, jūtas kā ${wx.feels}°, vējš ${wx.wind} m/s`}>
+            <W.I className="h-4 w-4 text-white/80" />
+            <span className="hidden text-white/60 sm:inline">Rīgā</span>
+            <b className="num text-white">{wx.t > 0 ? '+' : ''}{wx.t}°</b>
+            <span className="num hidden text-white/50 md:inline">{wx.min}°…{wx.max}°</span>
+            {icy && <span className="hidden items-center gap-1 rounded-full bg-sky-400/15 px-2 py-0.5 text-[11px] font-semibold text-sky-200 lg:flex"><Snowflake className="h-3 w-3" /> Iespējams slidens</span>}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -79,6 +150,7 @@ export function NameDayHero() {
 /** Meklēšana pēc vārda (pilnais saraksts tiek padots no servera). */
 export function NameSearch({ index }: { index: [string, string, string[]][] }) {
   const [q, setQ] = useState('');
+  useTrackUse('Vārda dienu meklēšana', [q.length >= 2]);
   const res = useMemo(() => {
     const s = q.trim().toLowerCase();
     if (s.length < 2) return [];
