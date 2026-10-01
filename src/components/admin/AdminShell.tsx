@@ -62,7 +62,7 @@ export function AdminShell({ profile, newLeads, children }: { profile: AdminProf
       )}
       <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white/90 px-4 backdrop-blur lg:hidden">
         <button onClick={() => setOpen(true)} aria-label="Izvēlne">{open ? <X /> : <Menu />}</button>
-        <Logo />
+        <Logo ink className="h-8 w-auto" />
       </header>
       <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8"><ToastProvider>{children}</ToastProvider></main>
     </div>

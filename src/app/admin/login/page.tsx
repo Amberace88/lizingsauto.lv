@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div className="grid min-h-dvh place-items-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center"><Logo /></div>
+        <div className="mb-8 flex justify-center"><Logo ink /></div>
         <form onSubmit={submit} className="rounded-2xl bg-white p-7 shadow-[var(--shadow-lift)]">
           <h1 className="display-md text-2xl text-ink">Admin panelis</h1>
           <p className="mt-1 text-sm text-mute">{mode === 'password' ? 'Pieslēdzies ar savu admin ID.' : 'Nosūtīsim pieslēgšanās saiti uz admina e-pastu.'}</p>

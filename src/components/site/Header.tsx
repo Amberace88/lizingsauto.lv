@@ -18,7 +18,9 @@ const NAV = [
 ];
 
 /* eslint-disable @next/next/no-img-element */
-export function Logo({ light = false, className = 'h-9 w-auto sm:h-10' }: { light?: boolean; className?: string }) {
+export function Logo({ light = false, ink = false, className = 'h-9 w-auto sm:h-10' }: { light?: boolean; ink?: boolean; className?: string }) {
+  // ink — vienmēr tumšais logo (gaišām admin lapām neatkarīgi no tēmas)
+  if (ink) return <img src="/logo-tavs-auto.png" alt="Tavs Auto" width={461} height={123} className={className} />;
   if (light) return <img src="/logo-tavs-auto-white.png" alt="Tavs Auto" width={461} height={123} className={className} />;
   return (
     <>
