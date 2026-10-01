@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, ImagePlus, Loader2, Save, Star, Trash2, Wand2, X, ExternalLink, GripVertical } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
-import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, type BadgeStyle } from '@/lib/format';
+import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, SITE_HOST, type BadgeStyle } from '@/lib/format';
 import { DEFAULT_LEASING, fromPayment } from '@/lib/leasing';
 import { BadgeOverlay } from '@/components/site/CarCard';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
@@ -305,7 +305,7 @@ export function CarEditor({ id }: { id?: string }) {
                 <button type="button" onClick={autoTitle} className="btn btn-ghost !px-3" title="Ģenerēt no datiem"><Wand2 className="h-4 w-4" /></button>
               </div>
             </F>
-            <F label="Saite (URL)" className="mt-4" hint={`lizingsauto.lv/auto/${car.slug || '…'}`}>
+            <F label="Saite (URL)" className="mt-4" hint={`${SITE_HOST}/auto/${car.slug || '…'}`}>
               <input className="field" value={car.slug || ''} onChange={(e) => { setSlugTouched(true); set('slug', slugify(e.target.value)); }} />
             </F>
           </Card>

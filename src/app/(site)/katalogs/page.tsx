@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { getPublicCars, getSettings } from '@/lib/data';
 import { Catalog } from '@/components/site/Catalog';
-import { carName, carUrl, money } from '@/lib/format';
+import { SITE_URL, carName, carUrl, money } from '@/lib/format';
 
 export const metadata: Metadata = {
   title: 'Lietoti auto pārdošanā ar līzingu — auto katalogs',
@@ -16,7 +16,7 @@ export default async function CatalogPage() {
   const list = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    itemListElement: cars.filter((c) => c.status !== 'sold').map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `https://lizingsauto.lv${carUrl(c)}`, name: carName(c) })),
+    itemListElement: cars.filter((c) => c.status !== 'sold').map((c, i) => ({ '@type': 'ListItem', position: i + 1, url: `${SITE_URL}${carUrl(c)}`, name: carName(c) })),
   };
   return (
     <div className="mx-auto max-w-7xl px-4 pb-10 pt-8 sm:px-6">

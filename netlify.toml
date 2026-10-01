@@ -5,6 +5,8 @@
 [build.environment]
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
+  # Galvenais domēns (pārraksta UI vērtību)
+  NEXT_PUBLIC_SITE_URL = "https://tavsauto.eu"
 
 [functions]
   included_files = []

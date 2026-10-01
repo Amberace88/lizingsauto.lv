@@ -1,6 +1,10 @@
 import type { Car, Fuel } from './types';
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lizingsauto.lv';
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://tavsauto.eu';
+/** Domēns bez protokola, piem. „tavsauto.eu” — tekstiem lapā. */
+export const SITE_HOST = SITE_URL.replace(/^https?:\/\/(www\.)?/, '');
+/** Vai šis ir īstais publiskais domēns (tikai tad ļaujam meklētājiem indeksēt). */
+export const IS_LIVE_DOMAIN = /^https:\/\/(www\.)?(lizingsauto\.lv|tavsauto\.eu)$/.test(SITE_URL);
 
 export const FUEL_LABEL: Record<Fuel, string> = {
   petrol: 'Benzīns',

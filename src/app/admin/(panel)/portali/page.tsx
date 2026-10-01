@@ -10,7 +10,7 @@ export default async function PortalsPage() {
   const { supabase, profile } = (await requireAdmin())!;
   const { data } = await supabase.from('portal_listings').select('portal,status,enabled,external_url,last_error,last_sync_at,cars(id,make,model,year,status)').order('created_at', { ascending: false });
   const mobileConfigured = !!(process.env.MOBILE_DE_USER && process.env.MOBILE_DE_PASSWORD);
-  const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://lizingsauto.lv';
+  const site = process.env.NEXT_PUBLIC_SITE_URL || 'https://tavsauto.eu';
   const feedKey = process.env.FEED_KEY;
   const byPortal = (p: string) => (data || []).filter((d) => d.portal === p && d.enabled);
   return (

@@ -19,11 +19,11 @@ const NAV = [
 
 /* eslint-disable @next/next/no-img-element */
 export function Logo({ light = false, className = 'h-9 w-auto sm:h-10' }: { light?: boolean; className?: string }) {
-  if (light) return <img src="/logo-tavs-auto-white.png" alt="Tavs Auto — lizingsauto.lv" width={461} height={123} className={className} />;
+  if (light) return <img src="/logo-tavs-auto-white.png" alt="Tavs Auto" width={461} height={123} className={className} />;
   return (
     <>
-      <img src="/logo-tavs-auto.png" alt="Tavs Auto — lizingsauto.lv" width={461} height={123} className={`${className} dark:hidden`} />
-      <img src="/logo-tavs-auto-white.png" alt="Tavs Auto — lizingsauto.lv" width={461} height={123} className={`${className} hidden dark:block`} />
+      <img src="/logo-tavs-auto.png" alt="Tavs Auto" width={461} height={123} className={`${className} dark:hidden`} />
+      <img src="/logo-tavs-auto-white.png" alt="Tavs Auto" width={461} height={123} className={`${className} hidden dark:block`} />
     </>
   );
 }
