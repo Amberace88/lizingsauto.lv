@@ -51,15 +51,15 @@ begin
     'whatsapp', (select count(*) from e where name = 'whatsapp_click'),
     'daily', (select coalesce(jsonb_agg(x order by x->>'d'), '[]') from (select jsonb_build_object('d', to_char(date_trunc('day', ts at time zone 'Europe/Riga'), 'YYYY-MM-DD'), 'pv', count(*), 's', count(distinct session)) x from pv group by date_trunc('day', ts at time zone 'Europe/Riga')) t),
     'pages', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('path', path, 'n', count(*), 's', count(distinct session)) x from pv group by path order by count(*) desc limit 25) t),
-    'sources', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('src', coalesce(nullif(utm_source, ''), nullif(ref, ''), 'tieši'), 's', count(distinct session)) x from pv group by 1 order by count(distinct session) desc limit 15) t),
+    'sources', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('src', coalesce(nullif(utm_source, ''), nullif(ref, ''), 'tieši'), 's', count(distinct session)) x from pv group by coalesce(nullif(utm_source, ''), nullif(ref, ''), 'tieši') order by count(distinct session) desc limit 15) t),
     'campaigns', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('c', utm_campaign, 'src', utm_source, 's', count(distinct session)) x from pv where utm_campaign is not null and utm_campaign <> '' group by utm_campaign, utm_source order by count(distinct session) desc limit 10) t),
-    'devices', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', coalesce(device, '?'), 's', count(distinct session)) x from pv group by device order by 2 desc) t),
+    'devices', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', coalesce(device, '?'), 's', count(distinct session)) x from pv group by device order by count(distinct session) desc) t),
     'countries', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', coalesce(country, '?'), 's', count(distinct session)) x from pv group by country order by count(distinct session) desc limit 10) t),
     'events', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('name', name, 'n', count(*), 's', count(distinct session)) x from e where type = 'event' group by name order by count(*) desc) t),
     'tools', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', props->>'tool', 's', count(distinct session)) x from e where name = 'tool_use' group by props->>'tool' order by count(distinct session) desc) t),
     'filters', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', props->>'filter', 's', count(distinct session)) x from e where name = 'catalog_filter' group by props->>'filter' order by count(distinct session) desc) t),
     'lead_types', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('k', props->>'type', 'n', count(*)) x from e where name = 'lead' group by props->>'type' order by count(*) desc) t),
-    'hours', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('h', extract(hour from ts at time zone 'Europe/Riga')::int, 'dow', extract(isodow from ts at time zone 'Europe/Riga')::int, 'n', count(*)) x from pv group by 1, 2) t),
+    'hours', (select coalesce(jsonb_agg(x), '[]') from (select jsonb_build_object('h', extract(hour from ts at time zone 'Europe/Riga')::int, 'dow', extract(isodow from ts at time zone 'Europe/Riga')::int, 'n', count(*)) x from pv group by extract(hour from ts at time zone 'Europe/Riga'), extract(isodow from ts at time zone 'Europe/Riga')) t),
     'live', (select count(distinct session) from analytics_events where ts >= now() - interval '5 minutes')
   ) into r;
   return r;
