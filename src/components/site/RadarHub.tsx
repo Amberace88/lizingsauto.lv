@@ -3,8 +3,9 @@
 import 'leaflet/dist/leaflet.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import { LocateFixed, Navigation, Search, X, Volume2, VolumeX, Car, AlertTriangle, Gauge, ChevronRight, Loader2, Layers } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { AnimatePresence } from 'framer-motion';
+import { LocateFixed, Navigation, Search, X, ChevronRight, Loader2, Layers } from 'lucide-react';
 import type { Map as LMap, LayerGroup } from 'leaflet';
 import { KIND, bearing, compass, distance, fmtDist, radarPoint, type Radar, type RadarKind } from '@/lib/radars';
 import { matchRadar, type RadarFilter } from '@/lib/radar-pages';
@@ -12,7 +13,6 @@ import { track } from '@/lib/track';
 
 type R = Radar;
 const KINDS: RadarKind[] = ['fixed', 'average', 'mobile', 'toll'];
-const WARN = 600; // m — brīdinājuma attālums braukšanas režīmā
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 const ICON: Record<RadarKind, string> = {
@@ -24,23 +24,7 @@ const ICON: Record<RadarKind, string> = {
 const pin = (k: RadarKind, approx: boolean) =>
   `<span class="rdr${approx ? ' rdr-approx' : ''}" style="--c:${KIND[k].color}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg></span>`;
 
-function beep(freq = 880, ms = 180) {
-  try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.frequency.value = freq;
-    o.type = 'sine';
-    g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + ms / 1000);
-    o.connect(g).connect(ctx.destination);
-    o.start();
-    o.stop(ctx.currentTime + ms / 1000 + 0.05);
-    setTimeout(() => ctx.close(), ms + 200);
-  } catch {}
-}
+const RadarDrive = dynamic(() => import('./RadarDrive'), { ssr: false });
 
 export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px] lg:h-[70vh]' }: { radars: R[]; preset?: RadarFilter; height?: string }) {
   const mapEl = useRef<HTMLDivElement>(null);
@@ -270,121 +254,8 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
         </div>
       </aside>
 
-      {ready && createPortal(<AnimatePresence>{drive && <DriveMode radars={radars} onClose={() => setDrive(false)} />}</AnimatePresence>, document.body)}
+      {ready && createPortal(<AnimatePresence>{drive && <RadarDrive radars={radars} onClose={() => setDrive(false)} />}</AnimatePresence>, document.body)}
     </div>
-  );
-}
-
-/** Braukšanas režīms: tuvākais radars priekšā, attālums, ātrums, skaņas brīdinājums. */
-function DriveMode({ radars, onClose }: { radars: R[]; onClose: () => void }) {
-  const [pos, setPos] = useState<{ p: [number, number]; speed: number | null; heading: number | null; acc: number } | null>(null);
-  const [err, setErr] = useState('');
-  const [sound, setSound] = useState(true);
-  const warned = useRef<Map<number, number>>(new Map());
-  const prev = useRef<[number, number] | null>(null);
-
-  useEffect(() => {
-    let lock: { release: () => Promise<void> } | null = null;
-    (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen').then((l) => (lock = l)).catch(() => {});
-    if (!('geolocation' in navigator)) {
-      setErr('Pārlūks neatbalsta atrašanās vietu.');
-      return;
-    }
-    const id = navigator.geolocation.watchPosition(
-      (g) => {
-        const p: [number, number] = [g.coords.latitude, g.coords.longitude];
-        let heading = g.coords.heading != null && !Number.isNaN(g.coords.heading) ? g.coords.heading : null;
-        if (heading == null && prev.current && distance(prev.current, p) > 15) heading = bearing(prev.current, p);
-        if (!prev.current || distance(prev.current, p) > 15) prev.current = p;
-        setPos({ p, speed: g.coords.speed != null ? Math.round(g.coords.speed * 3.6) : null, heading, acc: g.coords.accuracy });
-      },
-      () => setErr('Nav piekļuves atrašanās vietai. Atļauj to pārlūka iestatījumos.'),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
-    );
-    return () => {
-      navigator.geolocation.clearWatch(id);
-      lock?.release().catch(() => {});
-    };
-  }, []);
-
-  // Tuvākais radars braukšanas virzienā (±70°), ja virziens zināms
-  const next = useMemo(() => {
-    if (!pos) return null;
-    let best: { r: R; d: number; b: number } | null = null;
-    for (const r of radars) {
-      if (r.kind === 'toll') continue;
-      const p = radarPoint(r, pos.p);
-      if (!p) continue;
-      const d = distance(pos.p, p);
-      if (d > 5000) continue;
-      const b = bearing(pos.p, p);
-      if (pos.heading != null && d > 80) {
-        const diff = Math.abs(((b - pos.heading + 540) % 360) - 180);
-        if (diff > 70) continue;
-      }
-      if (!best || d < best.d) best = { r, d, b };
-    }
-    return best;
-  }, [pos, radars]);
-
-  useEffect(() => {
-    if (!next || !sound) return;
-    const last = warned.current.get(next.r.id) || Infinity;
-    const step = next.d < 200 ? 200 : next.d < WARN ? WARN : null;
-    if (step && step < last) {
-      warned.current.set(next.r.id, step);
-      beep(step === 200 ? 1175 : 880, 220);
-      if (step === 200) setTimeout(() => beep(1175, 220), 280);
-      navigator.vibrate?.(step === 200 ? [120, 80, 120] : 150);
-    }
-  }, [next, sound]);
-
-  const alert = next && next.d < WARN;
-  const over = next?.r.speed && pos?.speed != null && pos.speed > next.r.speed;
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`fixed inset-0 z-[2000] flex flex-col text-white transition-colors duration-500 ${alert ? 'bg-[#3a0a0e]' : 'bg-[#0c0d0e]'}`} role="dialog" aria-label="Braukšanas režīms">
-      <div className="flex items-center justify-between p-4">
-        <span className="inline-flex items-center gap-2 text-sm font-semibold text-white/70"><Car className="h-4 w-4" /> Braukšanas režīms</span>
-        <div className="flex gap-2">
-          <button onClick={() => setSound((s) => !s)} className="grid h-11 w-11 place-items-center rounded-full bg-white/10" aria-label={sound ? 'Izslēgt skaņu' : 'Ieslēgt skaņu'}>{sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</button>
-          <button onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full bg-white/10" aria-label="Aizvērt"><X className="h-5 w-5" /></button>
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        {err ? (
-          <p className="max-w-sm text-white/70">{err}</p>
-        ) : !pos ? (
-          <p className="flex items-center gap-2 text-white/70"><Loader2 className="h-5 w-5 animate-spin" /> Nosaku atrašanās vietu…</p>
-        ) : next ? (
-          <>
-            <motion.div key={next.r.id} initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="grid h-24 w-24 place-items-center rounded-3xl" style={{ background: KIND[next.r.kind].color }}>
-              {alert ? <AlertTriangle className="h-11 w-11" /> : <Gauge className="h-11 w-11" />}
-            </motion.div>
-            <p className="num mt-6 text-7xl font-black tracking-tight sm:text-8xl">{fmtDist(next.d)}</p>
-            <p className="mt-2 text-lg font-semibold">{KIND[next.r.kind].short}{next.r.speed ? ` · ${next.r.speed} km/h` : ''}</p>
-            <p className="mt-1 max-w-md text-sm text-white/60">{next.r.name}</p>
-          </>
-        ) : (
-          <>
-            <div className="grid h-24 w-24 place-items-center rounded-3xl bg-emerald-500/20 text-emerald-300"><Gauge className="h-11 w-11" /></div>
-            <p className="mt-6 text-2xl font-bold">Tuvumā radaru nav</p>
-            <p className="mt-1 text-sm text-white/60">Brīdināsim {WARN} m pirms nākamā radara braukšanas virzienā.</p>
-          </>
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-3 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className={`rounded-2xl p-4 ${over ? 'bg-signal' : 'bg-white/10'}`}>
-          <p className="text-xs text-white/60">Tavs ātrums</p>
-          <p className="num text-3xl font-bold">{pos?.speed != null ? pos.speed : '—'}<span className="text-base font-medium text-white/60"> km/h</span></p>
-        </div>
-        <div className="rounded-2xl bg-white/10 p-4">
-          <p className="text-xs text-white/60">GPS precizitāte</p>
-          <p className="num text-3xl font-bold">{pos ? Math.round(pos.acc) : '—'}<span className="text-base font-medium text-white/60"> m</span></p>
-        </div>
-        <p className="col-span-2 text-center text-[11px] leading-snug text-white/40">Ekrānam jāpaliek ieslēgtam. Ievēro ātruma ierobežojumus vienmēr — dati ir informatīvi (CSDD, VP, OpenStreetMap). Telefonu braucot neturi rokās.</p>
-      </div>
-    </motion.div>
   );
 }
 
