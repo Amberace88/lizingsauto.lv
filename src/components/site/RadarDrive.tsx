@@ -84,6 +84,13 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
   const warned = useRef(new Map<number, number>());
   const section = useRef<{ id: number; start: number; dist: number; last: [number, number] } | null>(null);
   const lastOver = useRef(0);
+  const fix = useRef<{ p: [number, number]; mps: number; gpsHeading: number | null; t: number } | null>(null);
+  const compass = useRef<number | null>(null);
+  const followRef = useRef(true);
+  const threeRef = useRef(true);
+  followRef.current = follow;
+  threeRef.current = three;
+  const [sel, setSel] = useState<Radar | null>(null);
   const [waited, setWaited] = useState(false);
   useEffect(() => {
     const t = setTimeout(() => setWaited(true), 5000);
@@ -138,6 +145,20 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
         m.addLayer({ id: 'sec', type: 'line', source: 'sections', paint: { 'line-color': '#f59e0b', 'line-width': ['interpolate', ['linear'], ['zoom'], 8, 2, 16, 7], 'line-opacity': 0.95 }, layout: { 'line-cap': 'round', 'line-join': 'round' } });
         m.addLayer({ id: 'rad-halo', type: 'circle', source: 'radars', paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 16, 26], 'circle-opacity': ['case', ['boolean', ['feature-state', 'next'], false], 0.35, 0.15], 'circle-pitch-alignment': 'map' } });
         m.addLayer({ id: 'rad', type: 'circle', source: 'radars', paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 3.5, 16, 11], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 8, 1, 16, 3], 'circle-stroke-opacity': ['case', ['==', ['get', 'approx'], 1], 0.6, 1] } });
+        const pick = (e: { features?: { properties: { id: number } }[] }) => {
+          const id = e.features?.[0]?.properties?.id;
+          const r = radars.find((x) => x.id === Number(id));
+          if (!r) return;
+          setFollow(false);
+          setSel(r);
+          const pt = r.lat != null ? [r.lng!, r.lat] : r.geom?.[0]?.[0] ? [r.geom[0][0][1], r.geom[0][0][0]] : null;
+          if (pt) m.easeTo({ center: pt as [number, number], zoom: Math.max(m.getZoom(), 15), padding: { top: 0, bottom: m.getContainer().clientHeight * 0.35, left: 0, right: 0 }, duration: 700 });
+        };
+        for (const id of ['rad', 'rad-halo', 'sec']) {
+          m.on('click', id, pick as never);
+          m.on('mouseenter', id, () => (m.getCanvas().style.cursor = 'pointer'));
+          m.on('mouseleave', id, () => (m.getCanvas().style.cursor = ''));
+        }
         setLoaded(true);
       });
       const dot = document.createElement('div');
@@ -157,7 +178,8 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
     if ((h == null || Number.isNaN(h) || (np.speed ?? 0) < 4) && prev.current && distance(prev.current.p, np.p) > 8) h = bearing(prev.current.p, np.p);
     if (h != null && !Number.isNaN(h)) heading.current = angleLerp(heading.current, h, 0.6);
     if (!prev.current || distance(prev.current.p, np.p) > 8) prev.current = { ...np, heading: h };
-    setPos({ ...np, heading: h == null ? null : heading.current });
+    fix.current = { p: np.p, mps: (np.speed ?? 0) / 3.6, gpsHeading: h != null && !Number.isNaN(h) && (np.speed ?? 0) >= 8 ? h : null, t: performance.now() };
+    setPos({ ...np, heading: h == null ? compass.current : heading.current });
   }, []);
 
   // GPS
@@ -217,15 +239,61 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
     return () => clearInterval(t);
   }, [demo, radars, onPos]);
 
-  // Kamera seko
+  // Kompass (kā Google Maps — karte griežas līdzi telefonam, kad stāvi vai brauc lēni)
   useEffect(() => {
-    const m = map.current;
-    if (!m || !pos) return;
-    puck.current?.setLngLat([pos.p[1], pos.p[0]]).setRotation(heading.current);
-    if (!follow) return;
-    const h = m.getContainer().clientHeight;
-    m.easeTo({ center: [pos.p[1], pos.p[0]], bearing: pos.heading != null ? heading.current : m.getBearing(), pitch: three ? 58 : 0, zoom: zoomFor(pos.speed), padding: { top: h * 0.42, bottom: 0, left: 0, right: 0 }, duration: 950, easing: (x) => x });
-  }, [pos, follow, three]);
+    const on = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+      let h: number | null = null;
+      if (typeof e.webkitCompassHeading === 'number') h = e.webkitCompassHeading;
+      else if (e.absolute && e.alpha != null) h = 360 - e.alpha;
+      if (h == null) return;
+      const so = (screen.orientation?.angle as number | undefined) ?? 0;
+      compass.current = (h + so + 360) % 360;
+    };
+    const evt = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+    window.addEventListener(evt, on as EventListener, true);
+    return () => window.removeEventListener(evt, on as EventListener, true);
+  }, []);
+
+  // Plūdena kamera 60 fps: prognozējam kustību starp GPS punktiem un vienmērīgi griežam karti
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const disp = { lat: NaN, lng: NaN, bearing: 0, zoom: 16, pitch: 58 };
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const m = map.current;
+      const f = fix.current;
+      if (!m || !f) return;
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      // mērķa virziens: GPS braucot, kompass stāvot
+      const target = f.gpsHeading ?? compass.current ?? heading.current;
+      heading.current = target;
+      // prognozētā vieta
+      const ahead = Math.min(1.3, (now - f.t) / 1000) * f.mps;
+      const hd = ((f.gpsHeading ?? 0) * Math.PI) / 180;
+      const lat = f.p[0] + (f.gpsHeading != null ? (Math.cos(hd) * ahead) / 111320 : 0);
+      const lng = f.p[1] + (f.gpsHeading != null ? (Math.sin(hd) * ahead) / (111320 * Math.cos((f.p[0] * Math.PI) / 180)) : 0);
+      if (Number.isNaN(disp.lat)) {
+        disp.lat = lat;
+        disp.lng = lng;
+        disp.bearing = target;
+      }
+      const k = 1 - Math.pow(0.0015, dt); // ~ kritiski slāpēta tuvināšanās
+      disp.lat += (lat - disp.lat) * k;
+      disp.lng += (lng - disp.lng) * k;
+      disp.bearing = angleLerp(disp.bearing, target, 1 - Math.pow(0.02, dt));
+      disp.zoom += (zoomFor(f.mps * 3.6) - disp.zoom) * (1 - Math.pow(0.3, dt));
+      disp.pitch += ((threeRef.current ? 58 : 0) - disp.pitch) * (1 - Math.pow(0.01, dt));
+      puck.current?.setLngLat([disp.lng, disp.lat]).setRotation(disp.bearing);
+      if (followRef.current) {
+        const h = m.getContainer().clientHeight;
+        m.jumpTo({ center: [disp.lng, disp.lat], bearing: disp.bearing, zoom: disp.zoom, pitch: disp.pitch, padding: { top: h * 0.42, bottom: 0, left: 0, right: 0 } });
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   // Nākamais radars braukšanas virzienā
   const next = useMemo(() => {
@@ -371,7 +439,7 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
         {demo && <span className="pointer-events-auto mb-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-black">DEMO</span>}
         <div className="pointer-events-auto flex flex-col gap-2">
           {!follow && (
-            <button onClick={() => setFollow(true)} className="flex h-12 items-center gap-2 rounded-full bg-[#2f7bff] px-4 text-sm font-bold shadow-xl"><LocateFixed className="h-5 w-5" /> Centrēt</button>
+            <button onClick={() => { setSel(null); setFollow(true); }} className="flex h-12 items-center gap-2 rounded-full bg-[#2f7bff] px-4 text-sm font-bold shadow-xl"><LocateFixed className="h-5 w-5" /> Centrēt</button>
           )}
           <div className="flex gap-2 self-end">
             <Ctl onClick={() => setThree((v) => !v)} label={three ? '2D' : '3D'}>{three ? <Square className="h-5 w-5" /> : <Box className="h-5 w-5" />}</Ctl>
@@ -380,7 +448,92 @@ export default function RadarDrive({ radars, onClose }: { radars: Radar[]; onClo
           </div>
         </div>
       </div>
+
+      <AnimatePresence>{sel && <RadarSheet r={sel} pos={pos} onClose={() => setSel(null)} onResume={() => { setSel(null); setFollow(true); }} />}</AnimatePresence>
     </motion.div>
+  );
+}
+
+const lineLen = (g: [number, number][][]) => g.reduce((a, l) => a + l.slice(1).reduce((x, q, i) => x + distance(l[i], q), 0), 0);
+const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, '0')}`;
+
+/** Informācija par izvēlēto radaru (kā Google Maps vietas kartīte). */
+function RadarSheet({ r, pos, onClose, onResume }: { r: Radar; pos: Pos | null; onClose: () => void; onResume: () => void }) {
+  const pt = radarPoint(r, pos?.p);
+  const d = pos && pt ? distance(pos.p, pt) : null;
+  const rel = pos && pt && pos.heading != null ? Math.abs(((bearing(pos.p, pt) - pos.heading + 540) % 360) - 180) : null;
+  const eta = d != null && pos?.speed && pos.speed > 5 ? d / (pos.speed / 3.6) : null;
+  const len = r.geom?.length ? lineLen(r.geom) : null;
+  const minTime = len && r.speed ? (len / 1000 / r.speed) * 3600 : null;
+  const k = KIND[r.kind];
+  const gm = pt ? `https://www.google.com/maps/dir/?api=1&destination=${pt[0]},${pt[1]}&travelmode=driving` : null;
+  const waze = pt ? `https://waze.com/ul?ll=${pt[0]},${pt[1]}&navigate=yes` : null;
+  const share = async () => {
+    const url = `${location.origin}/fotoradari${r.road ? `/${r.road.toLowerCase()}` : ''}`;
+    try {
+      await navigator.share?.({ title: r.name, text: `${k.short}: ${r.name}`, url });
+    } catch {}
+  };
+  const Fact = ({ l, v }: { l: string; v: React.ReactNode }) => (
+    <div className="rounded-2xl bg-white/[0.06] px-3.5 py-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">{l}</p>
+      <p className="num mt-0.5 text-lg font-bold leading-tight">{v}</p>
+    </div>
+  );
+  return (
+    <>
+      <motion.div className="absolute inset-0 z-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
+      <motion.div
+        role="dialog"
+        aria-label={r.name}
+        drag="y"
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.6 }}
+        onDragEnd={(_, i) => i.offset.y > 90 && onClose()}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+        className="absolute inset-x-0 bottom-0 z-20 max-h-[78dvh] overflow-y-auto rounded-t-[28px] bg-[#141518]/97 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_60px_rgba(0,0,0,.5)] backdrop-blur-xl"
+      >
+        <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-white/20" />
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full ring-4 ring-white/10" style={{ background: k.color }} />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: k.color }}>{k.short}{r.road ? ` · ${r.road}` : ''}{r.region ? ` · ${r.region}` : ''}</p>
+            <h3 className="mt-1 text-lg font-bold leading-snug">{r.name}</h3>
+          </div>
+          {r.speed ? <SpeedSign v={r.speed} /> : null}
+          <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><X className="h-5 w-5" /></button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {d != null && <Fact l="Attālums" v={fmtDist(d)} />}
+          {rel != null && <Fact l="Virziens" v={rel < 60 ? 'Priekšā' : rel > 120 ? 'Aizmugurē' : 'Sānis'} />}
+          {eta != null && <Fact l="Būsi pēc" v={eta < 60 ? `${Math.round(eta)} s` : `${Math.round(eta / 60)} min`} />}
+          {len != null && <Fact l="Posma garums" v={fmtDist(len)} />}
+          {minTime != null && <Fact l={`Min. laiks ar ${r.speed}`} v={mmss(minTime)} />}
+          {r.speed != null && <Fact l="Atļautais ātrums" v={`${r.speed} km/h`} />}
+        </div>
+
+        {r.kind === 'average' && (
+          <p className="mt-4 rounded-2xl bg-[#f59e0b]/12 p-3.5 text-sm leading-relaxed text-[#ffd48a]">
+            Kameras posma sākumā un beigās aprēķina vidējo ātrumu. {minTime ? <>Ievērojot {r.speed} km/h, posmu nevajadzētu izbraukt ātrāk par <b>{mmss(minTime)}</b>.</> : 'Ievēro atļauto ātrumu visā posmā.'}
+          </p>
+        )}
+        {r.kind === 'mobile' && <p className="mt-4 rounded-2xl bg-[#3b82f6]/12 p-3.5 text-sm leading-relaxed text-[#a9c8ff]">Valsts policijas publicēta vieta, kur <b>var</b> atrasties pārvietojamais fotoradars. Tas tur nav vienmēr.{r.approx ? ' Vieta kartē noteikta pēc adreses — aptuveni.' : ''}</p>}
+        {r.note && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">{r.kind === 'fixed' ? 'Kāpēc šeit ir radars' : 'Piezīme'}</p><p className="mt-1 text-sm leading-relaxed text-white/80">{r.note}</p></div>}
+        {r.direction && <p className="mt-3 text-sm text-white/70">Kontroles virziens: <b className="text-white">{r.direction}</b></p>}
+
+        <div className="mt-5 grid grid-cols-2 gap-2">
+          {waze && <a href={waze} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#33ccff] font-bold text-[#0b1a22]">Waze</a>}
+          {gm && <a href={gm} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-bold text-black">Google Maps</a>}
+          <button onClick={onResume} className="flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#2f7bff] text-sm font-bold"><LocateFixed className="h-5 w-5" /> Turpināt braucienu</button>
+          <button onClick={share} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 font-bold">Kopīgot</button>
+        </div>
+        <p className="mt-4 text-center text-[11px] text-white/35">Avots: {r.source === 'csdd' ? 'CSDD' : r.source === 'vp' ? 'Valsts policija' : r.source === 'osm' ? 'OpenStreetMap' : 'Tavs Auto'} · informācija uzziņai</p>
+      </motion.div>
+    </>
   );
 }
 

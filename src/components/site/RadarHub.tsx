@@ -186,6 +186,9 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
           <button
             onClick={() => {
               track('tool_use', { tool: 'Fotoradari: braukšanas režīms' }, 'radar_drive');
+              // iPhone kompasam vajag atļauju, ko var prasīt tikai pēc pieskāriena
+              const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
+              DOE?.requestPermission?.().catch(() => {});
               setDrive(true);
             }}
             className="inline-flex items-center gap-2 rounded-full bg-night/90 px-4 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-night active:scale-95"
