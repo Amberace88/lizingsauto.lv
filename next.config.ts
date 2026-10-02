@@ -19,6 +19,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // netlify.toml build vides mainīgie funkcijām izpildes laikā nav pieejami — iebūvējam tos būvēšanas laikā
+  env: { MAIL_FROM: process.env.MAIL_FROM || '' },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'lizingsauto.lv', pathname: '/wp-content/uploads/**' },
