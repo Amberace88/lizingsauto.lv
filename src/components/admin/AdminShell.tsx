@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { LayoutDashboard, Car, Inbox, Settings, Share2, Users, History, Wrench, UserCircle, LogOut, Menu, X, ExternalLink, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Car, Inbox, Settings, Share2, Users, History, Wrench, UserCircle, LogOut, Menu, X, ExternalLink, BarChart3, Radar } from 'lucide-react';
 import { InstallButton } from '@/components/site/InstallApp';
 import type { AdminProfile } from '@/lib/types';
 import { Logo } from '@/components/site/Header';
@@ -17,6 +17,7 @@ export function AdminShell({ profile, newLeads, children }: { profile: AdminProf
     { href: '/admin/auto', label: 'Automašīnas', icon: Car },
     { href: '/admin/pieteikumi', label: 'Pieteikumi', icon: Inbox, badge: newLeads },
     { href: '/admin/statistika', label: 'Statistika', icon: BarChart3 },
+    { href: '/admin/fotoradari', label: 'Fotoradari', icon: Radar },
     { href: '/admin/portali', label: 'Portāli', icon: Share2 },
     { href: '/admin/iestatijumi', label: 'Lapas iestatījumi', icon: Settings },
     { href: '/admin/zurnals', label: 'Darbību žurnāls', icon: History },

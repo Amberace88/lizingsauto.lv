@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import { supabasePublic } from './supabase/public';
 import type { Car, CompanySettings, LeasingSettings } from './types';
+import type { Radar } from './radars';
 import { DEFAULT_LEASING } from './leasing';
 import { DEFAULT_EKII, type EkiiSettings } from './ekii';
 import { DEFAULT_WARRANTY, type WarrantySettings } from './warranty';
@@ -99,3 +100,19 @@ function parseReviews(v: Record<string, unknown> | undefined) {
   const safe = (u: unknown) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : '');
   return { googleUrl: safe(o.googleUrl), profileUrl: safe(o.profileUrl), rating: rating >= 1 && rating <= 5 ? rating : 0, count, items };
 }
+
+/** Aktīvie fotoradari kartei (posmu līnijas vienkāršotas, lai lapa būtu viegla). */
+export const getRadars = cache(async () => {
+  const { data, error } = await supabasePublic
+    .from('radars')
+    .select('id,kind,name,region,road,lat,lng,geom,speed,direction,note,source,approx,active,updated_at')
+    .eq('active', true)
+    .order('kind')
+    .order('name')
+    .limit(2000);
+  if (error) console.error('getRadars', error.message);
+  return ((data || []) as Radar[]).map((r) => ({
+    ...r,
+    geom: r.geom ? r.geom.map((line) => (line.length > 40 ? line.filter((_, i) => i % Math.ceil(line.length / 40) === 0 || i === line.length - 1) : line)) : null,
+  }));
+});

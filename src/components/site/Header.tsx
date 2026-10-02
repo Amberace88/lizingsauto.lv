@@ -14,6 +14,7 @@ const NAV = [
   { href: '/garantija', label: 'Garantija' },
   { href: '/kalkulatori', label: 'Kalkulatori' },
   { href: '/pardot-auto', label: 'Pārdot auto' },
+  { href: '/fotoradari', label: 'Fotoradari' },
   { href: '/kontakti', label: 'Kontakti' },
 ];
 
