@@ -7,6 +7,8 @@
   NEXT_TELEMETRY_DISABLED = "1"
   # Galvenais domēns (pārraksta UI vērtību)
   NEXT_PUBLIC_SITE_URL = "https://tavsauto.eu"
+  # E-pasta sūtītājs (domēns apstiprināts Resend)
+  MAIL_FROM = "Tavs Auto <pieteikumi@tavsauto.eu>"
 
 [functions]
   included_files = []
