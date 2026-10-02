@@ -55,6 +55,7 @@ export function Footer({ company }: { company: CompanySettings }) {
             <li><Link href="/auto-novertejums" className="hover:text-white">Cik vērts mans auto?</Link></li>
             <li><Link href="/padomi" className="hover:text-white">Padomi pircējiem</Link></li>
             <li><Link href="/fotoradari" className="hover:text-white">Fotoradaru karte</Link></li>
+            <li><Link href="/navigacija" className="hover:text-white">Navigācija ar radariem</Link></li>
             <li><Link href="/vardadienas" className="hover:text-white">Vārda dienas šodien</Link></li>
             <li><Link href="/pardot-auto" className="hover:text-white">Pārdot vai mainīt auto</Link></li>
             <li><Link href="/pasutit-auto" className="hover:text-white">Pasūtīt auto no Eiropas</Link></li>

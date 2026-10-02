@@ -10,7 +10,7 @@ const csp = [
   "font-src 'self' data:",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
-  `connect-src 'self' https://tiles.openfreemap.org https://nominatim.openstreetmap.org ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net`,
+  `connect-src 'self' https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://routing.openstreetmap.de https://photon.komoot.io ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net`,
   'frame-src https://maps.google.com https://www.google.com',
   "frame-ancestors 'none'",
   "base-uri 'self'",

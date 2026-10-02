@@ -11,7 +11,7 @@ const FAQ: [string, string][] = [
   ['Kā darbojas vidējā ātruma kontrole?', 'Posma sākumā un beigās kameras fiksē automašīnu un aprēķina vidējo ātrumu starp abiem punktiem. Tāpēc svarīgi ievērot ātrumu visā posmā, nevis tikai pie kamerām.'],
   ['Vai pārvietojamais radars vienmēr ir norādītajā vietā?', 'Nē. Valsts policija publicē vietas, kur pārvietojamais fotoradars var atrasties, bet konkrētajā brīdī tas var būt jebkurā no tām vai nevienā. Kartē tās redzamas zilā krāsā.'],
   ['Vai lapa saglabā manu atrašanās vietu?', 'Nē. Atrašanās vieta tiek izmantota tikai tavā pārlūkā, lai parādītu tuvākos radarus, un netiek sūtīta uz serveri.'],
-  ['Kā izmantot braukšanas režīmu?', 'Nospied „Braukšanas režīms”, atļauj atrašanās vietu un novieto telefonu turētājā. Lapa parādīs attālumu līdz nākamajam radaram braukšanas virzienā un brīdinās ar skaņu ~600 un 200 m pirms tā. Ērtāk — pievieno Tavs Auto telefona sākuma ekrānam.'],
+  ['Kā izmantot navigāciju ar radariem?', 'Nospied „Navigācija”, atļauj atrašanās vietu un ievadi galamērķi. Parādīsim maršrutu ar visiem radariem uz tā, norādes pagriezieniem un brīdināsim ar skaņu ~600 un 200 m pirms radara. Bez galamērķa lapa darbojas kā radaru brīdinātājs. Ērtāk — pievieno Tavs Auto telefona sākuma ekrānam.'],
 ];
 
 function groupBy<T>(arr: T[], key: (t: T) => string) {

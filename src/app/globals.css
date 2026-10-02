@@ -279,3 +279,7 @@ input[type="range"].range::-moz-range-thumb {
 .rdr-low .rdr svg { display: none; }
 .rdr-wrap { display: grid; place-items: center; }
 html[data-theme='dark'] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.88) saturate(0.6); }
+
+/* Navigācija: atribūcija virs ātruma rādītāja, lai nepārklāj pogas */
+.drv-map .maplibregl-ctrl-bottom-left { bottom: calc(108px + env(safe-area-inset-bottom)); }
+.drv-map .maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(255, 255, 255, 0.85); }

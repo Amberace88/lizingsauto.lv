@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
-import { Phone, Mail, MapPin, Clock, MessageCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Phone, Mail, MapPin, Clock, MessageCircle, Navigation2 } from 'lucide-react';
 import { getSettings } from '@/lib/data';
 import { PageHead } from '@/components/site/PageHead';
 import { LeadForm } from '@/components/site/LeadForm';
@@ -29,6 +30,11 @@ export default async function ContactPage() {
               <span><span className="block text-sm text-mute">{t}</span><span className="num font-semibold text-ink">{v}</span></span>
             </a>
           ))}
+          <Link href="/navigacija?to=tavsauto" className="group flex items-center gap-4 rounded-2xl bg-night p-5 text-white transition hover:brightness-110">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#2f7bff]"><Navigation2 className="h-5 w-5 fill-white" /></span>
+            <span className="min-w-0 flex-1"><span className="block font-bold">Navigēt līdz autoplacim</span><span className="block text-sm text-white/65">Maršruts ar radaru brīdinājumiem — tieši pārlūkā</span></span>
+            <span className="text-xl transition group-hover:translate-x-1">→</span>
+          </Link>
           <div className="flex items-start gap-4 rounded-2xl border border-line bg-card p-5">
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-petrol-soft text-petrol"><Clock className="h-5 w-5" /></span>
             <span className="text-sm"><span className="block text-mute">Darba laiks</span>Darba dienās <b className="num">{company.hours.weekdays}</b><br />Sestdienās <b className="num">{company.hours.saturday}</b><br />Svētdienās <b>{company.hours.sunday}</b></span>

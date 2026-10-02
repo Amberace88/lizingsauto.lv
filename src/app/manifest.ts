@@ -25,6 +25,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: 'Auto katalogs', short_name: 'Katalogs', url: '/katalogs', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+      { name: 'Navigācija ar radariem', short_name: 'Navigācija', url: '/navigacija', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Kalkulatori', short_name: 'Kalkulatori', url: '/kalkulatori', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Pārdot savu auto', short_name: 'Pārdot', url: '/pardot-auto', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
       { name: 'Admin panelis', short_name: 'Admin', url: '/admin', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },

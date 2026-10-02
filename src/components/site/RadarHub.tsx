@@ -185,7 +185,7 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
           </button>
           <button
             onClick={() => {
-              track('tool_use', { tool: 'Fotoradari: braukšanas režīms' }, 'radar_drive');
+              track('tool_use', { tool: 'Fotoradari: navigācija' }, 'radar_drive');
               // iPhone kompasam vajag atļauju, ko var prasīt tikai pēc pieskāriena
               const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
               DOE?.requestPermission?.().catch(() => {});
@@ -193,7 +193,7 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
             }}
             className="inline-flex items-center gap-2 rounded-full bg-night/90 px-4 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-night active:scale-95"
           >
-            <Navigation className="h-4 w-4" /> <span className="hidden sm:inline">Braukšanas režīms</span><span className="sm:hidden">Braukt</span>
+            <Navigation className="h-4 w-4" /> <span className="hidden sm:inline">Navigācija ar radariem</span><span className="sm:hidden">Navigācija</span>
           </button>
         </div>
       </div>

@@ -11,7 +11,7 @@ export const revalidate = 3600;
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [cars, radars] = await Promise.all([getPublicCars({ includeSold: true }), getRadars()]);
   const now = new Date();
-  const pages = ['', '/katalogs', '/lizings', '/elektroauto', '/kalkulatori', '/garantija', '/parbaudes', '/vardadienas', '/lietoti-auto', '/padomi', '/auto-novertejums', '/lietotne', '/fotoradari', '/pardot-auto', '/pasutit-auto', '/par-mums', '/kontakti', '/privatuma-politika', '/lietosanas-noteikumi'];
+  const pages = ['', '/katalogs', '/lizings', '/elektroauto', '/kalkulatori', '/garantija', '/parbaudes', '/vardadienas', '/lietoti-auto', '/padomi', '/auto-novertejums', '/lietotne', '/fotoradari', '/navigacija', '/pardot-auto', '/pasutit-auto', '/par-mums', '/kontakti', '/privatuma-politika', '/lietosanas-noteikumi'];
   return [
     ...pages.map((p) => ({ url: `${SITE_URL}${p}`, lastModified: now, changeFrequency: p === '' || p === '/katalogs' ? ('daily' as const) : ('monthly' as const), priority: p === '' ? 1 : p === '/katalogs' ? 0.9 : 0.6 })),
     ...cars.map((c) => ({
