@@ -7,7 +7,7 @@ import { Card } from '@/components/admin/CarEditor';
 import { useToast } from '@/components/admin/Toast';
 import { POI_CATS, POI_ORDER, compactPois, overpassQuery, type PoiCat } from '@/lib/poi';
 
-const MIRRORS = ['https://overpass.private.coffee/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 type Row = { cat: PoiCat; count: number; updated_at: string };
 
 /** Navigācijas kartes slāņu atjaunošana no OpenStreetMap (pārlūkā, lai neierobežo servera laika limits). */
@@ -33,7 +33,7 @@ export function PoiRefresh() {
     let lastErr = '';
     for (const url of MIRRORS) {
       try {
-        const r = await fetch(url, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+        const r = await fetch(url, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(100000) });
         if (!r.ok) {
           lastErr = `Overpass ${r.status}`;
           continue;
@@ -56,23 +56,31 @@ export function PoiRefresh() {
 
   async function run(cats: PoiCat[]) {
     setBusy(cats.length > 1 ? 'all' : cats[0]);
-    let ok = 0;
-    for (const c of cats) {
-      setBusy(cats.length > 1 ? 'all' : c);
-      setMsg(`Ielādēju: ${POI_CATS[c].label}…`);
-      try {
-        const n = await one(c);
-        ok++;
-        setMsg(`✓ ${POI_CATS[c].label}: ${n}`);
-      } catch (e) {
-        setMsg(`✗ ${POI_CATS[c].label}: ${e instanceof Error ? e.message : ''}`);
+    let todo = [...cats];
+    // Overpass bieži ir pārslogots — neizdevušos mēģinām vēl 2 reizes ar pauzi
+    for (let round = 1; round <= 3 && todo.length; round++) {
+      const failed: PoiCat[] = [];
+      for (const c of todo) {
+        setBusy(cats.length > 1 ? 'all' : c);
+        setMsg(`${round > 1 ? `${round}. mēģinājums · ` : ''}Ielādēju: ${POI_CATS[c].label}…`);
+        try {
+          const n = await one(c);
+          setMsg(`✓ ${POI_CATS[c].label}: ${n}`);
+        } catch {
+          failed.push(c);
+        }
+        await load();
+        await new Promise((r) => setTimeout(r, 1500)); // saudzējam bezmaksas Overpass serveri
       }
-      await load();
-      await new Promise((r) => setTimeout(r, 1500)); // saudzējam bezmaksas Overpass serveri
+      todo = failed;
+      if (todo.length && round < 3) {
+        setMsg(`Serveris pārslogots — pēc 30 s mēģināšu vēlreiz: ${todo.map((c) => POI_CATS[c].label).join(', ')}`);
+        await new Promise((r) => setTimeout(r, 30000));
+      }
     }
     setBusy('');
-    setMsg(ok === cats.length ? '✓ Visi slāņi atjaunoti. Lapā redzami ~6 h laikā (CDN kešs).' : `Atjaunoti ${ok}/${cats.length}. Mēģini neizdevušos vēlreiz pēc brīža.`);
-    toast(ok ? 'Kartes slāņi atjaunoti' : 'Neizdevās atjaunot', ok ? undefined : 'err');
+    setMsg(!todo.length ? '✓ Slāņi atjaunoti. Lapā redzami ~6 h laikā (CDN kešs).' : `Neizdevās: ${todo.map((c) => POI_CATS[c].label).join(', ')}. Mēģini vēlāk.`);
+    toast(todo.length < cats.length ? 'Kartes slāņi atjaunoti' : 'Neizdevās atjaunot', todo.length < cats.length ? undefined : 'err');
   }
 
   const by = new Map(rows.map((r) => [r.cat, r]));
