@@ -2,9 +2,9 @@
 
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
-  X, Volume2, VolumeX, LocateFixed, Box, Square, AlertTriangle, ShieldCheck, Play, Loader2, Search, ArrowLeft, MapPin, Clock, Fuel, Zap, Layers, Sun, Moon, SunMoon, SquareParking, ShoppingCart, Pill, Hospital, Landmark, Wrench,
+  X, Volume2, VolumeX, LocateFixed, Box, Square, AlertTriangle, ShieldCheck, Play, Loader2, Search, ArrowLeft, MapPin, Clock, Fuel, Zap, Layers, Sun, Moon, SunMoon, Plus, Minus, Maximize2, List, SquareParking, ShoppingCart, Pill, Hospital, Landmark, Wrench,
   ArrowUp, ArrowUpRight, ArrowUpLeft, CornerUpRight, CornerUpLeft, CornerRightDown, CornerLeftDown, Undo2, RotateCw, Flag, Navigation2, Merge, Split,
   Phone, MessageCircle, Car, Share2, Route as RouteIcon, ChevronRight, type LucideIcon,
 } from 'lucide-react';
@@ -168,6 +168,10 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
   const [poiCount, setPoiCount] = useState<Partial<Record<PoiCat, number>>>({});
   const [poiLoading, setPoiLoading] = useState<Set<PoiCat>>(new Set());
   const [poiSel, setPoiSel] = useState<Poi | null>(null);
+  const poiData = useRef(new Map<PoiCat, Poi[]>());
+  const [listCat, setListCat] = useState<PoiCat | null>(null);
+  const [listData, setListData] = useState<Poi[] | null>(null);
+  const selMarker = useRef<Marker | null>(null);
   const toggleLayer = useCallback((c: PoiCat, on?: boolean) => setLayers((v) => {
     const n = new Set(v);
     if (on ?? !n.has(c)) n.add(c);
@@ -235,8 +239,47 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       });
       map.current = m;
       m.addControl(new M.AttributionControl({ compact: true, customAttribution: 'Maršruti: <a href="https://routing.openstreetmap.de" target="_blank">FOSSGIS OSRM</a> · Meklēšana: <a href="https://photon.komoot.io" target="_blank">Photon</a>' }), 'bottom-left');
-      const stop = () => setFollow(false);
-      m.on('dragstart', stop);
+      const stop = () => {
+        followRef.current = false;
+        followRef.current = false;
+        setFollow(false);
+      };
+      // divu pirkstu tālummaiņa sekošanas režīmā nepārtrauc sekošanu (kā Google Maps)
+      m.on('dragstart', (e) => {
+        const t = (e.originalEvent as TouchEvent | undefined)?.touches;
+        if (userZooming.current || (t && t.length > 1)) return;
+        stop();
+      });
+      // Lietotāja tālummaiņu (ritenis, divi pirksti, dubultklikšķis) atpazīstam pēc ievades — kamera tajā brīdī netraucē
+      {
+        const box = m.getContainer();
+        let t: ReturnType<typeof setTimeout> | undefined;
+        const finish = (ms: number) => {
+          clearTimeout(t);
+          t = setTimeout(() => {
+            userZooming.current = false;
+            if (followRef.current) zoomOffset.current = Math.max(-7, Math.min(3, m.getZoom() - baseZoom.current));
+            disp_.current.zoom = m.getZoom();
+          }, ms);
+        };
+        box.addEventListener('wheel', () => {
+          userZooming.current = true;
+          finish(450);
+        }, { passive: true });
+        box.addEventListener('touchstart', (e) => {
+          if (e.touches.length > 1) {
+            userZooming.current = true;
+            clearTimeout(t);
+          }
+        }, { passive: true });
+        box.addEventListener('touchend', (e) => {
+          if (userZooming.current && e.touches.length < 2) finish(250);
+        }, { passive: true });
+        box.addEventListener('dblclick', () => {
+          userZooming.current = true;
+          finish(600);
+        });
+      }
       m.on('rotatestart', (e) => e.originalEvent && stop());
       let bound = false;
       const setup = async () => {
@@ -286,6 +329,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
             if (!f) return;
             const p = f.properties as unknown as Poi;
             setSel(null);
+            followRef.current = false;
             setFollow(false);
             setPoiSel({ ...p, c: p.c != null && String(p.c) !== 'null' ? Number(p.c) : null });
             m.easeTo({ center: [Number(p.lng), Number(p.lat)], zoom: Math.max(m.getZoom(), 15.5), padding: { top: 0, bottom: m.getContainer().clientHeight * 0.4, left: 0, right: 0 }, duration: 700 });
@@ -293,6 +337,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
           m.on('click', `${c}-cl`, async (e) => {
             const f = e.features?.[0];
             if (!f) return;
+            followRef.current = false;
             setFollow(false);
             const z = await (m.getSource(src) as GeoJSONSource).getClusterExpansionZoom(f.properties.cluster_id as number);
             m.easeTo({ center: (f.geometry as unknown as { coordinates: [number, number] }).coordinates, zoom: z + 0.3, duration: 600 });
@@ -310,6 +355,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
           const id = e.features?.[0]?.properties?.id;
           const r = radars.find((x) => x.id === Number(id));
           if (!r) return;
+          followRef.current = false;
           setFollow(false);
           setPoiSel(null);
           setSel(r);
@@ -458,12 +504,23 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
 
   // Pirms pagrieziena kamera pietuvinās
   const zoomBoost = useRef(0);
+  // Lietotāja tālummaiņa sekošanas režīmā: saglabājam to kā nobīdi pret automātisko tālummaiņu
+  const zoomOffset = useRef(0);
+  const userZooming = useRef(false);
+  const baseZoom = useRef(16);
+  const disp_ = useRef({ lat: NaN, lng: NaN, bearing: 0, zoom: 16, pitch: 58 });
+  const nudgeZoom = useCallback((dz: number) => {
+    const m = map.current;
+    if (!m) return;
+    if (followRef.current) zoomOffset.current = Math.max(-7, Math.min(3, zoomOffset.current + dz));
+    else m.easeTo({ zoom: m.getZoom() + dz, duration: 300 });
+  }, []);
 
   // Plūdena kamera 60 fps: prognozējam kustību starp GPS punktiem un vienmērīgi griežam karti
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    const disp = { lat: NaN, lng: NaN, bearing: 0, zoom: 16, pitch: 58 };
+    const disp = disp_.current;
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const m = map.current;
@@ -488,10 +545,11 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       disp.lat += (lat - disp.lat) * k;
       disp.lng += (lng - disp.lng) * k;
       disp.bearing = angleLerp(disp.bearing, target, 1 - Math.pow(0.02, dt));
-      disp.zoom += (zoomFor(f.mps * 3.6) + zoomBoost.current - disp.zoom) * (1 - Math.pow(0.3, dt));
+      baseZoom.current = zoomFor(f.mps * 3.6) + zoomBoost.current;
+      if (!userZooming.current) disp.zoom += (Math.max(3, baseZoom.current + zoomOffset.current) - disp.zoom) * (1 - Math.pow(0.15, dt));
       disp.pitch += ((threeRef.current ? 58 : 0) - disp.pitch) * (1 - Math.pow(0.01, dt));
       puck.current?.setLngLat([disp.lng, disp.lat]).setRotation(disp.bearing);
-      if (followRef.current) {
+      if (followRef.current && !userZooming.current) {
         const h = m.getContainer().clientHeight;
         m.jumpTo({ center: [disp.lng, disp.lat], bearing: disp.bearing, zoom: disp.zoom, pitch: disp.pitch, padding: { top: h * 0.42, bottom: 0, left: 0, right: 0 } });
       }
@@ -499,6 +557,21 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  // Sekojot karte griežas pati — pirkstu rotācija/slīpums tikai brīvajā skatā
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !loaded) return;
+    if (follow) {
+      m.touchZoomRotate.disableRotation();
+      m.dragRotate.disable();
+      m.touchPitch.disable();
+    } else {
+      m.touchZoomRotate.enableRotation();
+      m.dragRotate.enable();
+      m.touchPitch.enable();
+    }
+  }, [follow, loaded]);
 
   const route = routes[ri] || null;
   const navigating = mode === 'nav' || mode === 'arrived';
@@ -555,6 +628,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       setSel(null);
       setPoiSel(null);
       setMode('preview');
+      followRef.current = false;
       setFollow(false);
       setRoutes([]);
       setRi(0);
@@ -902,6 +976,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
           return n;
         });
         if (!live && !map.current) return;
+        poiData.current.set(c, list);
         setPoiCount((v) => ({ ...v, [c]: list.length }));
         (map.current?.getSource(`poi-${c}`) as GeoJSONSource | undefined)?.setData(fc(list.map((p) => ({ type: 'Feature' as const, properties: { ...p, icon: iconKey(p), b: p.b || null }, geometry: { type: 'Point' as const, coordinates: [p.lng, p.lat] } }))));
       });
@@ -911,15 +986,88 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     };
   }, [layers, loaded, styleGen]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const nearest = useCallback(async (k: PoiCat) => {
-    const c = map.current?.getCenter();
-    const from: LL = fix.current?.p || (c ? [c.lat, c.lng] : RIGA);
-    let all = await loadPois(k);
-    if (!all.length) all = await loadPoisNear(k, from);
-    const best = all.slice().sort((a, b) => distance(from, [a.lat, a.lng]) - distance(from, [b.lat, b.lng]))[0];
-    toggleLayer(k, true);
-    return best || null;
-  }, [toggleLayer]);
+
+  const markPoi = useCallback((p: Poi | null) => {
+    selMarker.current?.remove();
+    selMarker.current = null;
+    if (!p || !map.current || !ml.current) return;
+    const e = document.createElement('div');
+    e.className = 'drv-sel';
+    e.style.setProperty('--c', p.k === 'parking' ? (p.f === 'no' ? '#16a34a' : p.f === 'yes' ? '#2563eb' : '#64748b') : POI_CATS[p.k].color);
+    selMarker.current = new ml.current.Marker({ element: e }).setLngLat([p.lng, p.lat]).addTo(map.current);
+  }, []);
+
+  const openList = useCallback(
+    async (c: PoiCat) => {
+      toggleLayer(c, true);
+      setSel(null);
+      setPoiSel(null);
+      setLayerSheet(false);
+      setListCat(c);
+      followRef.current = false;
+      setFollow(false);
+      const have = poiData.current.get(c);
+      if (have?.length) {
+        setListData(have);
+        return;
+      }
+      setListData(null);
+      const ce = map.current?.getCenter();
+      const from: LL = fix.current?.p || (ce ? [ce.lat, ce.lng] : RIGA);
+      let all = await loadPois(c);
+      if (!all.length) all = await loadPoisNear(c, from);
+      poiData.current.set(c, all);
+      setListData(all);
+    },
+    [toggleLayer],
+  );
+  const closeList = useCallback(() => {
+    setListCat(null);
+    markPoi(null);
+    if (modeRef.current === 'nav') {
+      followRef.current = true;
+      setFollow(true);
+    }
+  }, [markPoi]);
+  const focusPoi = useCallback(
+    (p: Poi) => {
+      const m = map.current;
+      if (!m) return;
+      followRef.current = false;
+      setFollow(false);
+      markPoi(p);
+      const h = m.getContainer().clientHeight;
+      const wide = m.getContainer().clientWidth > 900;
+      m.easeTo({ center: [p.lng, p.lat], zoom: Math.max(m.getZoom(), 15.5), pitch: 0, padding: wide ? { top: 0, bottom: 0, left: 440, right: 0 } : { top: 60, bottom: h * 0.55, left: 0, right: 0 }, duration: 800 });
+    },
+    [markPoi],
+  );
+  const fitPois = useCallback((list: Poi[], from: LL) => {
+    const m = map.current;
+    if (!m || !ml.current || !list.length) return;
+    followRef.current = false;
+    followRef.current = false;
+    setFollow(false);
+    const b = new ml.current.LngLatBounds();
+    b.extend([from[1], from[0]]);
+    list.forEach((p) => b.extend([p.lng, p.lat]));
+    const h = m.getContainer().clientHeight;
+    const wide = m.getContainer().clientWidth > 900;
+    m.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
+    m.fitBounds(b, { padding: wide ? { top: 80, bottom: 80, left: 460, right: 80 } : { top: 70, bottom: h * 0.55 + 20, left: 40, right: 40 }, bearing: 0, pitch: 0, duration: 900, maxZoom: 16 });
+  }, []);
+  const overview = useCallback(() => {
+    const r = routeRef.current;
+    const m = map.current;
+    if (!r || !m || !ml.current) return;
+    followRef.current = false;
+    followRef.current = false;
+    setFollow(false);
+    const b = new ml.current.LngLatBounds();
+    r.coords.slice(Math.max(0, navRef.current.i)).forEach(([a, c]) => b.extend([c, a]));
+    m.setPadding({ top: 0, bottom: 0, left: 0, right: 0 });
+    m.fitBounds(b, { padding: { top: 200, bottom: 140, left: 50, right: 80 }, bearing: 0, pitch: 0, duration: 900, maxZoom: 16 });
+  }, []);
 
   const poiPlace = (p: Poi): Place => ({ id: `poi${p.lat},${p.lng}`, name: p.n, sub: p.a || p.b || SUB_LABEL[p.s] || POI_CATS[p.k].label, lat: p.lat, lng: p.lng, kind: p.k });
 
@@ -963,7 +1111,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
             </motion.div>
             <div className="mt-2 flex flex-wrap gap-2">
               {next && next.d < 8000 && (
-                <button onClick={() => { setSel(next.r); setFollow(false); }} className={`pointer-events-auto flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold shadow-xl backdrop-blur-xl ${alert ? 'bg-[#d91d2b] text-white [--fg:#fff]' : 'bg-(--panel)'}`}>
+                <button onClick={() => { setSel(next.r); followRef.current = false; setFollow(false); }} className={`pointer-events-auto flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold shadow-xl backdrop-blur-xl ${alert ? 'bg-[#d91d2b] text-white [--fg:#fff]' : 'bg-(--panel)'}`}>
                   {alert ? <AlertTriangle className="h-4 w-4 animate-pulse" /> : <span className="h-3 w-3 rounded-full text-white" style={{ background: KIND[next.r.kind].color }} />}
                   {KIND[next.r.kind].short} <span className="num">{fmtDist(next.d)}</span>
                   {next.r.speed ? <span className="num grid h-7 w-7 place-items-center rounded-full border-[3px] border-[#d91d2b] bg-white text-xs font-black text-black">{next.r.speed}</span> : null}
@@ -1028,17 +1176,38 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       </div>
 
       {/* Slāņi: degviela un uzlāde */}
-      {(mode === 'free' || mode === 'nav') && (
+      {(mode === 'free' || mode === 'nav') && !listCat && !layerSheet && (
         <div className="pointer-events-auto absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2">
           <div className="relative">
             <Ctl onClick={() => setLayerSheet(true)} label="Kartes slāņi" on={layers.size > 0} tone="#2f7bff"><Layers className="h-5 w-5" /></Ctl>
             {layers.size > 0 && <span className="num pointer-events-none absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[11px] font-black text-[#2f7bff] shadow">{layers.size}</span>}
           </div>
           <Ctl onClick={cycleTheme} label={theme === 'auto' ? 'Režīms: automātiski (pēc diennakts laika)' : theme === 'day' ? 'Režīms: diena' : 'Režīms: nakts'}>{theme === 'auto' ? <SunMoon className="h-5 w-5" /> : theme === 'day' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</Ctl>
-          {[...layers].slice(0, 4).map((c) => {
-            const I = CAT_ICON[c];
-            return <Ctl key={c} onClick={() => toggleLayer(c)} label={`Slēpt: ${POI_CATS[c].label}`} on tone={POI_CATS[c].color}>{poiLoading.has(c) ? <Loader2 className="h-5 w-5 animate-spin" /> : <I className="h-5 w-5" />}</Ctl>;
-          })}
+          <div className="mt-1 flex flex-col overflow-hidden rounded-full bg-(--panel) shadow-xl backdrop-blur-xl">
+            <button onClick={() => nudgeZoom(1)} aria-label="Tuvināt" title="Tuvināt" className="grid h-12 w-12 place-items-center transition active:bg-(--fg)/10"><Plus className="h-5 w-5" /></button>
+            <span className="mx-3 h-px bg-(--fg)/15" />
+            <button onClick={() => nudgeZoom(-1)} aria-label="Tālināt" title="Tālināt" className="grid h-12 w-12 place-items-center transition active:bg-(--fg)/10"><Minus className="h-5 w-5" /></button>
+          </div>
+          {mode === 'nav' && <Ctl onClick={overview} label="Maršruta pārskats"><Maximize2 className="h-5 w-5" /></Ctl>}
+        </div>
+      )}
+
+      {/* Ieslēgtie slāņi — pieskaroties atveras saraksts */}
+      {(mode === 'free' || mode === 'nav') && layers.size > 0 && !listCat && !sel && !poiSel && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-[calc(104px+env(safe-area-inset-bottom))] sm:bottom-[calc(112px+env(safe-area-inset-bottom))]">
+          <div className="pointer-events-auto flex gap-2 overflow-x-auto px-3 pl-14 pb-1 [scrollbar-width:none]">
+            {POI_ORDER.filter((c) => layers.has(c)).map((c) => {
+              const I = CAT_ICON[c];
+              return (
+                <button key={c} onClick={() => openList(c)} className="flex shrink-0 items-center gap-2 rounded-full bg-(--panel) py-1.5 pl-1.5 pr-3 text-sm font-bold shadow-xl backdrop-blur-xl active:scale-95">
+                  <span className="grid h-7 w-7 place-items-center rounded-full text-white" style={{ background: POI_CATS[c].color }}>{poiLoading.has(c) ? <Loader2 className="h-4 w-4 animate-spin" /> : <I className="h-4 w-4" />}</span>
+                  {POI_CATS[c].label}
+                  {poiCount[c] != null && <span className="num text-xs font-semibold text-(--fg)/50">{poiCount[c]}</span>}
+                  <List className="h-4 w-4 text-(--fg)/50" />
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -1091,9 +1260,9 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
             onBack={() => setMode(dest ? 'preview' : 'free')}
             onPick={choose}
             onNearest={async (k) => {
-              const p = await nearest(k);
-              if (p) choose(poiPlace(p));
-              return !!p;
+              setMode(dest ? 'preview' : 'free');
+              openList(k);
+              return true;
             }}
           />
         )}
@@ -1117,7 +1286,27 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
         )}
         {mode === 'arrived' && dest && <ArrivedSheet key="arrived" dest={dest} onDone={endNav} />}
         {sel && <RadarSheet key="radar" r={sel} pos={pos} onClose={() => setSel(null)} onResume={() => { setSel(null); setFollow(true); }} />}
-        {layerSheet && <LayerSheet key="layers" on={layers} counts={poiCount} loading={poiLoading} toggle={toggleLayer} clear={() => setLayers(new Set())} onClose={() => setLayerSheet(false)} />}
+        {listCat && (
+          <PoiListSheet
+            key="list"
+            cat={listCat}
+            data={listData}
+            from={fix.current?.p || (() => { const ce = map.current?.getCenter(); return ce ? ([ce.lat, ce.lng] as LL) : RIGA; })()}
+            hasPos={!!pos}
+            onClose={closeList}
+            onFocus={focusPoi}
+            onFit={fitPois}
+            onGo={(p) => {
+              closeList();
+              choose(poiPlace(p));
+            }}
+            onHide={() => {
+              toggleLayer(listCat, false);
+              closeList();
+            }}
+          />
+        )}
+        {layerSheet && <LayerSheet key="layers" on={layers} counts={poiCount} loading={poiLoading} toggle={toggleLayer} onList={openList} clear={() => setLayers(new Set())} onClose={() => setLayerSheet(false)} />}
         {poiSel && (
           <PoiSheet
             key="poi"
@@ -1139,22 +1328,28 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
 // ================= Lapas un kartītes =================
 
 function Sheet({ children, onClose, label, z = 'z-20', maxH = 'max-h-[78dvh]' }: { children: React.ReactNode; onClose: () => void; label: string; z?: string; maxH?: string }) {
+  // Velk tikai aiz roktura — saturu var brīvi ritināt ar pirkstu
+  const controls = useDragControls();
   return (
     <motion.div
       role="dialog"
       aria-label={label}
       drag="y"
+      dragListener={false}
+      dragControls={controls}
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={{ top: 0, bottom: 0.6 }}
-      onDragEnd={(_, i) => i.offset.y > 90 && onClose()}
+      onDragEnd={(_, i) => (i.offset.y > 90 || i.velocity.y > 600) && onClose()}
       initial={{ y: '100%' }}
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-      className={`absolute inset-x-0 bottom-0 ${z} ${maxH} overflow-y-auto overscroll-contain rounded-t-[28px] bg-(--sheet) px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_60px_rgba(0,0,0,.5)] backdrop-blur-xl lg:bottom-4 lg:left-4 lg:right-auto lg:w-[420px] lg:rounded-[28px]`}
+      className={`absolute inset-x-0 bottom-0 ${z} flex ${maxH} flex-col rounded-t-[28px] bg-(--sheet) shadow-[0_-20px_60px_rgba(0,0,0,.5)] backdrop-blur-xl lg:bottom-4 lg:left-4 lg:right-auto lg:w-[420px] lg:rounded-[28px]`}
     >
-      <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-white/20 lg:hidden" />
-      {children}
+      <div onPointerDown={(e) => controls.start(e)} className="shrink-0 cursor-grab touch-none px-5 pb-2 pt-3 lg:pb-1 lg:pt-2">
+        <div className="mx-auto h-1.5 w-11 rounded-full bg-(--fg)/20 lg:hidden" />
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">{children}</div>
     </motion.div>
   );
 }
@@ -1238,7 +1433,7 @@ function SearchSheet({ near, onBack, onPick, onNearest }: { near: LL | null; onB
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-1" />
             </button>
-            <p className="mb-1.5 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-(--fg)/40">Tuvākā</p>
+            <p className="mb-1.5 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-(--fg)/40">Tuvumā</p>
             <div className="grid grid-cols-3 gap-2">
               {(['fuel', 'ev', 'parking', 'pharmacy', 'shop', 'auto'] as PoiCat[]).map((k) => {
                 const I = CAT_ICON[k];
@@ -1382,7 +1577,7 @@ function ArrivedSheet({ dest, onDone }: { dest: Place; onDone: () => void }) {
   );
 }
 
-function LayerSheet({ on, counts, loading, toggle, clear, onClose }: { on: Set<PoiCat>; counts: Partial<Record<PoiCat, number>>; loading: Set<PoiCat>; toggle: (c: PoiCat) => void; clear: () => void; onClose: () => void }) {
+function LayerSheet({ on, counts, loading, toggle, clear, onClose, onList }: { on: Set<PoiCat>; counts: Partial<Record<PoiCat, number>>; loading: Set<PoiCat>; toggle: (c: PoiCat) => void; clear: () => void; onClose: () => void; onList: (c: PoiCat) => void }) {
   const groups: [string, PoiCat[]][] = [['Ceļā', ['fuel', 'ev', 'parking', 'auto']], ['Ikdienā', ['shop', 'pharmacy', 'health', 'gov']]];
   return (
     <>
@@ -1416,6 +1611,18 @@ function LayerSheet({ on, counts, loading, toggle, clear, onClose }: { on: Set<P
             </div>
           </div>
         ))}
+        {on.size > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-xs font-bold uppercase tracking-wider text-(--fg)/40">Skatīt sarakstu</p>
+            <div className="flex flex-wrap gap-2">
+              {POI_ORDER.filter((c) => on.has(c)).map((c) => (
+                <button key={c} onClick={() => onList(c)} className="flex items-center gap-1.5 rounded-full bg-(--fg)/[0.07] py-1.5 pl-1.5 pr-3 text-sm font-semibold hover:bg-(--fg)/10">
+                  <span className="h-5 w-5 rounded-full" style={{ background: POI_CATS[c].color }} /> {POI_CATS[c].label} <ChevronRight className="h-4 w-4 opacity-50" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {on.has('fuel') && (
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 rounded-2xl bg-(--fg)/[0.05] p-3 text-xs text-(--fg)/70">
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#16a34a]" /> Degviela</span>
@@ -1436,6 +1643,128 @@ function LayerSheet({ on, counts, loading, toggle, clear, onClose }: { on: Set<P
         <p className="mt-3 text-center text-[11px] text-(--fg)/35">Dati: © OpenStreetMap līdzautori · atjaunojam katru dienu</p>
       </Sheet>
     </>
+  );
+}
+
+const poiColor = (p: Poi) => (p.k === 'parking' ? (p.f === 'no' ? '#16a34a' : p.f === 'yes' ? '#2563eb' : '#64748b') : POI_CATS[p.k].color);
+
+/** Vietu saraksts pēc attāluma ar meklēšanu un filtriem; pieskāriens parāda vietu kartē. */
+function PoiListSheet({ cat, data, from, hasPos, onClose, onFocus, onFit, onGo, onHide }: {
+  cat: PoiCat; data: Poi[] | null; from: LL; hasPos: boolean; onClose: () => void; onFocus: (p: Poi) => void; onFit: (l: Poi[], from: LL) => void; onGo: (p: Poi) => void; onHide: () => void;
+}) {
+  const [q, setQ] = useState('');
+  const [sub, setSub] = useState('');
+  const [open, setOpen] = useState<Poi | null>(null);
+  const [limit, setLimit] = useState(40);
+  const I = CAT_ICON[cat];
+  const origin = useRef(from).current; // saraksts nelēkā, braucot uz priekšu
+  const sorted = useMemo(() => (data || []).map((p) => ({ p, d: distance(origin, [p.lat, p.lng]) })).sort((a, b) => a.d - b.d), [data, origin]);
+  // filtri: apakštipi vai maksa
+  const chips = useMemo(() => {
+    const out: [string, string][] = [];
+    if (cat === 'parking') out.push(['fee:no', 'Bezmaksas'], ['fee:yes', 'Maksas']);
+    if (cat === 'fuel') out.push(['gas', 'Ar gāzi (LPG/CNG)']);
+    if (cat === 'ev') out.push(['fast', 'Ātrā (CCS)']);
+    if (cat === 'pharmacy' || cat === 'shop' || cat === 'fuel') out.push(['h24', 'Diennakts']);
+    const subs = new Map<string, number>();
+    for (const { p } of sorted) subs.set(p.s, (subs.get(p.s) || 0) + 1);
+    if (subs.size > 1 && cat !== 'fuel') [...subs.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).forEach(([s]) => out.push([`s:${s}`, SUB_LABEL[s] || s]));
+    return out;
+  }, [sorted, cat]);
+  const list = useMemo(() => {
+    const t = q.trim().toLowerCase();
+    return sorted.filter(({ p }) => {
+      if (sub === 'fee:no' && p.f !== 'no') return false;
+      if (sub === 'fee:yes' && p.f !== 'yes') return false;
+      if (sub === 'gas' && p.s === 'fuel') return false;
+      if (sub === 'fast' && !/ccs|chademo/i.test(p.x)) return false;
+      if (sub === 'h24' && p.h !== '24/7') return false;
+      if (sub.startsWith('s:') && p.s !== sub.slice(2)) return false;
+      if (t && !`${p.n} ${p.b} ${p.a}`.toLowerCase().includes(t)) return false;
+      return true;
+    });
+  }, [sorted, q, sub]);
+  const shown = list.slice(0, limit);
+  useEffect(() => setLimit(40), [q, sub]);
+
+  return (
+    <Sheet onClose={onClose} label={POI_CATS[cat].label} maxH="max-h-[55dvh] lg:max-h-[calc(100dvh-2rem)]">
+      <div className="flex items-center gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white" style={{ background: POI_CATS[cat].color }}><I className="h-5 w-5" /></span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-lg font-bold leading-tight">{POI_CATS[cat].label}</h3>
+          <p className="truncate text-sm text-(--fg)/55">{data ? `${list.length} vietas · tuvākās ${hasPos ? 'tev' : 'kartes centram'}` : 'Ielādēju…'}</p>
+        </div>
+        <button onClick={() => onFit(shown.slice(0, 15).map((x) => x.p), origin)} disabled={!shown.length} className="hidden h-10 items-center gap-1.5 rounded-full bg-(--fg)/10 px-3 text-sm font-bold sm:flex">Kartē</button>
+        <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--fg)/10"><X className="h-5 w-5" /></button>
+      </div>
+      <div className="relative mt-3">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-(--fg)/40" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Meklēt: nosaukums, zīmols, iela…`} className="h-11 w-full rounded-2xl bg-(--fg)/[0.07] pl-10 pr-3 text-[15px] outline-none placeholder:text-(--fg)/40 focus:ring-2 focus:ring-[#2f7bff]" aria-label="Meklēt sarakstā" />
+      </div>
+      {chips.length > 0 && (
+        <div className="-mx-5 mt-2.5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+          <button onClick={() => setSub('')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${!sub ? 'bg-[#2f7bff] text-white' : 'bg-(--fg)/[0.07]'}`}>Visas</button>
+          {chips.map(([k, l]) => (
+            <button key={k} onClick={() => setSub(sub === k ? '' : k)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold ${sub === k ? 'bg-[#2f7bff] text-white' : 'bg-(--fg)/[0.07]'}`}>{l}</button>
+          ))}
+        </div>
+      )}
+      <button onClick={() => onFit(shown.slice(0, 15).map((x) => x.p), origin)} disabled={!shown.length} className="mt-2.5 flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-(--fg)/[0.07] text-sm font-bold sm:hidden"><Maximize2 className="h-4 w-4" /> Rādīt tuvākās kartē</button>
+
+      {!data ? (
+        <div className="flex items-center justify-center gap-2 py-8 text-(--fg)/60"><Loader2 className="h-5 w-5 animate-spin" /> Ielādēju vietas…</div>
+      ) : !list.length ? (
+        <p className="py-8 text-center text-sm text-(--fg)/55">Nekas netika atrasts.</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-(--fg)/[0.08]">
+          {shown.map(({ p, d }) => {
+            const isOpen = open === p;
+            const col = poiColor(p);
+            return (
+              <li key={`${p.lat},${p.lng},${p.n}`}>
+                <button
+                  onClick={() => {
+                    setOpen(isOpen ? null : p);
+                    if (!isOpen) onFocus(p);
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition ${isOpen ? 'bg-(--fg)/[0.06]' : 'hover:bg-(--fg)/[0.04]'}`}
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[11px] font-black text-white" style={{ background: col }}>{p.k === 'parking' ? (p.f === 'yes' ? '€' : 'P') : <I className="h-4 w-4" />}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-semibold">{p.n}</span>
+                    <span className="block truncate text-xs text-(--fg)/55">{[SUB_LABEL[p.s] && SUB_LABEL[p.s] !== p.n ? SUB_LABEL[p.s] : null, p.b, p.a].filter(Boolean).join(' · ')}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="num block text-sm font-bold">{fmtDist(d)}</span>
+                    {p.h === '24/7' && <span className="text-[10px] font-bold uppercase text-(--t-green)">24/7</span>}
+                  </span>
+                </button>
+                {isOpen && (
+                  <div className="px-2 pb-3">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 pl-12 text-xs text-(--fg)/70">
+                      {p.k === 'parking' && <span><b>{p.f === 'no' ? 'Bezmaksas' : p.f === 'yes' ? 'Maksas' : 'Maksa nav zināma'}</b></span>}
+                      {p.c ? <span>{p.k === 'ev' ? 'Uzlādes vietas' : 'Vietas'}: <b>{p.c}</b></span> : null}
+                      {p.x && <span>{p.x}</span>}
+                      {p.h && <span>{hoursLabel(p.h)}</span>}
+                    </div>
+                    <div className={`mt-2.5 grid gap-2 pl-12 ${p.ph ? 'grid-cols-[1fr_auto]' : ''}`}>
+                      <button onClick={() => onGo(p)} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#2f7bff] font-bold text-white"><Navigation2 className="h-4 w-4 fill-white" /> Navigēt šeit</button>
+                      {p.ph && <a href={`tel:${p.ph.replace(/\s/g, '')}`} aria-label="Zvanīt" className="grid h-11 w-11 place-items-center rounded-xl bg-(--fg)/10"><Phone className="h-4 w-4" /></a>}
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {list.length > limit && <button onClick={() => setLimit((l) => l + 40)} className="mt-2 h-11 w-full rounded-2xl bg-(--fg)/[0.07] text-sm font-bold">Rādīt vēl ({list.length - limit})</button>}
+      <div className="mt-3 flex items-center justify-between text-[11px] text-(--fg)/40">
+        <span>Dati: © OpenStreetMap līdzautori</span>
+        <button onClick={onHide} className="font-semibold underline">Slēpt slāni kartē</button>
+      </div>
+    </Sheet>
   );
 }
 
