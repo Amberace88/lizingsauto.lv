@@ -180,7 +180,7 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-      <div className={`relative overflow-hidden rounded-[24px] border border-line bg-card shadow-[var(--shadow-lift)] ${height}`}>
+      <div className={`relative isolate overflow-hidden rounded-[24px] border border-line bg-card shadow-[var(--shadow-lift)] ${height}`}>
         <div ref={mapEl} className="absolute inset-0 z-0" aria-label="Fotoradaru karte" role="region" />
         {!ready && <div className="absolute inset-0 grid place-items-center bg-paper"><Loader2 className="h-6 w-6 animate-spin text-mute" /></div>}
         <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex flex-wrap gap-1.5">
