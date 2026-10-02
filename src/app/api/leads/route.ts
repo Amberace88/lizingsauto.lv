@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabasePublic } from '@/lib/supabase/public';
+import { PUBLIC_CAR_COLUMNS, getSettings } from '@/lib/data';
+import { leadConfirmation, leadNotification, mailConfigured, notifyRecipients, sendMail } from '@/lib/mail';
+import type { Car } from '@/lib/types';
 
 const schema = z.object({
   type: z.enum(['leasing', 'contact', 'sell_car', 'test_drive', 'reserve', 'car_order', 'trade_in', 'warranty', 'alert', 'valuation']),
@@ -64,6 +67,27 @@ export async function POST(req: Request) {
   if (error) {
     console.error('lead insert', error.message);
     return NextResponse.json({ error: 'Neizdevās saglabāt. Lūdzu, zvani mums.' }, { status: 500 });
+  }
+
+  // E-pasta paziņojumi — pieteikums jau saglabāts, tāpēc kļūda e-pastā klientam netraucē
+  if (mailConfigured()) {
+    try {
+      const [{ company }, carRes] = await Promise.all([
+        getSettings(),
+        d.car_id ? supabasePublic.from('cars').select(`${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id,is_promo)`).eq('id', d.car_id).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+      const car = (carRes.data as Car | null) || null;
+      const lead = { type: d.type, name: d.name, phone: d.phone, email: d.email || null, message: d.message || null, data };
+      const n = leadNotification(lead, car, company);
+      const c = leadConfirmation(lead, car, company);
+      const results = await Promise.all([
+        ...notifyRecipients(company).map((to) => sendMail({ to, ...n, replyTo: d.email || undefined })),
+        ...(c ? [sendMail({ to: d.email!, ...c, replyTo: company.email })] : []),
+      ]);
+      for (const r of results) if (!r.ok) console.error('lead mail', r.error);
+    } catch (e) {
+      console.error('lead mail', e);
+    }
   }
   return NextResponse.json({ ok: true });
 }

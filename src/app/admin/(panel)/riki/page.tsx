@@ -15,6 +15,9 @@ export default async function ToolsPage() {
     MOBILE_DE_USER: !!process.env.MOBILE_DE_USER,
     MOBILE_DE_PASSWORD: !!process.env.MOBILE_DE_PASSWORD,
     FEED_KEY: !!process.env.FEED_KEY,
+    RESEND_API_KEY: !!process.env.RESEND_API_KEY,
+    MAIL_FROM: !!process.env.MAIL_FROM,
+    LEAD_NOTIFY_TO: !!process.env.LEAD_NOTIFY_TO,
   };
   return (
     <>

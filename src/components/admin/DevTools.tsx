@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Loader2, ImageDown, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, ImageDown, RefreshCw, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import { Card } from './CarEditor';
 import { useToast } from './Toast';
 
@@ -32,6 +32,15 @@ export function DevTools({ total, pending: initialPending, env }: { total: numbe
     toast(left === 0 ? 'Visas bildes pārceltas' : `Palika ${left} bildes`);
   }
 
+  const [mailing, setMailing] = useState(false);
+  async function testMail() {
+    setMailing(true);
+    const r = await fetch('/api/admin/test-mail', { method: 'POST' });
+    const j = await r.json().catch(() => ({}));
+    setMailing(false);
+    toast(r.ok ? `Testa e-pasts nosūtīts: ${(j.to || []).join(', ')}` : j.error || 'Neizdevās nosūtīt', r.ok ? undefined : 'err');
+  }
+
   async function revalidate() {
     await fetch('/api/admin/revalidate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
     toast('Lapas kešatmiņa atjaunota');
@@ -51,7 +60,10 @@ export function DevTools({ total, pending: initialPending, env }: { total: numbe
             <li key={k} className="flex items-center justify-between"><span className="font-mono text-xs">{k}</span>{v ? <span className="flex items-center gap-1 font-semibold text-ok"><CheckCircle2 className="h-4 w-4" /> Pieslēgts</span> : <span className="flex items-center gap-1 text-mute"><XCircle className="h-4 w-4" /> Nav</span>}</li>
           ))}
         </ul>
-        <button onClick={revalidate} className="btn btn-ghost mt-4"><RefreshCw className="h-4 w-4" /> Atjaunot visas lapas</button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button onClick={revalidate} className="btn btn-ghost"><RefreshCw className="h-4 w-4" /> Atjaunot visas lapas</button>
+          <button onClick={testMail} disabled={mailing} className="btn btn-ghost">{mailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Testa e-pasts</button>
+        </div>
       </Card>
     </div>
   );
