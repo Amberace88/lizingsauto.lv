@@ -10,6 +10,7 @@ import type { Map as LMap, LayerGroup } from 'leaflet';
 import { KIND, bearing, compass, distance, fmtDist, radarPoint, type Radar, type RadarKind } from '@/lib/radars';
 import { matchRadar, type RadarFilter } from '@/lib/radar-pages';
 import { track } from '@/lib/track';
+import { unlockVoice } from '@/lib/voice';
 
 type R = Radar;
 const KINDS: RadarKind[] = ['fixed', 'average', 'mobile', 'toll'];
@@ -189,6 +190,7 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
               // iPhone kompasam vajag atļauju, ko var prasīt tikai pēc pieskāriena
               const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
               DOE?.requestPermission?.().catch(() => {});
+              unlockVoice();
               setDrive(true);
             }}
             className="inline-flex items-center gap-2 rounded-full bg-night/90 px-4 py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur transition hover:bg-night active:scale-95"

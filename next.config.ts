@@ -2,15 +2,15 @@ import type { NextConfig } from 'next';
 
 const SUPABASE = 'https://kxnzcwnvtvxrgxkfhbtu.supabase.co';
 
-const csp = [
+const cspFor = (admin: boolean) => [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net${admin ? " 'wasm-unsafe-eval' https://esm.sh https://cdn.jsdelivr.net https://cdnjs.cloudflare.com" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://tile.openstreetmap.org https://lizingsauto.lv ${SUPABASE} https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com`,
   "font-src 'self' data:",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
-  `connect-src 'self' https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://routing.openstreetmap.de https://photon.komoot.io https://overpass-api.de https://overpass.kumi.systems ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net`,
+  `connect-src 'self' https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://routing.openstreetmap.de https://photon.komoot.io https://overpass-api.de https://overpass.kumi.systems https://overpass.private.coffee https://maps.mail.ru ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net${admin ? ' https://huggingface.co https://*.huggingface.co https://*.hf.co https://esm.sh https://cdn.jsdelivr.net https://cdnjs.cloudflare.com' : ''}`,
   'frame-src https://maps.google.com https://www.google.com',
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -18,6 +18,9 @@ const csp = [
   "object-src 'none'",
   'upgrade-insecure-requests',
 ].join('; ');
+// Admin panelim papildus atļaujam balss ģeneratora rīkus (Piper TTS pārlūkā)
+const csp = cspFor(false);
+const cspAdmin = cspFor(true);
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
@@ -32,10 +35,11 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      { source: '/admin/:path*', headers: [{ key: 'Content-Security-Policy', value: cspAdmin }] },
+      { source: '/((?!admin/).*)', headers: [{ key: 'Content-Security-Policy', value: csp }] },
       {
         source: '/(.*)',
         headers: [
-          { key: 'Content-Security-Policy', value: csp },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },

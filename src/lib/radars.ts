@@ -139,7 +139,7 @@ export function parseVpMobile(html: string): { region: string; name: string }[] 
       reg = l;
       continue;
     }
-    if (/Publicēts|Kontaktinform|Sīkdat|Saturs nav pieejams|Ātrās saites|Vai šī informācija|Dalīties/.test(l)) break;
+    if (/Publicēts|Kontaktinform|Sīkdat|Saturs nav pieejams|Ātrās saites|Vai šī informācija|Dalīties|Esi pirmais|sociālo tīklu|Izvēlies/.test(l)) break;
     if (l.length < 15 || !l.includes(',')) continue; // īstajiem ierakstiem vienmēr ir vieta, iela/ceļš
     out.push({ region: reg, name: l.replace(/\s+/g, ' ').slice(0, 300) });
   }

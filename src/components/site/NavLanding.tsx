@@ -9,6 +9,7 @@ import { KIND, type Radar } from '@/lib/radars';
 import { TAVS_AUTO, type Place } from '@/lib/nav';
 import { isPoiCat, type PoiCat } from '@/lib/poi';
 import { track } from '@/lib/track';
+import { unlockVoice } from '@/lib/voice';
 
 const RadarDrive = dynamic(() => import('./RadarDrive'), { ssr: false });
 
@@ -52,6 +53,7 @@ export function NavLanding({ radars }: { radars: Radar[] }) {
     track('tool_use', { tool: d ? 'Navigācija: uz Tavs Auto' : 'Navigācija: atvērt' }, 'nav_open');
     const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> };
     DOE?.requestPermission?.().catch(() => {});
+    unlockVoice();
     setDest(d);
     setOpen(true);
   };

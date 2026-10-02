@@ -1,6 +1,6 @@
 // Navigācija: adrešu meklēšana (Photon), maršruti (OSRM, routing.openstreetmap.de), ģeometrija un norādes latviski.
 import { distance, type Radar } from './radars';
-import type { Poi, PoiCat } from './poi';
+import { compactPois, overpassBboxQuery, type Poi, type PoiCat } from './poi';
 
 export type LL = [number, number]; // [lat, lng]
 export type Place = { id: string; name: string; sub: string; lat: number; lng: number; kind?: string; special?: 'tavsauto' };
@@ -173,8 +173,10 @@ type OsrmStep = { maneuver: { type: string; modifier?: string; exit?: number; lo
 type OsrmRoute = { distance: number; duration: number; geometry: { coordinates: [number, number][] }; legs: { steps: OsrmStep[]; summary?: string }[] };
 
 /** Maršruts(-i) no A uz B. */
-export async function fetchRoutes(from: LL, to: LL, radars: Radar[], signal?: AbortSignal): Promise<Route[]> {
-  const url = `${ROUTER}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true&alternatives=true`;
+export async function fetchRoutes(from: LL, to: LL, radars: Radar[], signal?: AbortSignal, opts: { heading?: number | null; alternatives?: boolean } = {}): Promise<Route[]> {
+  // Braukšanas virziens sākumā: maršruts turpinās uz priekšu, nevis liek apgriezties
+  const b = opts.heading != null && !Number.isNaN(opts.heading) ? `&bearings=${Math.round((opts.heading + 360) % 360)},50;&radiuses=60;unlimited` : '';
+  const url = `${ROUTER}/${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson&steps=true&alternatives=${opts.alternatives === false ? 'false' : 'true'}${b}`;
   const r = await fetch(url, { signal });
   if (!r.ok) throw new Error(`Maršruts nav pieejams (${r.status})`);
   const j = (await r.json()) as { code: string; routes: OsrmRoute[] };
@@ -240,6 +242,34 @@ export function loadPois(cat: PoiCat): Promise<Poi[]> {
     poiCache.set(cat, p);
     p.then((x) => {
       if (!x.length) poiCache.delete(cat);
+    });
+  }
+  return p;
+}
+
+const OVERPASS = ['https://overpass.private.coffee/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const nearCache = new Map<string, Promise<Poi[]>>();
+/** Rezerves variants: vietas ap punktu tieši no OpenStreetMap (~25 km rādiusā). */
+export function loadPoisNear(cat: PoiCat, c: LL): Promise<Poi[]> {
+  const key = `${cat}:${c[0].toFixed(1)},${c[1].toFixed(1)}`;
+  let p = nearCache.get(key);
+  if (!p) {
+    const b: [number, number, number, number] = [c[0] - 0.22, c[1] - 0.38, c[0] + 0.22, c[1] + 0.38];
+    const body = 'data=' + encodeURIComponent(overpassBboxQuery(cat, b));
+    p = (async () => {
+      for (const u of OVERPASS) {
+        try {
+          const r = await fetch(u, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' }, signal: AbortSignal.timeout(20000) });
+          if (!r.ok) continue;
+          const j = await r.json();
+          return compactPois(cat, j.elements || []);
+        } catch {}
+      }
+      return [];
+    })();
+    nearCache.set(key, p);
+    p.then((x) => {
+      if (!x.length) nearCache.delete(key);
     });
   }
   return p;

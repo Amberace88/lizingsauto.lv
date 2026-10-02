@@ -7,7 +7,7 @@ import { Card } from '@/components/admin/CarEditor';
 import { useToast } from '@/components/admin/Toast';
 import { POI_CATS, POI_ORDER, compactPois, overpassQuery, type PoiCat } from '@/lib/poi';
 
-const MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const MIRRORS = ['https://overpass.private.coffee/api/interpreter', 'https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 type Row = { cat: PoiCat; count: number; updated_at: string };
 
 /** Navigācijas kartes slāņu atjaunošana no OpenStreetMap (pārlūkā, lai neierobežo servera laika limits). */

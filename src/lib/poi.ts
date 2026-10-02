@@ -44,6 +44,12 @@ export const SUB_LABEL: Record<string, string> = {
   car_repair: 'Autoserviss', tyres: 'Riepu serviss', car_parts: 'Auto rezerves daļas', car_wash: 'Auto mazgātava', vehicle_inspection: 'Tehniskā apskate',
 };
 
+/** Vaicājums tikai redzamajam apgabalam (rezerves variants, ja kopējie dati vēl nav ielādēti). */
+export function overpassBboxQuery(cat: PoiCat, b: [number, number, number, number]) {
+  const bb = b.map((x) => x.toFixed(4)).join(',');
+  return `[out:json][timeout:25];(${POI_CATS[cat].q.map((q) => `${q}(${bb});`).join('')});out center tags;`;
+}
+
 export function overpassQuery(cat: PoiCat) {
   return `[out:json][timeout:120];area(id:3600072594)->.a;(${POI_CATS[cat].q.map((q) => `${q}(area.a);`).join('')});out center tags;`;
 }

@@ -4,20 +4,21 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, Volume2, VolumeX, LocateFixed, Box, Square, AlertTriangle, ShieldCheck, Play, Loader2, Search, ArrowLeft, MapPin, Clock, Fuel, Zap, Layers, SquareParking, ShoppingCart, Pill, Hospital, Landmark, Wrench,
+  X, Volume2, VolumeX, LocateFixed, Box, Square, AlertTriangle, ShieldCheck, Play, Loader2, Search, ArrowLeft, MapPin, Clock, Fuel, Zap, Layers, Sun, Moon, SunMoon, SquareParking, ShoppingCart, Pill, Hospital, Landmark, Wrench,
   ArrowUp, ArrowUpRight, ArrowUpLeft, CornerUpRight, CornerUpLeft, CornerRightDown, CornerLeftDown, Undo2, RotateCw, Flag, Navigation2, Merge, Split,
   Phone, MessageCircle, Car, Share2, Route as RouteIcon, ChevronRight, type LucideIcon,
 } from 'lucide-react';
 import type { Map as GLMap, Marker, GeoJSONSource } from 'maplibre-gl';
 import { KIND, bearing, distance, fmtDist, radarPoint, type Radar, type RadarKind } from '@/lib/radars';
 import {
-  TAVS_AUTO, TAVS_CONTACT, searchPlaces, fetchRoutes, project, pointAt, fmtDur, fmtClock, sayDist, recentPlaces, rememberPlace, loadPois,
+  TAVS_AUTO, TAVS_CONTACT, searchPlaces, fetchRoutes, project, pointAt, fmtDur, fmtClock, recentPlaces, rememberPlace, loadPois, loadPoisNear,
   type Place, type Route, type LL, type Maneuver,
 } from '@/lib/nav';
 import { POI_CATS, POI_ORDER, SUB_LABEL, hoursLabel, type Poi, type PoiCat } from '@/lib/poi';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { track } from '@/lib/track';
+import { speak, unlockVoice, preloadVoice, distKey, maneuverKey, radarKey, speedKey } from '@/lib/voice';
 
 type Pos = { p: LL; speed: number | null; heading: number | null; acc: number; t: number };
 type Mode = 'free' | 'search' | 'preview' | 'nav' | 'arrived';
@@ -26,9 +27,19 @@ const LOOKAHEAD = 6000;
 const RIGA: LL = [56.9496, 24.1052];
 const BLUE = '#2f7bff';
 
-const night = () => {
+type Theme = 'auto' | 'day' | 'night';
+const isNightHour = () => {
   const h = new Date().getHours();
-  return document.documentElement.dataset.theme === 'dark' || h >= 19 || h < 7;
+  return h >= 20 || h < 7;
+};
+const styleUrl = (day: boolean) => `https://tiles.openfreemap.org/styles/${day ? 'liberty' : 'dark'}`;
+const readTheme = (): Theme => {
+  try {
+    const v = localStorage.getItem('ta_nav_theme');
+    return v === 'day' || v === 'night' ? v : 'auto';
+  } catch {
+    return 'auto';
+  }
 };
 const angleLerp = (a: number, b: number, t: number) => {
   const d = ((b - a + 540) % 360) - 180;
@@ -57,20 +68,6 @@ function beep(freq = 880, ms = 200) {
     o.stop(ctx.currentTime + ms / 1000 + 0.05);
     setTimeout(() => ctx.close(), ms + 250);
   } catch {}
-}
-function say(text: string) {
-  try {
-    const v = speechSynthesis.getVoices().find((x) => x.lang?.toLowerCase().startsWith('lv'));
-    if (!v) return false;
-    const u = new SpeechSynthesisUtterance(text);
-    u.voice = v;
-    u.lang = v.lang;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /** Attālums līdz posma beigām pa līniju un vai esam uz posma. */
@@ -117,6 +114,13 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
   const puck = useRef<Marker | null>(null);
   const destMarker = useRef<Marker | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [styleGen, setStyleGen] = useState(0);
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  const [nightNow, setNightNow] = useState(isNightHour);
+  const day = theme === 'day' || (theme === 'auto' && !nightNow);
+  const dayRef = useRef(day);
+  dayRef.current = day;
+  const styleRef = useRef('');
   const [pos, setPos] = useState<Pos | null>(null);
   const [err, setErr] = useState('');
   const [sound, setSound] = useState(true);
@@ -176,8 +180,27 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     return () => clearTimeout(t);
   }, []);
 
+  // Dienas / nakts karte: automātiski pēc laika vai pēc izvēles
+  useEffect(() => {
+    const t = setInterval(() => setNightNow(isNightHour()), 60000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem('ta_nav_theme', theme);
+    } catch {}
+    const m = map.current;
+    if (!m || !loaded) return;
+    const url = styleUrl(day);
+    if (styleRef.current === url) return;
+    styleRef.current = url;
+    m.setStyle(url, { diff: false });
+  }, [day, theme, loaded]);
+  const cycleTheme = () => setTheme((t) => (t === 'auto' ? (day ? 'night' : 'day') : t === 'day' ? 'night' : 'auto'));
+
   // Ekrāns ieslēgts + lapas ritināšana bloķēta
   useEffect(() => {
+    preloadVoice();
     let lock: { release: () => Promise<void> } | null = null;
     (navigator as Navigator & { wakeLock?: { request: (t: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen').then((l) => (lock = l)).catch(() => {});
     const o = document.body.style.overflow;
@@ -200,10 +223,10 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       const M = lib.default;
       ml.current = M;
       if (gone || !el.current) return;
-      const dark = night();
+      styleRef.current = styleUrl(dayRef.current);
       const m = new M.Map({
         container: el.current,
-        style: `https://tiles.openfreemap.org/styles/${dark ? 'dark' : 'liberty'}`,
+        style: styleRef.current,
         center: [RIGA[1], RIGA[0]],
         zoom: 12.5,
         pitch: 55,
@@ -215,7 +238,9 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       const stop = () => setFollow(false);
       m.on('dragstart', stop);
       m.on('rotatestart', (e) => e.originalEvent && stop());
-      m.on('load', async () => {
+      let bound = false;
+      const setup = async () => {
+        const dark = !dayRef.current;
         const st = m.getStyle();
         const firstSymbol = st.layers.find((l) => l.type === 'symbol')?.id;
         // 3D ēkas, ja stilā to nav
@@ -255,6 +280,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
             layout: { visibility: 'none', 'icon-image': ['get', 'icon'], 'icon-size': ['interpolate', ['linear'], ['zoom'], 10, 0.7, 16, 1], 'icon-allow-overlap': true, 'text-field': ['step', ['zoom'], '', 14.5, ['coalesce', ['get', 'b'], ['get', 'n']]], 'text-font': ['Noto Sans Bold'], 'text-size': 11.5, 'text-offset': [0, 1.55], 'text-anchor': 'top', 'text-optional': true, 'text-max-width': 9 },
             paint: { 'text-color': dark ? '#f1f5f9' : '#1f2430', 'text-halo-color': dark ? '#0b0c0e' : '#ffffff', 'text-halo-width': 1.6 },
           });
+          if (bound) continue;
           m.on('click', `${c}-pt`, (e) => {
             const f = e.features?.[0];
             if (!f) return;
@@ -278,6 +304,8 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
         }
         m.addLayer({ id: 'rad-halo', type: 'circle', source: 'radars', paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['case', onRoute, 10, 6], 16, ['case', onRoute, 32, 26]], 'circle-opacity': ['case', ['boolean', ['feature-state', 'next'], false], 0.38, onRoute, 0.28, 0.15], 'circle-pitch-alignment': 'map' } } as never);
         m.addLayer({ id: 'rad', type: 'circle', source: 'radars', paint: { 'circle-color': ['get', 'color'], 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['case', onRoute, 5.5, 3.5], 16, ['case', onRoute, 13, 11]], 'circle-stroke-color': '#ffffff', 'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 8, 1, 16, 3], 'circle-stroke-opacity': ['case', ['==', ['get', 'approx'], 1], 0.6, 1] } } as never);
+        if (!bound) {
+        bound = true;
         const pick = (e: { features?: { properties: { id: number } }[] }) => {
           const id = e.features?.[0]?.properties?.id;
           const r = radars.find((x) => x.id === Number(id));
@@ -302,8 +330,11 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
           m.on('mouseleave', id, () => (m.getCanvas().style.cursor = ''));
         }
         m.getContainer().querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
+        }
         setLoaded(true);
-      });
+        setStyleGen((g) => g + 1);
+      };
+      m.on('style.load', setup);
       const dot = document.createElement('div');
       dot.className = 'drv-puck';
       dot.style.opacity = '0';
@@ -575,7 +606,8 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
         setDemo(true);
       }
       track('tool_use', { tool: 'Navigācija: sākt', km: Math.round(route.distance / 1000), radars: route.radars.length, demo: withDemo }, 'nav_start');
-      if (sound) say(`Sākam braucienu. ${fmtDur(route.duration).replace('min', 'minūtes').replace('h', 'stundas')}. ${route.radars.length ? `Maršrutā ${route.radars.length} ${route.radars.length === 1 ? 'radars' : 'radari'}.` : 'Maršrutā radaru nav.'}`);
+      unlockVoice();
+      if (sound) speak(['start', route.radars.length ? 'start_radars' : 'start_clear'], 2);
     },
     [route, demo, sound],
   );
@@ -594,7 +626,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       const here = pointAt(r, n.at).p;
       src.setData(fc([line([here, ...r.coords.slice(n.i + 1)], { idx: 0, active: 1 })]));
     } else src.setData(fc([]));
-  }, [routes, ri, mode, loaded, navigating, navAt]);
+  }, [routes, ri, mode, loaded, navigating, navAt, styleGen]);
 
   // Radari maršrutā — izceļam kartē
   const routeRadars = useMemo(() => (navigating ? routeRef.current?.radars : route?.radars) || [], [navigating, route, navAt === 0]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -603,7 +635,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     if (!m || !loaded) return;
     const ids = new Set(routeRadars.map((x) => x.r.id));
     for (const r of radars) if (r.lat != null && r.kind !== 'toll') m.setFeatureState({ source: 'radars', id: r.id }, { route: ids.has(r.id) });
-  }, [routeRadars, loaded, radars]);
+  }, [routeRadars, loaded, radars, styleGen]);
 
   useEffect(() => {
     if (mode === 'preview' && route) fitRoute(route);
@@ -642,23 +674,22 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     const lvl = spoken.current.get(key) ?? 9;
     const prevAt = stepIdx > 0 ? steps[stepIdx - 1].at : 0;
     const gap = step.at - prevAt;
-    const street = step.ref ? step.ref.split(';')[0] : step.name;
-    const tail = street && step.type !== 'arrive' ? `, ${street}` : '';
-    let say1: string | null = null;
+    const man = maneuverKey(step.type, step.modifier, step.exit);
+    let keys: (string | null)[] | null = null;
     let nl = lvl;
     if (toStep <= 45 && lvl > 1) {
       nl = 1;
-      say1 = step.type === 'arrive' ? null : `${step.text}${tail}`;
+      keys = step.type === 'arrive' ? null : [man];
     } else if (toStep <= 320 && toStep > 60 && lvl > 2 && gap > 380) {
       nl = 2;
-      say1 = step.type === 'arrive' ? `${sayDist(toStep)} galamērķis` : `${sayDist(toStep)} ${lc(step.text)}${tail}`;
+      keys = [distKey(toStep), man];
     } else if (toStep <= 900 && toStep > 550 && lvl > 3 && gap > 1300) {
       nl = 3;
-      say1 = step.type === 'arrive' ? `${sayDist(toStep)} galamērķis` : `${sayDist(toStep)} ${lc(step.text)}${tail}`;
+      keys = [distKey(toStep), man];
     }
     if (nl !== lvl) {
       spoken.current.set(key, nl);
-      if (say1 && !say(say1) && nl === 1) beep(740, 120);
+      if (keys) speak(keys, nl === 1 ? 3 : 2).then((ok) => !ok && nl === 1 && beep(740, 120));
     }
   }, [mode, step, stepIdx, toStep, sound, steps]);
 
@@ -671,32 +702,85 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       setDemo(false);
       setDemoRoute(null);
       zoomBoost.current = 0;
-      if (sound) say(dest?.special === 'tavsauto' ? 'Esat ieradies Tavs Auto autoplacī. Laipni lūdzam!' : 'Esat ieradies galamērķī');
+      if (sound) speak([dest?.special === 'tavsauto' ? 'arrived_ta' : 'arrived'], 3);
       track('tool_use', { tool: 'Navigācija: ieradās', dest: dest?.special || 'adrese' }, 'nav_arrive');
     }
   }, [mode, remain, pos, dest, sound]);
 
-  // Pārrēķins, ja nobrauc no maršruta
-  useEffect(() => {
-    if (mode !== 'nav' || demo || !pos || !dest || rerouting) return;
-    if (navRef.current.off > 45 && pos.acc < 60) offCount.current++;
-    else offCount.current = 0;
-    if (offCount.current < 3 || Date.now() - lastReroute.current < 12000) return;
-    lastReroute.current = Date.now();
+  // Pārrēķins, ja nobrauc no maršruta — ātri un gudri:
+  //  • nobraukšanu nosakām pēc attāluma (ņemot vērā GPS precizitāti) UN pēc braukšanas virziena pret maršrutu;
+  //  • ja brauc pa kādu no alternatīvajiem maršrutiem — pārslēdzamies uzreiz, bez interneta;
+  //  • jaunais maršruts sākas braukšanas virzienā (bez “apgriezieties”), vecais pieprasījums tiek atcelts.
+  const reroutingRef = useRef(false);
+  const switchTo = useCallback((r: Route, at = 0, i = 0) => {
+    routeGen.current++;
+    routeRef.current = r;
+    navRef.current = { at, i, off: 0 };
     offCount.current = 0;
+    setNavAt(at);
+  }, []);
+  useEffect(() => {
+    if (mode !== 'nav' || demo || !pos || !dest) return;
+    const r = routeRef.current;
+    if (!r) return;
+    const n = navRef.current;
+    const acc = Math.min(pos.acc || 20, 60);
+    const tol = Math.max(30, acc * 1.2);
+    let bad = n.off > tol;
+    // virziens: brauc pretēji vai prom no maršruta, kaut arī vēl tuvu tam
+    if (!bad && n.off > 14 && (pos.speed ?? 0) > 12 && pos.heading != null) {
+      const rb = bearing(pointAt(r, n.at).p, pointAt(r, n.at + 30).p);
+      if (Math.abs(((pos.heading - rb + 540) % 360) - 180) > 75) bad = true;
+    }
+    if (!bad) {
+      offCount.current = 0;
+      if (reroutingRef.current) {
+        abort.current?.abort(); // atgriezies uz maršruta — pārrēķins vairs nav vajadzīgs
+        reroutingRef.current = false;
+        setRerouting(false);
+      }
+      return;
+    }
+    offCount.current++;
+    const urgent = n.off > Math.max(80, acc * 2);
+    if (!urgent && offCount.current < 2) return;
+    // 1) varbūt brauc pa alternatīvu, kas jau ir rokā
+    for (const alt of routes) {
+      if (alt === r) continue;
+      const pr = project(alt, pos.p);
+      if (pr.off < Math.max(22, acc)) {
+        switchTo(alt, pr.at, pr.i);
+        setRi(routes.indexOf(alt));
+        if (sound) speak(['changed'], 2).then((ok) => !ok && beep(990, 120));
+        return;
+      }
+    }
+    if (reroutingRef.current || Date.now() - lastReroute.current < 3500) return;
+    lastReroute.current = Date.now();
+    reroutingRef.current = true;
     setRerouting(true);
-    (async () => {
-      const rs = await plan(dest, pos.p);
-      setRerouting(false);
-      if (!rs || modeRef.current !== 'nav') return;
-      routeGen.current++;
-      routeRef.current = rs[0];
-      navRef.current = { at: 0, i: 0, off: 0 };
-      setRoutes(rs);
-      setRi(0);
-      setNavAt(0);
-      if (sound) say('Maršruts pārrēķināts');
-    })();
+    const ac = new AbortController();
+    abort.current?.abort();
+    abort.current = ac;
+    fetchRoutes(pos.p, [dest.lat, dest.lng], radars, ac.signal, { heading: (pos.speed ?? 0) > 6 ? pos.heading : null })
+      .then((rs) => {
+        if (ac.signal.aborted || modeRef.current !== 'nav' || !rs.length) return;
+        const cur = fix.current?.p || pos.p;
+        const pr = project(rs[0], cur);
+        switchTo(rs[0], pr.at, pr.i);
+        setRoutes(rs);
+        setRi(0);
+        if (sound) speak(['rerouted'], 2).then((ok) => !ok && beep(990, 120));
+      })
+      .catch(() => {
+        lastReroute.current = Date.now() - 2000; // ātri mēģinām vēlreiz
+      })
+      .finally(() => {
+        if (abort.current === ac) {
+          reroutingRef.current = false;
+          setRerouting(false);
+        }
+      });
   }, [pos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Radari ----------
@@ -752,7 +836,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     const m = map.current;
     if (!m || !loaded) return;
     for (const r of radars) if (r.lat != null && r.kind !== 'toll') m.setFeatureState({ source: 'radars', id: r.id }, { next: next?.r.id === r.id });
-  }, [next?.r.id, loaded, radars]);
+  }, [next?.r.id, loaded, radars, styleGen]);
 
   // Brīdinājumi
   useEffect(() => {
@@ -761,12 +845,12 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     const stepW = next.d < 200 ? 200 : next.d < WARN ? WARN : null;
     if (stepW && stepW < last) {
       warned.current.set(next.r.id, stepW);
-      const words = next.r.kind === 'average' ? 'vidējā ātruma kontrole' : next.r.kind === 'mobile' ? 'iespējams mobilais radars' : 'fotoradars';
-      const spoke = say(stepW === 200 ? `Uzmanību, ${words}` : `Pēc ${Math.round(next.d / 100) * 100} metriem ${words}${next.r.speed ? `, ${next.r.speed}` : ''}`);
-      if (!spoke) {
+      const keys = stepW === 200 ? ['r_attn', radarKey(next.r.kind)] : [distKey(next.d), radarKey(next.r.kind), speedKey(next.r.speed)];
+      speak(keys, stepW === 200 ? 4 : 3).then((ok) => {
+        if (ok) return;
         beep(stepW === 200 ? 1175 : 880, 220);
         if (stepW === 200) setTimeout(() => beep(1175, 220), 280);
-      }
+      });
       navigator.vibrate?.(stepW === 200 ? [120, 80, 120] : 150);
     }
   }, [next, sound]);
@@ -779,7 +863,20 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     lastOver.current = Date.now();
     beep(660, 160);
     setTimeout(() => beep(660, 160), 220);
+    setTimeout(() => speak(['over'], 2), 500);
   }, [over, sound]);
+
+  // Vidējā ātruma posma sākums / beigas
+  const secId = useRef<number | null>(null);
+  useEffect(() => {
+    const id = inSection?.r.id ?? null;
+    if (id === secId.current) return;
+    const was = secId.current;
+    secId.current = id;
+    if (!sound) return;
+    if (id != null) speak(['sec_in'], 3);
+    else if (was != null) speak(['sec_out'], 1);
+  }, [inSection, sound]);
 
   // ---------- Degviela / uzlāde ----------
   useEffect(() => {
@@ -789,9 +886,16 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     for (const c of POI_ORDER) {
       const on = layers.has(c);
       for (const id of [`${c}-cl`, `${c}-cln`, `${c}-pt`]) if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
-      if (!on || poiCount[c] != null) continue;
-      setPoiLoading((v) => new Set(v).add(c));
-      loadPois(c).then((list) => {
+      if (!on) continue;
+      if (poiCount[c] == null) setPoiLoading((v) => new Set(v).add(c));
+      loadPois(c).then(async (all) => {
+        let list = all;
+        if (!list.length) {
+          // kopējie dati vēl nav pieejami — ielādējam apkārtni tieši no OpenStreetMap
+          const ce = map.current?.getCenter();
+          const at: LL = fix.current?.p || (ce ? [ce.lat, ce.lng] : RIGA);
+          list = await loadPoisNear(c, at);
+        }
         setPoiLoading((v) => {
           const n = new Set(v);
           n.delete(c);
@@ -805,12 +909,13 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
     return () => {
       live = false;
     };
-  }, [layers, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [layers, loaded, styleGen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nearest = useCallback(async (k: PoiCat) => {
-    const all = await loadPois(k);
     const c = map.current?.getCenter();
     const from: LL = fix.current?.p || (c ? [c.lat, c.lng] : RIGA);
+    let all = await loadPois(k);
+    if (!all.length) all = await loadPoisNear(k, from);
     const best = all.slice().sort((a, b) => distance(from, [a.lat, a.lng]) - distance(from, [b.lat, b.lng]))[0];
     toggleLayer(k, true);
     return best || null;
@@ -832,44 +937,44 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
   const ManIcon = step ? MAN[step.icon] : ArrowUp;
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[2000] h-[100dvh] overflow-hidden bg-[#0b0c0e] text-white" role="dialog" aria-label="Tavs Auto navigācija">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={`drv fixed inset-0 z-[2000] h-[100dvh] overflow-hidden text-(--fg) ${day ? 'drv-day' : ''}`} role="dialog" aria-label="Tavs Auto navigācija">
       <div className="drv-map absolute inset-0"><div ref={el} className="h-full w-full" /></div>
-      {!loaded && <div className="absolute inset-0 grid place-items-center"><Loader2 className="h-7 w-7 animate-spin text-white/60" /></div>}
+      {!loaded && <div className="absolute inset-0 grid place-items-center"><Loader2 className="h-7 w-7 animate-spin text-(--fg)/60" /></div>}
 
       {/* ------- Augša ------- */}
       <div className="pointer-events-none absolute inset-x-0 top-0 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))] lg:max-w-[440px]">
         {mode === 'nav' ? (
           <>
-            <motion.div layout className="pointer-events-auto overflow-hidden rounded-[22px] bg-[#0e7a4c] shadow-2xl">
+            <motion.div layout className="pointer-events-auto overflow-hidden rounded-[22px] bg-[#0e7a4c] shadow-2xl text-white [--fg:#fff]">
               <div className="flex items-center gap-3 p-3.5">
                 <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-white/15"><ManIcon className={`h-10 w-10 ${step?.icon === 'fork-left' ? '-scale-x-100' : ''}`} strokeWidth={2.6} /></span>
                 <div className="min-w-0 flex-1">
                   <p className="num text-[2rem] font-black leading-none tracking-tight">{step ? fmtDist(toStep) : '—'}</p>
                   <p className="mt-1 truncate text-[15px] font-bold">{step ? step.text : 'Turpiniet pa maršrutu'}</p>
-                  {step && (step.ref || step.name) && step.type !== 'arrive' && <p className="truncate text-sm text-white/75">{[step.ref?.split(';')[0], step.name].filter(Boolean).join(' · ')}</p>}
-                  {step?.type === 'arrive' && dest && <p className="truncate text-sm text-white/75">{dest.name}</p>}
+                  {step && (step.ref || step.name) && step.type !== 'arrive' && <p className="truncate text-sm text-(--fg)/75">{[step.ref?.split(';')[0], step.name].filter(Boolean).join(' · ')}</p>}
+                  {step?.type === 'arrive' && dest && <p className="truncate text-sm text-(--fg)/75">{dest.name}</p>}
                 </div>
               </div>
               {then && (
                 <div className="flex items-center gap-2 bg-black/20 px-4 py-2 text-sm font-semibold">
-                  Pēc tam {(() => { const I = MAN[then.icon]; return <I className="h-4 w-4" />; })()} <span className="truncate text-white/80">{then.name || lc(then.text)}</span>
+                  Pēc tam {(() => { const I = MAN[then.icon]; return <I className="h-4 w-4" />; })()} <span className="truncate text-(--fg)/80">{then.name || lc(then.text)}</span>
                 </div>
               )}
             </motion.div>
             <div className="mt-2 flex flex-wrap gap-2">
               {next && next.d < 8000 && (
-                <button onClick={() => { setSel(next.r); setFollow(false); }} className={`pointer-events-auto flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold shadow-xl backdrop-blur-xl ${alert ? 'bg-[#d91d2b]' : 'bg-[#111214]/90'}`}>
-                  {alert ? <AlertTriangle className="h-4 w-4 animate-pulse" /> : <span className="h-3 w-3 rounded-full" style={{ background: KIND[next.r.kind].color }} />}
+                <button onClick={() => { setSel(next.r); setFollow(false); }} className={`pointer-events-auto flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold shadow-xl backdrop-blur-xl ${alert ? 'bg-[#d91d2b] text-white [--fg:#fff]' : 'bg-(--panel)'}`}>
+                  {alert ? <AlertTriangle className="h-4 w-4 animate-pulse" /> : <span className="h-3 w-3 rounded-full text-white" style={{ background: KIND[next.r.kind].color }} />}
                   {KIND[next.r.kind].short} <span className="num">{fmtDist(next.d)}</span>
                   {next.r.speed ? <span className="num grid h-7 w-7 place-items-center rounded-full border-[3px] border-[#d91d2b] bg-white text-xs font-black text-black">{next.r.speed}</span> : null}
                 </button>
               )}
-              {rerouting && <span className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-[#111214]/90 px-3 py-2 text-sm font-semibold"><Loader2 className="h-4 w-4 animate-spin" /> Pārrēķina maršrutu…</span>}
+              {rerouting && <span className="pointer-events-auto flex items-center gap-2 rounded-2xl bg-(--panel) px-3 py-2 text-sm font-semibold"><Loader2 className="h-4 w-4 animate-spin" /> Pārrēķina maršrutu…</span>}
             </div>
           </>
         ) : mode === 'free' ? (
           <>
-            <motion.div layout className={`pointer-events-auto overflow-hidden rounded-[22px] shadow-2xl backdrop-blur-xl transition-colors duration-300 ${alert ? 'bg-[#d91d2b]/95' : 'bg-[#111214]/88'}`}>
+            <motion.div layout className={`pointer-events-auto overflow-hidden rounded-[22px] shadow-2xl backdrop-blur-xl transition-colors duration-300 ${alert ? 'bg-[#d91d2b]/95 text-white [--fg:#fff]' : 'bg-(--panel)'}`}>
               <div className="flex items-center gap-3 p-3.5">
                 {next ? (
                   <>
@@ -878,28 +983,28 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="num text-[2rem] font-black leading-none tracking-tight">{fmtDist(next.d)}</p>
-                      <p className="mt-1 truncate text-[13px] font-semibold text-white/85">{KIND[next.r.kind].short}</p>
-                      <p className="truncate text-xs text-white/60">{next.r.name}</p>
+                      <p className="mt-1 truncate text-[13px] font-semibold text-(--fg)/85">{KIND[next.r.kind].short}</p>
+                      <p className="truncate text-xs text-(--fg)/60">{next.r.name}</p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-emerald-500/20 text-emerald-300"><ShieldCheck className="h-7 w-7" /></span>
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-emerald-500/20 text-(--t-green)"><ShieldCheck className="h-7 w-7" /></span>
                     <div className="min-w-0 flex-1">
                       <p className="text-lg font-bold leading-tight">{pos ? 'Ceļš priekšā brīvs' : err ? 'Nav atrašanās vietas' : 'Nosaku atrašanās vietu…'}</p>
-                      <p className="text-xs text-white/60">{err || `Brīdināsim ${WARN} m pirms radara braukšanas virzienā`}</p>
+                      <p className="text-xs text-(--fg)/60">{err || `Brīdināsim ${WARN} m pirms radara braukšanas virzienā`}</p>
                     </div>
                   </>
                 )}
                 {limit && <SpeedSign v={limit} />}
               </div>
-              {next && <div className="h-1 bg-white/10"><motion.div className="h-full bg-white" animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.8 }} /></div>}
+              {next && <div className="h-1 bg-(--fg)/10"><motion.div className="h-full bg-white" animate={{ width: `${progress * 100}%` }} transition={{ duration: 0.8 }} /></div>}
             </motion.div>
             <div className="pointer-events-auto mt-2 flex gap-2">
               <button onClick={() => setMode('search')} className="flex h-12 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-white px-4 text-left text-[15px] font-semibold text-[#5b6170] shadow-xl">
                 <Search className="h-5 w-5 shrink-0 text-[#2f7bff]" /> <span className="truncate">Kurp brauksim?</span>
               </button>
-              <button onClick={() => choose(TAVS_AUTO)} className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-[#d91d2b] px-4 text-sm font-bold shadow-xl" title="Navigēt uz Tavs Auto autoplaci">
+              <button onClick={() => choose(TAVS_AUTO)} className="flex h-12 shrink-0 items-center gap-2 rounded-full bg-[#d91d2b] px-4 text-sm font-bold shadow-xl text-white" title="Navigēt uz Tavs Auto autoplaci">
                 <Car className="h-5 w-5" /> Tavs Auto
               </button>
             </div>
@@ -929,6 +1034,7 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
             <Ctl onClick={() => setLayerSheet(true)} label="Kartes slāņi" on={layers.size > 0} tone="#2f7bff"><Layers className="h-5 w-5" /></Ctl>
             {layers.size > 0 && <span className="num pointer-events-none absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-white px-1 text-[11px] font-black text-[#2f7bff] shadow">{layers.size}</span>}
           </div>
+          <Ctl onClick={cycleTheme} label={theme === 'auto' ? 'Režīms: automātiski (pēc diennakts laika)' : theme === 'day' ? 'Režīms: diena' : 'Režīms: nakts'}>{theme === 'auto' ? <SunMoon className="h-5 w-5" /> : theme === 'day' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</Ctl>
           {[...layers].slice(0, 4).map((c) => {
             const I = CAT_ICON[c];
             return <Ctl key={c} onClick={() => toggleLayer(c)} label={`Slēpt: ${POI_CATS[c].label}`} on tone={POI_CATS[c].color}>{poiLoading.has(c) ? <Loader2 className="h-5 w-5 animate-spin" /> : <I className="h-5 w-5" />}</Ctl>;
@@ -939,36 +1045,36 @@ export default function RadarDrive({ radars, onClose, initialDest, initialLayers
       {/* ------- Apakša ------- */}
       {(mode === 'free' || mode === 'nav') && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 pb-[calc(0.9rem+env(safe-area-inset-bottom))]">
-          <div className={`pointer-events-auto grid h-[84px] w-[84px] shrink-0 place-items-center rounded-full border-4 shadow-2xl backdrop-blur-xl transition-colors sm:h-[92px] sm:w-[92px] ${over ? 'border-white bg-[#d91d2b]' : 'border-white/15 bg-[#111214]/90'}`}>
+          <div className={`pointer-events-auto grid h-[84px] w-[84px] shrink-0 place-items-center rounded-full border-4 shadow-2xl backdrop-blur-xl transition-colors sm:h-[92px] sm:w-[92px] ${over ? 'border-white bg-[#d91d2b] text-white [--fg:#fff]' : 'border-(--fg)/15 bg-(--panel)'}`}>
             <div className="text-center leading-none">
               <p className="num text-[2rem] font-black">{pos?.speed != null ? pos.speed : '–'}</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-white/60">km/h</p>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-(--fg)/60">km/h</p>
             </div>
           </div>
           {mode === 'nav' && (
-            <button onClick={shareEta} aria-label="Kopīgot ierašanās laiku" className="pointer-events-auto flex min-w-0 flex-1 items-center gap-2 rounded-[22px] bg-[#111214]/92 px-3.5 py-2.5 text-left shadow-2xl backdrop-blur-xl">
+            <button onClick={shareEta} aria-label="Kopīgot ierašanās laiku" className="pointer-events-auto flex min-w-0 flex-1 items-center gap-2 rounded-[22px] bg-(--panel) px-3.5 py-2.5 text-left shadow-2xl backdrop-blur-xl">
               <span className="min-w-0 flex-1">
-                <span className="num block whitespace-nowrap text-[1.45rem] font-black leading-none text-[#4ade80]">{fmtDur(remainSec)}</span>
-                <span className="num mt-1 block truncate text-xs font-semibold text-white/70">{fmtClock(remainSec)} · {fmtDist(remain)}{demo ? ' · DEMO' : ''}</span>
+                <span className="num block whitespace-nowrap text-[1.45rem] font-black leading-none text-(--t-green)">{fmtDur(remainSec)}</span>
+                <span className="num mt-1 block truncate text-xs font-semibold text-(--fg)/70">{fmtClock(remainSec)} · {fmtDist(remain)}{demo ? ' · DEMO' : ''}</span>
               </span>
-              <Share2 className="h-4 w-4 shrink-0 text-white/50" />
+              <Share2 className="h-4 w-4 shrink-0 text-(--fg)/50" />
             </button>
           )}
           {mode === 'free' && demo && <span className="pointer-events-auto mb-2 rounded-full bg-white/90 px-3 py-1 text-xs font-black text-black">DEMO</span>}
           <div className="pointer-events-auto flex flex-col items-end gap-2">
             {!follow && (
-              <button onClick={() => { setSel(null); setPoiSel(null); setFollow(true); }} className="flex h-12 items-center gap-2 rounded-full bg-[#2f7bff] px-4 text-sm font-bold shadow-xl"><LocateFixed className="h-5 w-5" /> Centrēt</button>
+              <button onClick={() => { setSel(null); setPoiSel(null); setFollow(true); }} className="flex h-12 items-center gap-2 rounded-full bg-[#2f7bff] px-4 text-sm font-bold shadow-xl text-white"><LocateFixed className="h-5 w-5" /> Centrēt</button>
             )}
             <div className="flex gap-2">
               {mode === 'nav' ? (
                 <>
-                  <Ctl onClick={() => setSound((v) => !v)} label={sound ? 'Izslēgt skaņu' : 'Ieslēgt skaņu'}>{sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</Ctl>
+                  <Ctl onClick={() => { unlockVoice(); setSound((v) => { if (!v) setTimeout(() => speak(['ready'], 1), 50); return !v; }); }} label={sound ? 'Izslēgt skaņu' : 'Ieslēgt skaņu'}>{sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</Ctl>
                   <Ctl onClick={endNav} label="Beigt navigāciju" tone="#d91d2b" on><X className="h-5 w-5" /></Ctl>
                 </>
               ) : (
                 <>
                   <Ctl onClick={() => setThree((v) => !v)} label={three ? '2D' : '3D'}>{three ? <Square className="h-5 w-5" /> : <Box className="h-5 w-5" />}</Ctl>
-                  <Ctl onClick={() => setSound((v) => !v)} label={sound ? 'Izslēgt skaņu' : 'Ieslēgt skaņu'}>{sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</Ctl>
+                  <Ctl onClick={() => { unlockVoice(); setSound((v) => { if (!v) setTimeout(() => speak(['ready'], 1), 50); return !v; }); }} label={sound ? 'Izslēgt skaņu' : 'Ieslēgt skaņu'}>{sound ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</Ctl>
                   <Ctl onClick={onClose} label="Aizvērt"><X className="h-5 w-5" /></Ctl>
                 </>
               )}
@@ -1045,7 +1151,7 @@ function Sheet({ children, onClose, label, z = 'z-20', maxH = 'max-h-[78dvh]' }:
       animate={{ y: 0 }}
       exit={{ y: '100%' }}
       transition={{ type: 'spring', stiffness: 380, damping: 36 }}
-      className={`absolute inset-x-0 bottom-0 ${z} ${maxH} overflow-y-auto overscroll-contain rounded-t-[28px] bg-[#141518]/97 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_60px_rgba(0,0,0,.5)] backdrop-blur-xl lg:bottom-4 lg:left-4 lg:right-auto lg:w-[420px] lg:rounded-[28px]`}
+      className={`absolute inset-x-0 bottom-0 ${z} ${maxH} overflow-y-auto overscroll-contain rounded-t-[28px] bg-(--sheet) px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-20px_60px_rgba(0,0,0,.5)] backdrop-blur-xl lg:bottom-4 lg:left-4 lg:right-auto lg:w-[420px] lg:rounded-[28px]`}
     >
       <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-white/20 lg:hidden" />
       {children}
@@ -1088,13 +1194,13 @@ function SearchSheet({ near, onBack, onPick, onNearest }: { near: LL | null; onB
 
   const Row = ({ p, icon }: { p: Place; icon: React.ReactNode }) => (
     <li>
-      <button onClick={() => onPick(p)} className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition hover:bg-white/[0.06] active:bg-white/10">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10">{icon}</span>
+      <button onClick={() => onPick(p)} className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition hover:bg-(--fg)/[0.06] active:bg-(--fg)/10">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--fg)/10">{icon}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate font-semibold">{p.name}</span>
-          {p.sub && <span className="block truncate text-sm text-white/55">{p.sub}</span>}
+          {p.sub && <span className="block truncate text-sm text-(--fg)/55">{p.sub}</span>}
         </span>
-        {near && <span className="num shrink-0 text-xs font-semibold text-white/50">{fmtDist(distance(near, [p.lat, p.lng]))}</span>}
+        {near && <span className="num shrink-0 text-xs font-semibold text-(--fg)/50">{fmtDist(distance(near, [p.lat, p.lng]))}</span>}
       </button>
     </li>
   );
@@ -1108,50 +1214,50 @@ function SearchSheet({ near, onBack, onPick, onNearest }: { near: LL | null; onB
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }} transition={{ duration: 0.22 }} className="absolute inset-0 z-30 flex flex-col bg-[#0f1013]/97 backdrop-blur-xl lg:inset-auto lg:left-4 lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:w-[420px] lg:rounded-[28px] lg:shadow-2xl">
+    <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 24 }} transition={{ duration: 0.22 }} className="absolute inset-0 z-30 flex flex-col bg-(--sheet) backdrop-blur-xl lg:inset-auto lg:left-4 lg:top-4 lg:max-h-[calc(100dvh-2rem)] lg:w-[420px] lg:rounded-[28px] lg:shadow-2xl">
       <div className="flex items-center gap-2 p-3 pt-[calc(0.75rem+env(safe-area-inset-top))]">
-        <button onClick={onBack} aria-label="Atpakaļ" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10"><ArrowLeft className="h-5 w-5" /></button>
+        <button onClick={onBack} aria-label="Atpakaļ" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-(--fg)/10"><ArrowLeft className="h-5 w-5" /></button>
         <div className="relative flex-1">
-          <input ref={inp} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Adrese, vieta vai pilsēta" enterKeyHint="search" onKeyDown={(e) => e.key === 'Enter' && res[0] && onPick(res[0])} className="h-12 w-full rounded-full bg-white px-5 pr-11 text-[16px] font-medium text-black outline-none placeholder:text-[#7b8090]" aria-label="Meklēt galamērķi" />
+          <input ref={inp} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Adrese, vieta vai pilsēta" enterKeyHint="search" onKeyDown={(e) => e.key === 'Enter' && res[0] && onPick(res[0])} className="h-12 w-full rounded-full bg-white px-5 pr-11 ring-1 ring-black/15 text-[16px] font-medium text-black outline-none placeholder:text-[#7b8090]" aria-label="Meklēt galamērķi" />
           {busy ? <Loader2 className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin text-[#2f7bff]" /> : q && <button onClick={() => setQ('')} aria-label="Notīrīt" className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7b8090]"><X className="h-5 w-5" /></button>}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {q.trim().length >= 2 ? (
           <ul className="mt-1">
-            {res.map((p) => <Row key={p.id} p={p} icon={<MapPin className="h-5 w-5 text-white/80" />} />)}
-            {!busy && !res.length && <li className="px-3 py-6 text-center text-sm text-white/50">Nekas netika atrasts. Pamēģini ielu ar pilsētu, piem. „Brīvības iela 100, Rīga”.</li>}
+            {res.map((p) => <Row key={p.id} p={p} icon={<MapPin className="h-5 w-5 text-(--fg)/80" />} />)}
+            {!busy && !res.length && <li className="px-3 py-6 text-center text-sm text-(--fg)/50">Nekas netika atrasts. Pamēģini ielu ar pilsētu, piem. „Brīvības iela 100, Rīga”.</li>}
           </ul>
         ) : (
           <>
-            <button onClick={() => onPick(TAVS_AUTO)} className="group mt-1 flex w-full items-center gap-3.5 overflow-hidden rounded-[22px] bg-gradient-to-br from-[#d91d2b] to-[#8f0f19] p-4 text-left shadow-xl">
+            <button onClick={() => onPick(TAVS_AUTO)} className="group mt-1 flex w-full items-center gap-3.5 overflow-hidden rounded-[22px] bg-gradient-to-br from-[#d91d2b] to-[#8f0f19] p-4 text-left shadow-xl text-white [--fg:#fff]">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white text-base font-black text-[#d91d2b]">TA</span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[17px] font-black">Tavs Auto autoplacis</span>
-                <span className="block truncate text-sm text-white/80">{TAVS_AUTO.sub} · {TAVS_CONTACT.hours}</span>
+                <span className="block truncate text-sm text-(--fg)/80">{TAVS_AUTO.sub} · {TAVS_CONTACT.hours}</span>
               </span>
               <ChevronRight className="h-5 w-5 shrink-0 transition group-hover:translate-x-1" />
             </button>
-            <p className="mb-1.5 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-white/40">Tuvākā</p>
+            <p className="mb-1.5 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-(--fg)/40">Tuvākā</p>
             <div className="grid grid-cols-3 gap-2">
               {(['fuel', 'ev', 'parking', 'pharmacy', 'shop', 'auto'] as PoiCat[]).map((k) => {
                 const I = CAT_ICON[k];
                 return (
-                  <button key={k} onClick={() => quick(k)} className="flex flex-col items-center gap-1.5 rounded-2xl bg-white/[0.07] px-2 py-3 text-xs font-bold transition hover:bg-white/10 active:scale-95">
-                    <span className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: POI_CATS[k].color }}>{poiBusy === k ? <Loader2 className="h-5 w-5 animate-spin" /> : <I className="h-5 w-5" />}</span>
+                  <button key={k} onClick={() => quick(k)} className="flex flex-col items-center gap-1.5 rounded-2xl bg-(--fg)/[0.07] px-2 py-3 text-xs font-bold transition hover:bg-(--fg)/10 active:scale-95">
+                    <span className="grid h-10 w-10 place-items-center rounded-xl text-white" style={{ background: POI_CATS[k].color }}>{poiBusy === k ? <Loader2 className="h-5 w-5 animate-spin" /> : <I className="h-5 w-5" />}</span>
                     {k === 'fuel' ? 'Degviela' : POI_CATS[k].label}
                   </button>
                 );
               })}
             </div>
-            {miss && <p className="mt-2 rounded-xl bg-white/[0.06] p-3 text-sm text-white/70">{miss}</p>}
+            {miss && <p className="mt-2 rounded-xl bg-(--fg)/[0.06] p-3 text-sm text-(--fg)/70">{miss}</p>}
             {recent.length > 0 && (
               <>
-                <p className="mb-1 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-white/40">Nesen</p>
-                <ul>{recent.map((p) => <Row key={p.id} p={p} icon={<Clock className="h-5 w-5 text-white/70" />} />)}</ul>
+                <p className="mb-1 mt-5 px-2 text-xs font-bold uppercase tracking-wider text-(--fg)/40">Nesen</p>
+                <ul>{recent.map((p) => <Row key={p.id} p={p} icon={<Clock className="h-5 w-5 text-(--fg)/70" />} />)}</ul>
               </>
             )}
-            <p className="mt-6 px-2 text-xs leading-relaxed text-white/40">Maršrutā parādīsim visus stacionāros radarus, vidējā ātruma posmus un iespējamās mobilo radaru vietas. Atrašanās vieta paliek tikai tavā ierīcē.</p>
+            <p className="mt-6 px-2 text-xs leading-relaxed text-(--fg)/40">Maršrutā parādīsim visus stacionāros radarus, vidējā ātruma posmus un iespējamās mobilo radaru vietas. Atrašanās vieta paliek tikai tavā ierīcē.</p>
           </>
         )}
       </div>
@@ -1162,10 +1268,10 @@ function SearchSheet({ near, onBack, onPick, onNearest }: { near: LL | null; onB
 function KindDots({ list }: { list: { r: Radar }[] }) {
   const c = list.reduce((a, x) => ((a[x.r.kind] = (a[x.r.kind] || 0) + 1), a), {} as Partial<Record<RadarKind, number>>);
   const ks = (['fixed', 'average', 'mobile'] as RadarKind[]).filter((k) => c[k]);
-  if (!ks.length) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300"><ShieldCheck className="h-3.5 w-3.5" /> Bez radariem</span>;
+  if (!ks.length) return <span className="inline-flex items-center gap-1 text-xs font-semibold text-(--t-green)"><ShieldCheck className="h-3.5 w-3.5" /> Bez radariem</span>;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2.5 gap-y-1">
-      {ks.map((k) => <span key={k} className="inline-flex items-center gap-1 text-xs font-semibold text-white/85"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white/80" style={{ background: KIND[k].color }} />{c[k]} {k === 'fixed' ? 'foto' : k === 'average' ? 'vid. ātr.' : 'mob.'}</span>)}
+      {ks.map((k) => <span key={k} className="inline-flex items-center gap-1 text-xs font-semibold text-(--fg)/85"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white/80 text-white" style={{ background: KIND[k].color }} />{c[k]} {k === 'fixed' ? 'foto' : k === 'average' ? 'vid. ātr.' : 'mob.'}</span>)}
     </span>
   );
 }
@@ -1185,15 +1291,15 @@ function PreviewSheet(props: {
         <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${dest.special ? 'bg-[#d91d2b] text-sm font-black' : 'bg-[#ea4335]'}`}>{dest.special ? 'TA' : <MapPin className="h-5 w-5" />}</span>
         <button onClick={onSearch} className="min-w-0 flex-1 text-left">
           <h3 className="truncate text-lg font-bold leading-tight">{dest.name}</h3>
-          <p className="truncate text-sm text-white/55">{dest.sub}</p>
+          <p className="truncate text-sm text-(--fg)/55">{dest.sub}</p>
         </button>
-        <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--fg)/10"><X className="h-5 w-5" /></button>
       </div>
 
-      {routing && !routes.length && <div className="mt-6 flex items-center justify-center gap-2 py-6 text-white/70"><Loader2 className="h-5 w-5 animate-spin" /> Aprēķinu maršrutu un radarus…</div>}
+      {routing && !routes.length && <div className="mt-6 flex items-center justify-center gap-2 py-6 text-(--fg)/70"><Loader2 className="h-5 w-5 animate-spin" /> Aprēķinu maršrutu un radarus…</div>}
       {err && (
-        <div className="mt-4 rounded-2xl bg-[#d91d2b]/15 p-4 text-sm text-[#ffb4b9]">
-          {err}. <button onClick={onRetry} className="font-bold text-white underline">Mēģināt vēlreiz</button>
+        <div className="mt-4 rounded-2xl bg-[#d91d2b]/15 p-4 text-sm text-(--t-red)">
+          {err}. <button onClick={onRetry} className="font-bold text-(--fg) underline">Mēģināt vēlreiz</button>
         </div>
       )}
 
@@ -1201,48 +1307,48 @@ function PreviewSheet(props: {
         <>
           <div className="mt-4 flex snap-x gap-2 overflow-x-auto pb-1">
             {routes.map((x, i) => (
-              <button key={i} onClick={() => setRi(i)} className={`min-w-[150px] flex-1 snap-start rounded-2xl p-3 text-left transition ${i === ri ? 'bg-[#2f7bff] shadow-lg' : 'bg-white/[0.07] hover:bg-white/10'}`}>
+              <button key={i} onClick={() => setRi(i)} className={`min-w-[150px] flex-1 snap-start rounded-2xl p-3 text-left transition ${i === ri ? 'bg-[#2f7bff] text-white shadow-lg [--fg:#fff]' : 'bg-(--fg)/[0.07] hover:bg-(--fg)/10'}`}>
                 <p className="num text-xl font-black leading-none">{fmtDur(x.duration)}</p>
-                <p className="num mt-1 text-xs font-semibold text-white/75">{fmtDist(x.distance)}{x.summary ? ` · ${x.summary}` : ''}</p>
+                <p className="num mt-1 text-xs font-semibold text-(--fg)/75">{fmtDist(x.distance)}{x.summary ? ` · ${x.summary}` : ''}</p>
                 <div className="mt-2"><KindDots list={x.radars} /></div>
                 {routes.length > 1 && x.duration === fastest && <p className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-[#a7f3d0]">Ātrākais</p>}
-                {routes.length > 1 && x.duration !== fastest && x.radars.length < Math.min(...routes.map((y) => y.radars.length)) + 1 && x.radars.length < routes[0].radars.length && <p className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-[#fde68a]">Mazāk radaru</p>}
+                {routes.length > 1 && x.duration !== fastest && x.radars.length < Math.min(...routes.map((y) => y.radars.length)) + 1 && x.radars.length < routes[0].radars.length && <p className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-(--t-amber)">Mazāk radaru</p>}
               </button>
             ))}
           </div>
-          {r && <p className="num mt-2 text-sm text-white/60">Ierašanās ap <b className="text-white">{fmtClock(r.duration)}</b>{fromCenter ? ' · maršruts no Rīgas centra (atrašanās vieta nav noteikta)' : ''}</p>}
+          {r && <p className="num mt-2 text-sm text-(--fg)/60">Ierašanās ap <b className="text-(--fg)">{fmtClock(r.duration)}</b>{fromCenter ? ' · maršruts no Rīgas centra (atrašanās vieta nav noteikta)' : ''}</p>}
 
           <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
-            <button onClick={() => onStart(!hasPos)} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#2f7bff] text-[17px] font-black shadow-xl active:scale-[.98]">
+            <button onClick={() => onStart(!hasPos)} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#2f7bff] text-[17px] font-black shadow-xl active:scale-[.98] text-white">
               <Navigation2 className="h-5 w-5 fill-white" /> {hasPos ? 'Sākt' : 'Sākt demonstrāciju'}
             </button>
-            {hasPos && <button onClick={() => onStart(true)} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-white/10 px-4 text-sm font-bold"><Play className="h-4 w-4" /> Demo</button>}
+            {hasPos && <button onClick={() => onStart(true)} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-(--fg)/10 px-4 text-sm font-bold"><Play className="h-4 w-4" /> Demo</button>}
             {!hasPos && <span />}
           </div>
 
           {r && r.radars.length > 0 && (
             <div className="mt-5">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-white/45"><RouteIcon className="h-3.5 w-3.5" /> Radari maršrutā ({r.radars.length})</p>
-              <ul className="divide-y divide-white/[0.06] overflow-hidden rounded-2xl bg-white/[0.04]">
+              <p className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-(--fg)/45"><RouteIcon className="h-3.5 w-3.5" /> Radari maršrutā ({r.radars.length})</p>
+              <ul className="divide-y divide-(--fg)/[0.08] overflow-hidden rounded-2xl bg-(--fg)/[0.04]">
                 {r.radars.slice(0, 12).map(({ r: x, at }) => (
                   <li key={x.id}>
-                    <button onClick={() => onRadar(x)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-white/[0.05]">
-                      <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: KIND[x.kind].color }} />
+                    <button onClick={() => onRadar(x)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left hover:bg-(--fg)/[0.05]">
+                      <span className="h-3 w-3 shrink-0 rounded-full text-white" style={{ background: KIND[x.kind].color }} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold">{x.name}</span>
-                        <span className="text-xs text-white/50">{KIND[x.kind].short}{x.speed ? ` · ${x.speed} km/h` : ''}</span>
+                        <span className="text-xs text-(--fg)/50">{KIND[x.kind].short}{x.speed ? ` · ${x.speed} km/h` : ''}</span>
                       </span>
-                      <span className="num shrink-0 text-xs font-bold text-white/70">{fmtDist(at)}</span>
+                      <span className="num shrink-0 text-xs font-bold text-(--fg)/70">{fmtDist(at)}</span>
                     </button>
                   </li>
                 ))}
               </ul>
-              {r.radars.length > 12 && <p className="mt-1.5 text-center text-xs text-white/45">+ vēl {r.radars.length - 12} kartē</p>}
+              {r.radars.length > 12 && <p className="mt-1.5 text-center text-xs text-(--fg)/45">+ vēl {r.radars.length - 12} kartē</p>}
             </div>
           )}
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <a href={waze} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-2xl bg-white/[0.07] text-sm font-bold">Atvērt Waze</a>
-            <a href={gm} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-2xl bg-white/[0.07] text-sm font-bold">Google Maps</a>
+            <a href={waze} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-2xl bg-(--fg)/[0.07] text-sm font-bold">Atvērt Waze</a>
+            <a href={gm} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-2xl bg-(--fg)/[0.07] text-sm font-bold">Google Maps</a>
           </div>
         </>
       )}
@@ -1259,19 +1365,19 @@ function ArrivedSheet({ dest, onDone }: { dest: Place; onDone: () => void }) {
           <Flag className="h-8 w-8" />
         </motion.span>
         <h3 className="mt-3 text-xl font-black">{ta ? 'Laipni lūdzam Tavs Auto!' : 'Esat galamērķī'}</h3>
-        <p className="mt-1 text-sm text-white/60">{dest.name}{dest.sub ? ` · ${dest.sub}` : ''}</p>
+        <p className="mt-1 text-sm text-(--fg)/60">{dest.name}{dest.sub ? ` · ${dest.sub}` : ''}</p>
       </div>
       {ta ? (
         <>
-          <p className="mt-4 rounded-2xl bg-white/[0.06] p-3.5 text-center text-sm text-white/75">Darba laiks: {TAVS_CONTACT.hours}. Piezvani — sagaidīsim pie vārtiem un parādīsim auto.</p>
+          <p className="mt-4 rounded-2xl bg-(--fg)/[0.06] p-3.5 text-center text-sm text-(--fg)/75">Darba laiks: {TAVS_CONTACT.hours}. Piezvani — sagaidīsim pie vārtiem un parādīsim auto.</p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <a href={`tel:${TAVS_CONTACT.phone.replace(/\s/g, '')}`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-bold text-black"><Phone className="h-5 w-5" /> Zvanīt</a>
             <a href={`https://wa.me/${TAVS_CONTACT.wa}?text=${encodeURIComponent('Sveiki! Esmu ieradies autoplacī.')}`} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#25d366] font-bold text-[#062b14]"><MessageCircle className="h-5 w-5" /> WhatsApp</a>
-            <a href="/katalogs" className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d91d2b] font-bold"><Car className="h-5 w-5" /> Skatīt auto piedāvājumu</a>
+            <a href="/katalogs" className="col-span-2 flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d91d2b] font-bold text-white"><Car className="h-5 w-5" /> Skatīt auto piedāvājumu</a>
           </div>
         </>
       ) : null}
-      <button onClick={onDone} className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-white/10 font-bold">Gatavs</button>
+      <button onClick={onDone} className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl bg-(--fg)/10 font-bold">Gatavs</button>
     </Sheet>
   );
 }
@@ -1283,26 +1389,26 @@ function LayerSheet({ on, counts, loading, toggle, clear, onClose }: { on: Set<P
       <motion.div className="absolute inset-0 z-[25] bg-black/30" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       <Sheet onClose={onClose} label="Kartes slāņi" z="z-[26]">
         <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#2f7bff]"><Layers className="h-5 w-5" /></span>
+          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#2f7bff] text-white"><Layers className="h-5 w-5" /></span>
           <div className="flex-1">
             <h3 className="text-lg font-bold leading-tight">Kartes slāņi</h3>
-            <p className="text-sm text-white/55">Izvēlies, ko rādīt kartē visā Latvijā</p>
+            <p className="text-sm text-(--fg)/55">Izvēlies, ko rādīt kartē visā Latvijā</p>
           </div>
-          <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 place-items-center rounded-full bg-white/10"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 place-items-center rounded-full bg-(--fg)/10"><X className="h-5 w-5" /></button>
         </div>
         {groups.map(([g, cats]) => (
           <div key={g}>
-            <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-white/40">{g}</p>
+            <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-wider text-(--fg)/40">{g}</p>
             <div className="grid grid-cols-2 gap-2">
               {cats.map((c) => {
                 const I = CAT_ICON[c];
                 const active = on.has(c);
                 return (
-                  <button key={c} onClick={() => toggle(c)} aria-pressed={active} className={`flex items-center gap-3 rounded-2xl p-3 text-left transition active:scale-[.98] ${active ? 'bg-white text-black' : 'bg-white/[0.07] hover:bg-white/10'}`}>
+                  <button key={c} onClick={() => toggle(c)} aria-pressed={active} className={`flex items-center gap-3 rounded-2xl p-3 text-left transition active:scale-[.98] ${active ? 'bg-[#2f7bff]/15 ring-2 ring-[#2f7bff]' : 'bg-(--fg)/[0.07] hover:bg-(--fg)/10'}`}>
                     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: POI_CATS[c].color }}>{loading.has(c) ? <Loader2 className="h-5 w-5 animate-spin" /> : <I className="h-5 w-5" />}</span>
                     <span className="min-w-0">
                       <span className="block text-sm font-bold leading-tight">{POI_CATS[c].label}</span>
-                      <span className={`block truncate text-[11px] ${active ? 'text-black/55' : 'text-white/45'}`}>{counts[c] != null ? `${counts[c]} vietas` : POI_CATS[c].hint}</span>
+                      <span className={`block truncate text-[11px] text-(--fg)/50`}>{counts[c] != null ? `${counts[c]} vietas` : POI_CATS[c].hint}</span>
                     </span>
                   </button>
                 );
@@ -1311,23 +1417,23 @@ function LayerSheet({ on, counts, loading, toggle, clear, onClose }: { on: Set<P
           </div>
         ))}
         {on.has('fuel') && (
-          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 rounded-2xl bg-white/[0.05] p-3 text-xs text-white/70">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 rounded-2xl bg-(--fg)/[0.05] p-3 text-xs text-(--fg)/70">
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#16a34a]" /> Degviela</span>
             <span className="flex items-center gap-1.5"><span className="grid h-4 w-4 place-items-center rounded-full bg-white text-[9px] font-black text-[#16a34a]">G</span> Ir arī gāze (LPG/CNG)</span>
           </div>
         )}
         {on.has('parking') && (
-          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 rounded-2xl bg-white/[0.05] p-3 text-xs text-white/70">
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 rounded-2xl bg-(--fg)/[0.05] p-3 text-xs text-(--fg)/70">
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#16a34a]" /> Bezmaksas</span>
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#2563eb]" /> Maksas (€)</span>
             <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#64748b]" /> Nav zināms</span>
           </div>
         )}
         <div className="mt-4 flex gap-2">
-          {on.size > 0 && <button onClick={clear} className="h-12 flex-1 rounded-2xl bg-white/10 font-bold">Notīrīt</button>}
-          <button onClick={onClose} className="h-12 flex-1 rounded-2xl bg-[#2f7bff] font-bold">Gatavs</button>
+          {on.size > 0 && <button onClick={clear} className="h-12 flex-1 rounded-2xl bg-(--fg)/10 font-bold">Notīrīt</button>}
+          <button onClick={onClose} className="h-12 flex-1 rounded-2xl bg-[#2f7bff] font-bold text-white">Gatavs</button>
         </div>
-        <p className="mt-3 text-center text-[11px] text-white/35">Dati: © OpenStreetMap līdzautori · atjaunojam katru dienu</p>
+        <p className="mt-3 text-center text-[11px] text-(--fg)/35">Dati: © OpenStreetMap līdzautori · atjaunojam katru dienu</p>
       </Sheet>
     </>
   );
@@ -1343,13 +1449,13 @@ function PoiSheet({ p, pos, onClose, onGo }: { p: Poi; pos: Pos | null; onClose:
   return (
     <Sheet onClose={onClose} label={p.n}>
       <div className="flex items-start gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-4 ring-white/10" style={{ background: color }}><I className="h-6 w-6" /></span>
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-4 ring-(--fg)/10 text-white" style={{ background: color }}><I className="h-6 w-6" /></span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold uppercase tracking-wider" style={{ color }}>{sub}{p.b ? ` · ${p.b}` : ''}</p>
           <h3 className="mt-1 text-lg font-bold leading-snug">{p.n}</h3>
-          {p.a && <p className="text-sm text-white/55">{p.a}</p>}
+          {p.a && <p className="text-sm text-(--fg)/55">{p.a}</p>}
         </div>
-        <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><X className="h-5 w-5" /></button>
+        <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--fg)/10"><X className="h-5 w-5" /></button>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2">
         {fee && <Fact l="Maksa" v={fee} />}
@@ -1359,10 +1465,10 @@ function PoiSheet({ p, pos, onClose, onGo }: { p: Poi; pos: Pos | null; onClose:
         {p.c ? <Fact l={p.k === 'ev' ? 'Uzlādes vietas' : 'Vietu skaits'} v={String(p.c)} /> : null}
       </div>
       <div className={`mt-4 grid gap-2 ${p.ph ? 'grid-cols-[1fr_auto]' : ''}`}>
-        <button onClick={onGo} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#2f7bff] text-[17px] font-black"><Navigation2 className="h-5 w-5 fill-white" /> Navigēt šeit</button>
-        {p.ph && <a href={`tel:${p.ph.replace(/\s/g, '')}`} aria-label="Zvanīt" className="grid h-14 w-14 place-items-center rounded-2xl bg-white/10"><Phone className="h-5 w-5" /></a>}
+        <button onClick={onGo} className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#2f7bff] text-[17px] font-black text-white"><Navigation2 className="h-5 w-5 fill-white" /> Navigēt šeit</button>
+        {p.ph && <a href={`tel:${p.ph.replace(/\s/g, '')}`} aria-label="Zvanīt" className="grid h-14 w-14 place-items-center rounded-2xl bg-(--fg)/10"><Phone className="h-5 w-5" /></a>}
       </div>
-      <p className="mt-3 text-center text-[11px] text-white/35">Dati: © OpenStreetMap līdzautori · var nebūt pilnīgi</p>
+      <p className="mt-3 text-center text-[11px] text-(--fg)/35">Dati: © OpenStreetMap līdzautori · var nebūt pilnīgi</p>
     </Sheet>
   );
 }
@@ -1372,8 +1478,8 @@ const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec %
 
 function Fact({ l, v }: { l: string; v: React.ReactNode }) {
   return (
-    <div className="rounded-2xl bg-white/[0.06] px-3.5 py-2.5">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">{l}</p>
+    <div className="rounded-2xl bg-(--fg)/[0.06] px-3.5 py-2.5">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-(--fg)/45">{l}</p>
       <p className="num mt-0.5 text-lg font-bold leading-tight">{v}</p>
     </div>
   );
@@ -1401,13 +1507,13 @@ function RadarSheet({ r, pos, onClose, onResume }: { r: Radar; pos: Pos | null; 
       <motion.div className="absolute inset-0 z-[25]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
       <Sheet onClose={onClose} label={r.name} z="z-[26]">
         <div className="flex items-start gap-3">
-          <span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full ring-4 ring-white/10" style={{ background: k.color }} />
+          <span className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded-full ring-4 ring-(--fg)/10 text-white" style={{ background: k.color }} />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold uppercase tracking-wider" style={{ color: k.color }}>{k.short}{r.road ? ` · ${r.road}` : ''}{r.region ? ` · ${r.region}` : ''}</p>
             <h3 className="mt-1 text-lg font-bold leading-snug">{r.name}</h3>
           </div>
           {r.speed ? <SpeedSign v={r.speed} /> : null}
-          <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} aria-label="Aizvērt" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-(--fg)/10"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
@@ -1420,21 +1526,21 @@ function RadarSheet({ r, pos, onClose, onResume }: { r: Radar; pos: Pos | null; 
         </div>
 
         {r.kind === 'average' && (
-          <p className="mt-4 rounded-2xl bg-[#f59e0b]/12 p-3.5 text-sm leading-relaxed text-[#ffd48a]">
+          <p className="mt-4 rounded-2xl bg-[#f59e0b]/12 p-3.5 text-sm leading-relaxed text-(--t-amber)">
             Kameras posma sākumā un beigās aprēķina vidējo ātrumu. {minTime ? <>Ievērojot {r.speed} km/h, posmu nevajadzētu izbraukt ātrāk par <b>{mmss(minTime)}</b>.</> : 'Ievēro atļauto ātrumu visā posmā.'}
           </p>
         )}
-        {r.kind === 'mobile' && <p className="mt-4 rounded-2xl bg-[#3b82f6]/12 p-3.5 text-sm leading-relaxed text-[#a9c8ff]">Valsts policijas publicēta vieta, kur <b>var</b> atrasties pārvietojamais fotoradars. Tas tur nav vienmēr.{r.approx ? ' Vieta kartē noteikta pēc adreses — aptuveni.' : ''}</p>}
-        {r.note && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-wider text-white/45">{r.kind === 'fixed' ? 'Kāpēc šeit ir radars' : 'Piezīme'}</p><p className="mt-1 text-sm leading-relaxed text-white/80">{r.note}</p></div>}
-        {r.direction && <p className="mt-3 text-sm text-white/70">Kontroles virziens: <b className="text-white">{r.direction}</b></p>}
+        {r.kind === 'mobile' && <p className="mt-4 rounded-2xl bg-[#3b82f6]/12 p-3.5 text-sm leading-relaxed text-(--t-blue)">Valsts policijas publicēta vieta, kur <b>var</b> atrasties pārvietojamais fotoradars. Tas tur nav vienmēr.{r.approx ? ' Vieta kartē noteikta pēc adreses — aptuveni.' : ''}</p>}
+        {r.note && <div className="mt-4"><p className="text-[11px] font-semibold uppercase tracking-wider text-(--fg)/45">{r.kind === 'fixed' ? 'Kāpēc šeit ir radars' : 'Piezīme'}</p><p className="mt-1 text-sm leading-relaxed text-(--fg)/80">{r.note}</p></div>}
+        {r.direction && <p className="mt-3 text-sm text-(--fg)/70">Kontroles virziens: <b className="text-(--fg)">{r.direction}</b></p>}
 
         <div className="mt-5 grid grid-cols-2 gap-2">
           {waze && <a href={waze} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#33ccff] font-bold text-[#0b1a22]">Waze</a>}
           {gm && <a href={gm} target="_blank" rel="noopener noreferrer" className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-bold text-black">Google Maps</a>}
-          <button onClick={onResume} className="flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#2f7bff] text-sm font-bold"><LocateFixed className="h-5 w-5" /> Turpināt</button>
-          <button onClick={share} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white/10 font-bold">Kopīgot</button>
+          <button onClick={onResume} className="flex h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-[#2f7bff] text-sm font-bold text-white"><LocateFixed className="h-5 w-5" /> Turpināt</button>
+          <button onClick={share} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-(--fg)/10 font-bold">Kopīgot</button>
         </div>
-        <p className="mt-4 text-center text-[11px] text-white/35">Avots: {r.source === 'csdd' ? 'CSDD' : r.source === 'vp' ? 'Valsts policija' : r.source === 'osm' ? 'OpenStreetMap' : 'Tavs Auto'} · informācija uzziņai</p>
+        <p className="mt-4 text-center text-[11px] text-(--fg)/35">Avots: {r.source === 'csdd' ? 'CSDD' : r.source === 'vp' ? 'Valsts policija' : r.source === 'osm' ? 'OpenStreetMap' : 'Tavs Auto'} · informācija uzziņai</p>
       </Sheet>
     </>
   );
@@ -1442,7 +1548,7 @@ function RadarSheet({ r, pos, onClose, onResume }: { r: Radar; pos: Pos | null; 
 
 function Ctl({ onClick, label, children, on, tone }: { onClick: () => void; label: string; children: React.ReactNode; on?: boolean; tone?: string }) {
   return (
-    <button onClick={onClick} aria-label={label} title={label} aria-pressed={on} style={on && tone ? { background: tone } : undefined} className="grid h-12 w-12 place-items-center rounded-full bg-[#111214]/90 shadow-xl backdrop-blur-xl transition active:scale-90">
+    <button onClick={onClick} aria-label={label} title={label} aria-pressed={on} style={on && tone ? { background: tone } : undefined} className="grid h-12 w-12 place-items-center rounded-full bg-(--panel) shadow-xl backdrop-blur-xl transition active:scale-90">
       {children}
     </button>
   );
