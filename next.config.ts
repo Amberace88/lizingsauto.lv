@@ -6,7 +6,7 @@ const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net",
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://lizingsauto.lv ${SUPABASE} https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com`,
+  `img-src 'self' data: blob: https://tile.openstreetmap.org https://lizingsauto.lv ${SUPABASE} https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com`,
   "font-src 'self' data:",
   `connect-src 'self' https://nominatim.openstreetmap.org ${SUPABASE} wss://kxnzcwnvtvxrgxkfhbtu.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net`,
   'frame-src https://maps.google.com https://www.google.com',

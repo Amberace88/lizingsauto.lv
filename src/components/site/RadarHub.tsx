@@ -86,12 +86,14 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
       if (cancelled || !mapEl.current || map.current) return;
       L.current = lf;
       const m = lf.map(mapEl.current, { zoomControl: false, attributionControl: true, preferCanvas: true }).setView([56.88, 24.6], 7);
-      const dark = document.documentElement.dataset.theme === 'dark';
-      lf.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'rastertiles/voyager'}/{z}/{x}/{y}{r}.png`, {
-        subdomains: 'abcd',
+      lf.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a> · dati: CSDD, VP',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · dati: CSDD, VP',
       }).addTo(m);
+      // Mazā tālummaiņā punkti mazāki, lai karte nebūtu pārblīvēta
+      const zoomClass = () => mapEl.current?.classList.toggle('rdr-low', m.getZoom() <= 8);
+      m.on('zoomend', zoomClass);
+      zoomClass();
       lf.control.zoom({ position: 'bottomright' }).addTo(m);
       layer.current = lf.layerGroup().addTo(m);
       me.current = lf.layerGroup().addTo(m);
@@ -123,7 +125,7 @@ export function RadarHub({ radars, preset = {}, height = 'h-[62vh] min-h-[420px]
         }
       }
       if (r.lat != null && r.lng != null) {
-        lf.marker([r.lat, r.lng], { icon: lf.divIcon({ html: pin(r.kind, r.approx), className: '', iconSize: [28, 28], iconAnchor: [14, 14] }), title: r.name, riseOnHover: true }).bindPopup(html).addTo(layer.current);
+        lf.marker([r.lat, r.lng], { icon: lf.divIcon({ html: pin(r.kind, r.approx), className: 'rdr-wrap', iconSize: [28, 28], iconAnchor: [14, 14] }), title: r.name, riseOnHover: true }).bindPopup(html).addTo(layer.current);
         bounds.push([r.lat, r.lng]);
       }
     }
