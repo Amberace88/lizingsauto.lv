@@ -7,6 +7,7 @@ import { AdminTitle } from '@/components/admin/AdminShell';
 import { Card } from '@/components/admin/CarEditor';
 import { useToast } from '@/components/admin/Toast';
 import { revalidateSite } from '@/components/admin/revalidate';
+import { PoiRefresh } from '@/components/admin/PoiRefresh';
 import { KIND, geocodeQuery, type Radar, type RadarInput, type RadarKind } from '@/lib/radars';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -135,6 +136,7 @@ export default function RadarsAdmin() {
           </button>
         ))}
       </div>
+      <div className="mt-6"><PoiRefresh /></div>
       {log.length > 0 && <pre className="mt-6 max-h-64 overflow-auto rounded-2xl bg-ink p-4 text-xs leading-relaxed text-white/80">{log.join('\n')}</pre>}
       <div className="mt-6">
         <Card title={`Saraksts (${list.length})`} hint={last ? `Pēdējā atjaunošana: ${new Date(last).toLocaleString('lv-LV')}. Ieteicams atjaunot reizi mēnesī.` : 'Dati vēl nav ielādēti — spied “Atjaunot no avotiem”.'} actions={<input className="field w-56" placeholder="Meklēt…" value={q} onChange={(e) => setQ(e.target.value)} />}>
