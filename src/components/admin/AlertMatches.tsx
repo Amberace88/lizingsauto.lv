@@ -41,6 +41,7 @@ export function AlertMatches({ car }: { car: Partial<Car> }) {
   const text = (n: string | null) => `Labdien${n ? `, ${n}` : ''}! Jūs lūdzāt paziņot par piemērotu auto — tikko ienāca ${car.make} ${car.model} ${car.year ?? ''}: ${url}. Tavs Auto, +371 23776197`;
   const done = async (id: string) => {
     await sb.from('leads').update({ status: 'done' }).eq('id', id);
+    window.dispatchEvent(new Event('leads:changed'));
     setRows((r) => r.filter((x) => x.id !== id));
   };
   return (

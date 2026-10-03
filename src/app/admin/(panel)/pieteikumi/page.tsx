@@ -45,7 +45,8 @@ export default function LeadsPage() {
     if (error) return toast(error.message, 'err');
     setRows((rs) => rs!.map((x) => (x.id === l.id ? { ...x, ...p } : x)));
     setOpen((o) => (o && o.id === l.id ? { ...o, ...p } : o));
-    toast('Saglabāts');
+    window.dispatchEvent(new Event('leads:changed')); // atjauno skaitu izvēlnē
+    if (!(p.status === 'in_progress' && l.status === 'new' && Object.keys(p).length === 1)) toast('Saglabāts');
   }
 
   function exportCsv() {

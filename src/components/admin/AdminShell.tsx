@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { supabaseBrowser } from '@/lib/supabase/client';
 import { LayoutDashboard, Car, Inbox, Settings, Share2, Users, History, Wrench, UserCircle, LogOut, Menu, X, ExternalLink, BarChart3, Radar } from 'lucide-react';
 import { InstallButton } from '@/components/site/InstallApp';
 import type { AdminProfile } from '@/lib/types';
@@ -12,10 +13,34 @@ export function AdminShell({ profile, newLeads, children }: { profile: AdminProf
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const dev = profile.role === 'developer';
+  // Jauno pieteikumu skaits vienmēr aktuāls: atjaunojas uzreiz pēc pieteikuma atvēršanas/statusa maiņas,
+  // pie jauna pieteikuma (reāllaikā), pārejot starp lapām, atgriežoties cilnē un ik pēc 30 s
+  const [newCount, setNewCount] = useState(newLeads);
+  useEffect(() => {
+    const sb = supabaseBrowser();
+    let alive = true;
+    const refresh = async () => {
+      const { count, error } = await sb.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'new');
+      if (alive && !error) setNewCount(count || 0);
+    };
+    refresh();
+    const t = setInterval(refresh, 30000);
+    const onFocus = () => document.visibilityState === 'visible' && refresh();
+    window.addEventListener('leads:changed', refresh);
+    document.addEventListener('visibilitychange', onFocus);
+    const ch = sb.channel('leads-badge').on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => refresh()).subscribe();
+    return () => {
+      alive = false;
+      clearInterval(t);
+      window.removeEventListener('leads:changed', refresh);
+      document.removeEventListener('visibilitychange', onFocus);
+      sb.removeChannel(ch);
+    };
+  }, [path]);
   const nav = [
     { href: '/admin', label: 'Pārskats', icon: LayoutDashboard, exact: true },
     { href: '/admin/auto', label: 'Automašīnas', icon: Car },
-    { href: '/admin/pieteikumi', label: 'Pieteikumi', icon: Inbox, badge: newLeads },
+    { href: '/admin/pieteikumi', label: 'Pieteikumi', icon: Inbox, badge: newCount },
     { href: '/admin/statistika', label: 'Statistika', icon: BarChart3 },
     { href: '/admin/fotoradari', label: 'Fotoradari', icon: Radar },
     { href: '/admin/portali', label: 'Portāli', icon: Share2 },
