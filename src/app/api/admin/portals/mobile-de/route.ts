@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
+import { convertImage } from '@/lib/image-convert';
 import { requireAdmin } from '@/lib/supabase/admin-guard';
 import type { Car } from '@/lib/types';
 
@@ -67,8 +67,7 @@ export async function POST(req: Request) {
   const images: { ref: string; hash?: string }[] = [];
   for (const im of [...(car.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort).slice(0, 20)) {
     try {
-      const src = Buffer.from(await (await fetch(im.url)).arrayBuffer());
-      const jpg = await sharp(src).jpeg({ quality: 85 }).toBuffer();
+      const jpg = await convertImage(await (await fetch(im.url)).arrayBuffer(), { format: 'jpeg', quality: 85 });
       const up = await fetch(`${API}/seller-api/images`, { method: 'POST', headers: { authorization: auth, 'content-type': 'image/jpeg', accept: MT }, body: new Uint8Array(jpg) });
       if (up.ok) images.push(await up.json());
     } catch {}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import sharp from 'sharp';
+import { convertImage } from '@/lib/image-convert';
 import { requireAdmin } from '@/lib/supabase/admin-guard';
 
 export const runtime = 'nodejs';
@@ -19,8 +19,7 @@ export async function POST() {
       try {
         const res = await fetch(src, { headers: { 'user-agent': 'LizingsAutoMigrator/1.0' } });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const input = Buffer.from(await res.arrayBuffer());
-        const out = await sharp(input, { failOn: 'none' }).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
+        const out = await convertImage(await res.arrayBuffer(), { format: 'webp', quality: 80, maxSize: 1600 });
         const path = `${im.car_id}/${im.id}.webp`;
         const { error: upErr } = await supabase.storage.from('cars').upload(path, out, { contentType: 'image/webp', upsert: true, cacheControl: '31536000' });
         if (upErr) throw upErr;

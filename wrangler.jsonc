@@ -1,0 +1,36 @@
+// Cloudflare Workers konfigurācija Tavs Auto (tavsauto.eu). Skat. docs/CLOUDFLARE_MIGRATION.md.
+// Šeit nav noslēpumu: tie tiek ielikti Cloudflare panelī (Variables and Secrets) un saglabājas starp deploy (keep_vars).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tavsauto",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  "keep_vars": true,
+  // Publiskas, nenoslēpumainas vērtības (aizstāj netlify.toml [build.environment])
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://tavsauto.eu",
+    "MAIL_FROM": "Tavs Auto <pieteikumi@tavsauto.eu>"
+  },
+  "r2_buckets": [
+    // Izveido vienreiz: npx wrangler r2 bucket create tavsauto-cache
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "tavsauto-cache" }
+  ],
+  "d1_databases": [
+    // Izveido vienreiz: npx wrangler d1 create tavsauto-tags (ieraksta database_id šeit)
+    { "binding": "NEXT_TAG_CACHE_D1", "database_name": "tavsauto-tags", "database_id": "REPLACE_WITH_D1_ID" }
+  ],
+  "services": [
+    // Pašreference ISR revalidācijai fonā
+    { "binding": "WORKER_SELF_REFERENCE", "service": "tavsauto" }
+  ],
+  // Cloudflare Images: next/image optimizācija un webp→jpeg konvertēšana mobile.de eksportam (aizstāj sharp)
+  "images": { "binding": "IMAGES" }
+  // Domēni piesaistās pārslēgšanas brīdī (skat. docs), ne agrāk:
+  // "routes": [{ "pattern": "tavsauto.eu", "custom_domain": true }, { "pattern": "www.tavsauto.eu", "custom_domain": true }]
+}
