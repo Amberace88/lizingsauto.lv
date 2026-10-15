@@ -9,6 +9,8 @@ import { ekiiCalc, type EkiiSettings } from '@/lib/ekii';
 import { monthlyPayment } from '@/lib/leasing';
 import type { LeasingSettings } from '@/lib/types';
 import { money, number } from '@/lib/format';
+import { creditExample, pct } from '@/lib/credit';
+import { CreditWarning } from '@/components/site/Credit';
 
 export type EvOption = { slug: string; name: string; price: number; vat: boolean; year: number | null; mileage: number | null; seats: number | null; phev?: boolean };
 
@@ -118,6 +120,15 @@ export function EvCalculator({ ekii, leasing, cars, initialSlug }: { ekii: EkiiS
             <div><p className="text-xs text-white/60">Līzings bez atbalsta</p><p className="num text-lg font-semibold text-white/70 line-through">{number(Math.round(pmtWithout))} €/mēn.</p></div>
             <div><p className="text-xs text-white/60">Līzings ar atbalstu</p><p className="num display-md text-2xl text-signal">{number(Math.round(pmtWith))} €/mēn.</p></div>
           </div>
+          {(() => {
+            const e = creditExample(r.finalPrice, leasing, { down: Math.min(r.finalPrice, Math.round((price * downPct) / 100)), term });
+            return (
+              <p className="mt-3 text-xs leading-relaxed text-white/75">
+                <b className="num text-base text-white">GPL {pct(e.apr)}</b> · kredīta summa {money(e.credit)}, {e.term} mēn., aizņēmuma likme {pct(e.rate)} gadā, kopā atmaksājams {money(e.total)}. Galīgos nosacījumus nosaka kredīta devējs pēc kredītspējas izvērtēšanas.
+              </p>
+            );
+          })()}
+          <CreditWarning size="md" className="mt-3" />
         </div>
         <div className={`rounded-2xl p-4 text-sm ${r.eligible ? 'bg-petrol-soft text-petrol' : 'bg-signal-soft text-ink'}`}>
           {r.eligible ? (

@@ -88,7 +88,7 @@ export default function NameDaysPage() {
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-signal"><CarFront className="h-6 w-6" /></span>
             <div>
               <h2 className="display-md text-2xl">Labākā dāvana sev — jauns auto</h2>
-              <p className="mt-1 max-w-xl text-white/70">Līzings no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi. Izvēlies auto un piesakies dažās minūtēs.</p>
+              <p className="mt-1 max-w-xl text-white/70">Iespēja sadalīt maksājumu līzingā. Izvērtē kredīta nosacījumus pirms pirkuma.</p>
             </div>
           </div>
           <Link href="/katalogs" className="btn btn-signal shrink-0">Skatīt auto <ArrowRight className="h-4 w-4" /></Link>

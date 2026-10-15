@@ -6,7 +6,7 @@ import { ARTICLES } from '@/lib/articles';
 
 export const metadata: Metadata = {
   title: 'Padomi auto pircējiem — līzings, EKII, lietota auto pārbaude',
-  description: 'Praktiski padomi: kā pārbaudīt lietotu auto, kā saņemt EKII atbalstu elektroauto iegādei, līzings ar sabojātu kredītvēsturi un strādājot ārzemēs.',
+  description: 'Praktiski padomi: kā pārbaudīt lietotu auto, kā saņemt EKII atbalstu elektroauto iegādei, atbildīga kreditēšana un līzings strādājot ārzemēs.',
   alternates: { canonical: '/padomi' },
 };
 

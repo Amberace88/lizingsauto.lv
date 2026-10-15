@@ -24,7 +24,7 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
     lines.push('');
     if (car.equipment?.length) lines.push(...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
     if (car.consumption) lines.push(`Vidējais patēriņš ap ${car.consumption} l/100 km.`);
-    lines.push('Testa brauciens un pārbaude servisā pēc jūsu izvēles.', 'Līzings visiem — arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem, no 0% pirmās iemaksas.', 'Jūsu vecais auto var būt pirmā iemaksa.', '', `Vairāk bilžu un līzinga kalkulators: ${siteUrl}/auto/${car.slug}`);
+    lines.push('Testa brauciens un pārbaude servisā pēc jūsu izvēles.', 'Iespēja sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas.', 'Jūsu vecais auto var būt pirmā iemaksa.', '', 'Brīdinām! Aizņemšanās maksā naudu.', '', `Vairāk bilžu un līzinga kalkulators: ${siteUrl}/auto/${car.slug}`);
   } else {
     lines.push(`${car.make} ${car.model}${car.year ? `, ${car.year}` : ''}. ${car.fuel ? RU_FUEL[car.fuel] : ''}${car.engine_volume ? ` ${car.engine_volume.toFixed(1)}` : ''}${car.transmission ? `, ${RU_GEAR[car.transmission].toLowerCase()}` : ''}${car.power_kw ? `, ${car.power_kw} кВт` : ''}.`);
     if (car.body_type) lines.push(`Кузов: ${RU_BODY[car.body_type] || car.body_type}${car.mileage != null ? `, пробег ${car.mileage.toLocaleString('lv-LV')} км` : ''}.`);
@@ -32,7 +32,7 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
     if (car.badges?.includes('fresh_ta')) lines.push('Свежий техосмотр.');
     lines.push('');
     if (car.equipment?.length) lines.push('Комплектация:', ...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
-    lines.push('Тест-драйв и проверка в сервисе на ваш выбор.', 'Лизинг для всех — в том числе с плохой кредитной историей и работающим за границей, первый взнос от 0%.', 'Ваш старый автомобиль может быть первым взносом.', '', `Больше фото и калькулятор лизинга: ${siteUrl}/auto/${car.slug}`);
+    lines.push('Тест-драйв и проверка в сервисе на ваш выбор.', 'Возможность разделить платёж в лизинг, в том числе работающим за границей. Решение принимает лизингодатель после оценки кредитоспособности.', 'Ваш старый автомобиль может быть первым взносом.', '', 'Brīdinām! Aizņemšanās maksā naudu. / Предупреждаем! Заимствование стоит денег.', '', `Больше фото и калькулятор лизинга: ${siteUrl}/auto/${car.slug}`);
   }
   return lines.join('\n');
 }

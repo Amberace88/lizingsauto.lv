@@ -8,7 +8,7 @@ import { PageHead } from '@/components/site/PageHead';
 export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Lietoti auto pēc budžeta, virsbūves un markas',
-  description: 'Atrodi lietotu auto ar līzingu pēc sava budžeta, virsbūves, degvielas vai markas. Pārbaudīti auto Rīgā, līzings arī ar sabojātu kredītvēsturi.',
+  description: 'Atrodi lietotu auto ar līzingu pēc sava budžeta, virsbūves, degvielas vai markas. Pārbaudīti auto Rīgā ar iespēju sadalīt maksājumu līzingā.',
   alternates: { canonical: '/lietoti-auto' },
 };
 

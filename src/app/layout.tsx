@@ -8,14 +8,14 @@ import { PWA_SCRIPT } from '@/lib/pwa';
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Lietoti auto ar līzingu Rīgā — arī ar sabojātu kredītvēsturi | Tavs Auto',
+    default: 'Lietoti auto ar līzingu Rīgā — pārbaudīti auto no Eiropas | Tavs Auto',
     template: `%s | Tavs Auto — ${SITE_HOST}`,
   },
   description:
-    'Pārbaudīti lietoti auto no Eiropas ar līzingu no 0% pirmās iemaksas. Līzings arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem. Garantija līdz 36 mēnešiem. Krustabaznīcas iela 24, Rīga.',
+    'Pārbaudīti lietoti auto no Eiropas ar iespēju sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem. Garantija līdz 36 mēnešiem. Krustabaznīcas iela 24, Rīga.',
   applicationName: 'Tavs Auto',
   appleWebApp: { capable: true, title: 'Tavs Auto', statusBarStyle: 'black-translucent' },
-  keywords: ['auto līzings', 'lietoti auto', 'līzings ar sabojātu kredītvēsturi', 'auto Rīgā', 'elektroauto EKII', 'auto pārdošana', 'auto uzpirkšana'],
+  keywords: ['auto līzings', 'lietoti auto', 'līzinga kalkulators', 'auto Rīgā', 'elektroauto EKII', 'auto pārdošana', 'auto uzpirkšana'],
   openGraph: { type: 'website', locale: 'lv_LV', siteName: 'Tavs Auto', url: SITE_URL, images: [{ url: '/og.png?v=2', width: 1200, height: 630, alt: 'Tavs Auto — auto ar līzingu Rīgā' }] },
   twitter: { card: 'summary_large_image', images: ['/og.png?v=2'] },
   alternates: { canonical: '/' },

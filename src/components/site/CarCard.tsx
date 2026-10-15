@@ -5,6 +5,7 @@ import { Heart, Gauge, Fuel, Calendar, Cog } from 'lucide-react';
 import type { Car, LeasingSettings } from '@/lib/types';
 import { BADGES, badgeTextColor, carBadges, type BadgePosition, carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
+import { aprLabel } from './Credit';
 import { useFavorites } from './favorites';
 import { useBadgeStyle } from './BadgeOrderContext';
 import { AdminCardEdit } from './AdminLive';
@@ -103,7 +104,7 @@ export function CarCard({ car, leasing, priority = false }: { car: Car; leasing:
         <BadgeOverlay badges={badges} />
         {car.status !== 'sold' && (
           <div className="price-tag num absolute bottom-3 left-3 z-10 rounded-lg px-2.5 py-1.5 text-sm font-bold shadow-md">
-            no {number(monthly)} €/mēn.
+            no {number(monthly)} €/mēn. · {aprLabel(leasing, car.price)}
           </div>
         )}
         <StatusRibbon status={car.status} />

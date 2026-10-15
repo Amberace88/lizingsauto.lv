@@ -71,7 +71,7 @@ function descriptionBlocks(text: string, title: string) {
 }
 
 /** Apraksts + ekstras pa kategorijām + tirgotāja piedāvājums vienā profesionālā blokā. */
-export function CarDescription({ car, company, monthly, catalog }: { car: Car; company: CompanySettings; monthly: number; catalog?: EquipCatDef[] }) {
+export function CarDescription({ car, company, monthly, apr, catalog }: { car: Car; company: CompanySettings; monthly: number; apr?: string; catalog?: EquipCatDef[] }) {
   const name = carName(car);
   const blocks = descriptionBlocks(car.description || '', car.title || '');
   const groups = groupEquipment(car.equipment || [], catalog);
@@ -128,7 +128,7 @@ export function CarDescription({ car, company, monthly, catalog }: { car: Car; c
               { i: KeyRound, t: 'Testa brauciens', d: 'Izmēģini auto un pārbaudi to servisā pēc savas izvēles.' },
               { i: MapPin, t: 'Apskate uz vietas', d: `${company.address} (Teikas rajons). Droši zvani un jautā.` },
               { i: Repeat2, t: 'Vecais auto kā iemaksa', d: 'Atstāj savu auto tirdzniecībā vai kā pirmo iemaksu šim auto.' },
-              { i: Wallet, t: `Līzings no ${monthly} €/mēn.`, d: 'Arī ar 0% pirmo iemaksu, ar sabojātu kredītvēsturi un strādājot ārzemēs.' },
+              { i: Wallet, t: `Līzings no ${monthly} €/mēn.${apr ? ` · ${apr}` : ''}`, d: 'Iespējams arī bez pirmās iemaksas un strādājot ārzemēs. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas.' },
               { i: ShieldCheck, t: 'Pagarinātā garantija', d: 'Līdz 36 mēnešiem sadarbībā ar Mango Insurance.', href: `/garantija?auto=${car.slug}#kalkulators` },
               { i: FileText, t: 'Reģistrācija CSDD', d: 'Palīdzam ar reģistrāciju un visiem dokumentiem.' },
             ].map(({ i: I, t, d, href }: { i: typeof Gauge; t: string; d: string; href?: string }) => (
@@ -139,7 +139,7 @@ export function CarDescription({ car, company, monthly, catalog }: { car: Car; c
             ))}
           </ul>
           <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-ink-2">
-            {['Līzinga iespējas visiem', 'Samazinātas procentu likmes', 'Izdevīgi nosacījumi', 'Aizdevums ar 0% pirmo iemaksu'].map((x) => (
+            {['Iespēja sadalīt maksājumu', 'GPL un piemērs pie katra aprēķina', 'Bezmaksas pieteikuma izskatīšana', 'Iespējams arī bez pirmās iemaksas'].map((x) => (
               <span key={x} className="inline-flex items-center gap-1.5"><BadgePercent className="h-4 w-4 text-signal" /> {x}</span>
             ))}
           </div>

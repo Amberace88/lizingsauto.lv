@@ -10,6 +10,7 @@ import { ReviewsSection } from '@/components/site/Reviews';
 import { STATIC_LANDINGS } from '@/lib/landings';
 import { ARTICLES } from '@/lib/articles';
 import { HOME_FAQ } from '@/lib/faq';
+import { compliantOr } from '@/lib/credit';
 import { PLANS, PLAN_ORDER, limitLabel } from '@/lib/warranty';
 
 export default async function HomePage() {
@@ -31,11 +32,11 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 pb-16 pt-8 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:pb-24 lg:pt-14">
           <div className="min-w-0">
             <h1 className="display text-[2.6rem] text-ink sm:text-[3.6rem] lg:text-[4rem]">
-              {content.heroTitle || 'Auto ar līzingu. Arī tad, ja banka atteica.'}
+              {compliantOr(content.heroTitle, 'Pārbaudīti lietoti auto ar līzingu Rīgā.')}
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-2">
-              {content.heroText ||
-                'Pārbaudīti lietoti auto no Eiropas. Līzings no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem.'}
+              {compliantOr(content.heroText,
+                'Pārbaudīti lietoti auto no Eiropas ar iespēju sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem.')}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/katalogs" className="btn btn-primary text-base">
@@ -163,7 +164,7 @@ export default async function HomePage() {
         <ol className="mt-10 grid gap-6 md:grid-cols-4">
           {[
             ['Izvēlies auto', 'Katalogā vai piezvani — atradīsim pēc tava budžeta.'],
-            ['Aizpildi pieteikumu', 'Bezmaksas izskatīšana. Arī ar sabojātu kredītvēsturi.'],
+            ['Aizpildi pieteikumu', 'Bezmaksas izskatīšana. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas.'],
             ['Saņem lēmumu', 'Sadarbojamies ar vairākiem līzinga devējiem — izvēlamies izdevīgāko.'],
             ['Paraksti un brauc', 'Testa brauciens, līguma parakstīšana, auto reģistrācija.'],
           ].map(([t, d], i) => (

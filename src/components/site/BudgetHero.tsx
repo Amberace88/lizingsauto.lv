@@ -7,6 +7,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { LeasingSettings } from '@/lib/types';
 import { monthlyPayment } from '@/lib/leasing';
 import { number } from '@/lib/format';
+import { creditExample, pct } from '@/lib/credit';
+import { CreditWarning } from './Credit';
 
 export type MiniCar = { id: string; slug: string; name: string; year: number | null; price: number; img: string | null };
 
@@ -120,9 +122,19 @@ export function BudgetHero({ cars, leasing }: { cars: MiniCar[]; leasing: Leasin
       <Link href={`/katalogs?maxMonthly=${budget}&down=${downPct}`} className="btn btn-signal mt-4 w-full text-base">
         Skatīt <span className="num">{matches.length}</span> {matches.length === 1 ? 'auto' : 'auto'} līdz {number(budget)} €/mēn.
       </Link>
-      <p className="mt-2 text-center text-xs text-mute">
-        Aprēķins: {leasing.rate}% gadā, {leasing.term} mēn. Galīgos nosacījumus apstiprina līzinga devējs.
-      </p>
+      <BudgetExample leasing={leasing} downPct={downPct} />
+      <CreditWarning size="md" className="mt-3" />
     </div>
+  );
+}
+
+/** Reprezentatīvais piemērs budžeta kalkulatoram (tikpat pamanāms GPL kā maksājums). */
+function BudgetExample({ leasing, downPct }: { leasing: LeasingSettings; downPct: number }) {
+  const e = creditExample(leasing.exampleAmount || 10000, leasing, { downPct });
+  return (
+    <p className="mt-3 text-center text-xs leading-relaxed text-ink-2">
+      <b className="num text-sm text-ink">GPL {pct(e.apr)}</b> · Piemērs: auto cena {number(e.price)} €, pirmā iemaksa {number(e.down)} €, kredīta summa {number(e.credit)} €, {e.term} mēn., aizņēmuma likme {pct(e.rate)} gadā,
+      maksājums {number(e.monthly)} €/mēn., kopā atmaksājams {number(e.total)} €. Galīgos nosacījumus nosaka kredīta devējs pēc kredītspējas izvērtēšanas.
+    </p>
   );
 }

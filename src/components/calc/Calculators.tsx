@@ -7,6 +7,8 @@ import { money, number } from '@/lib/format';
 import { priceForPayment } from '@/lib/leasing';
 import type { LeasingSettings } from '@/lib/types';
 import Link from 'next/link';
+import { creditExample, pct } from '@/lib/credit';
+import { CreditWarning } from '@/components/site/Credit';
 
 /** Cik lielu auto var atļauties — pēc ienākumiem un saistībām (DSTI ≤ 40%). */
 export function AffordabilityCalc({ leasing }: { leasing: LeasingSettings }) {
@@ -43,6 +45,10 @@ export function AffordabilityCalc({ leasing }: { leasing: LeasingSettings }) {
           <p className="num text-sm text-white/70">~{number(Math.round(r.maxPay))} €/mēn.</p>
         </div>
         <Link href={`/katalogs?maxPrice=${Math.round(r.safePrice)}`} className="btn btn-signal mt-6">Rādīt auto līdz {money(Math.round(r.safePrice / 100) * 100)}</Link>
+        <p className="mt-3 text-xs leading-relaxed text-white/70">
+          Aprēķinā: aizņēmuma likme {pct(leasing.rate)} gadā, <b className="num text-sm text-white">GPL {pct(creditExample(10000, { ...leasing, contractFee: 0, monthlyFee: 0, residualPct: 0, aprOverride: null }, { downPct: 0, term }).apr)}</b> (bez papildu maksām), termiņš {term} mēn. Aizņemies tikai tik, cik spēj atmaksāt arī tad, ja ienākumi samazinās.
+        </p>
+        <CreditWarning size="md" className="mt-3" />
       </div>
     </div>
   );

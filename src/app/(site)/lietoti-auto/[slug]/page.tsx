@@ -6,6 +6,7 @@ import { getPublicCars, getSettings } from '@/lib/data';
 import { allLandings, catalogHref, matchCar } from '@/lib/landings';
 import { SITE_URL, carName, carUrl, money } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
+import { aprLabel } from '@/components/site/Credit';
 import { CarCard } from '@/components/site/CarCard';
 import { Faq } from '@/components/site/Faq';
 import { SearchAlert } from '@/components/site/SearchAlert';
@@ -46,7 +47,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
   const minMonthly = minPrice ? fromPayment(minPrice, leasing) : null;
   const related = allLandings(cars).filter((l) => l.slug !== slug && (l.group === landing.group || l.group === 'budget')).slice(0, 10);
   const faq: [string, string][] = [
-    ['Vai šos auto var iegādāties līzingā?', `Jā. Visiem auto piedāvājam līzingu — arī ar 0% pirmo iemaksu, ar sabojātu kredītvēsturi un strādājot ārzemēs.${minMonthly ? ` Mēneša maksājums šajā sadaļā sākas no ${minMonthly} €.` : ''}`],
+    ['Vai šos auto var iegādāties līzingā?', 'Jā, visiem auto iespējams līzings sadarbībā ar līzinga devējiem — arī bez pirmās iemaksas un strādājot ārzemēs. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas. Mēneša maksājumu un GPL katram auto redzi auto lapā.'],
     ['Vai var atstāt savu veco auto kā pirmo iemaksu?', 'Jā. Novērtējam tavu auto bez maksas un tā vērtību ieskaitām kā pirmo iemaksu vai atpērkam uzreiz.'],
     ['Vai auto var pārbaudīt pirms pirkuma?', 'Protams. Piedāvājam testa braucienu un iespēju pārbaudīt auto servisā pēc tavas izvēles. Katra auto lapā ir arī CSDD nobraukuma vēsture, ja tā pievienota.'],
     ['Ko darīt, ja vajadzīgā auto nav?', 'Saglabā meklējumu — paziņosim, tiklīdz ienāks piemērots auto. Varam arī pasūtīt konkrētu auto no Eiropas.'],
@@ -70,7 +71,7 @@ export default async function LandingPage({ params }: { params: Promise<{ slug: 
         <div className="flex gap-3">
           <div className="rounded-2xl border border-line bg-card px-5 py-3"><p className="text-xs text-mute">Pārdošanā</p><p className="num display-md text-2xl text-ink">{avail.length}</p></div>
           {minPrice && <div className="rounded-2xl border border-line bg-card px-5 py-3"><p className="text-xs text-mute">Cena no</p><p className="num display-md text-2xl text-ink">{money(minPrice)}</p></div>}
-          {minMonthly && <div className="rounded-2xl bg-signal px-5 py-3 text-white"><p className="text-xs text-white/80">Līzingā no</p><p className="num display-md text-2xl">{minMonthly} €/mēn.</p></div>}
+          {minMonthly && <div className="rounded-2xl bg-signal px-5 py-3 text-white"><p className="text-xs text-white/80">Līzingā no</p><p className="num display-md text-2xl">{minMonthly} €/mēn.</p><p className="num display-md text-2xl">{aprLabel(leasing, minPrice!)}</p></div>}
         </div>
       </div>
 

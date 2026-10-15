@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Loader2, Save, Lock } from 'lucide-react';
+import { Loader2, Save, Lock, AlertTriangle } from 'lucide-react';
+import { creditExample, exampleText, isCreditCompliant, pct, CREDIT_DEFAULTS, CREDIT_WARNING } from '@/lib/credit';
+import type { LeasingSettings } from '@/lib/types';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { AdminTitle } from '@/components/admin/AdminShell';
 import { Card } from '@/components/admin/CarEditor';
@@ -16,7 +18,7 @@ import { EquipCatalogEditor, useEquipCatalog } from '@/components/admin/EquipCat
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
   {
-    key: 'content', title: 'Sākumlapas teksti', hint: 'Galvenais virsraksts un paziņojumu josla lapas augšā.',
+    key: 'content', title: 'Sākumlapas teksti', hint: 'Galvenais virsraksts un paziņojumu josla lapas augšā. Kreditēšanas reklāmā aizliegts uzsvērt aizņemšanās vieglumu vai ātrumu un piedāvāt kredītu personām ar negatīvu kredītvēsturi — šādi teksti netiks saglabāti.',
     fields: [
       { key: 'heroTitle', label: 'Galvenais virsraksts' },
       { key: 'heroText', label: 'Apakšteksts', type: 'textarea' },
@@ -33,12 +35,16 @@ const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fiel
     ],
   },
   {
-    key: 'leasing', title: 'Līzinga kalkulators', hint: 'Šie parametri tiek izmantoti visos maksājumu aprēķinos lapā.',
+    key: 'leasing', title: 'Līzings un kredīta reklāmas piemērs', hint: 'Parametri visiem maksājumu aprēķiniem un reprezentatīvajam piemēram (PTAL 8.³ pants). Skaitļus saskaņo ar līzinga devējiem un ESTO.',
     fields: [
       { key: 'rate', label: 'Procentu likme, % gadā', type: 'number' }, { key: 'term', label: 'Noklusētais termiņš, mēn.', type: 'number' },
       { key: 'minTerm', label: 'Min. termiņš', type: 'number' }, { key: 'maxTerm', label: 'Maks. termiņš', type: 'number' },
       { key: 'downPct', label: 'Noklusētā pirmā iemaksa, %', type: 'number' }, { key: 'maxDownPct', label: 'Maks. pirmā iemaksa, %', type: 'number' },
       { key: 'residualPct', label: 'Atlikusī vērtība, %', type: 'number' }, { key: 'contractFee', label: 'Līguma maksa, €', type: 'number' }, { key: 'monthlyFee', label: 'Ikmēneša komisija, €', type: 'number' },
+      { key: 'exampleAmount', label: 'Reprezentatīvā piemēra auto cena, €', type: 'number', hint: 'Piemērs lapas apakšā un rakstos' },
+      { key: 'aprOverride', label: 'GPL no līzinga devēja, % (neobligāti)', type: 'number', hint: 'Tukšs — GPL aprēķina automātiski' },
+      { key: 'lender', label: 'Kredīta devējs(-i)', type: 'textarea' },
+      { key: 'extras', label: 'Obligātie papildu pakalpojumi (piem., KASKO)', type: 'textarea' },
     ],
   },
   {
@@ -129,6 +135,7 @@ export default function SettingsPage() {
   }, []);
 
   async function save(key: string, tech?: boolean) {
+    if (key === 'content' && Object.values(vals![key]).some((v) => typeof v === 'string' && !isCreditCompliant(v))) return toast('Teksts satur kreditēšanas reklāmā aizliegtu formulējumu — izlabo sarkani iezīmēto lauku.', 'err');
     setSaving(key);
     const value = key === 'badges' ? badgeStyle : vals![key];
     const { error } = await sb.from('settings').upsert({ key, value, is_public: !tech, technical: !!tech, updated_at: new Date().toISOString() });
@@ -161,10 +168,14 @@ export default function SettingsPage() {
                       <input className={`field ${f.type === 'number' ? 'num' : ''}`} inputMode={f.type === 'number' ? 'decimal' : undefined} value={String(v ?? '')} onChange={(e) => on(f.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value.replace(',', '.'))) : e.target.value)} />
                     )}
                     {f.hint && <span className="mt-1 block text-xs text-mute">{f.hint}</span>}
+                    {s.key === 'content' && typeof v === 'string' && !isCreditCompliant(v) && (
+                      <span className="mt-1 flex items-start gap-1 text-xs font-semibold text-red-600"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Aizliegts formulējums (kredītvēsture, “banka atteica”, ātrums/vieglums). Lapā tiks rādīts noklusējuma teksts.</span>
+                    )}
                   </label>
                 );
               })}
             </div>
+            {s.key === 'leasing' && <ExamplePreview l={vals.leasing as unknown as LeasingSettings} />}
             <div className="mt-5 flex justify-end">
               <button onClick={() => save(s.key, s.tech)} className="btn btn-primary" disabled={saving === s.key}>{saving === s.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Saglabāt</button>
             </div>
@@ -184,5 +195,19 @@ export default function SettingsPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+function ExamplePreview({ l }: { l: LeasingSettings }) {
+  const n = (x: unknown, d = 0) => (typeof x === 'number' && isFinite(x) ? x : d);
+  const ls = { ...l, rate: n(l.rate), term: n(l.term, 84), downPct: n(l.downPct), residualPct: n(l.residualPct), contractFee: n(l.contractFee), monthlyFee: n(l.monthlyFee), aprOverride: n(l.aprOverride) || null };
+  const e = creditExample(n(l.exampleAmount, CREDIT_DEFAULTS.exampleAmount) || CREDIT_DEFAULTS.exampleAmount, ls);
+  return (
+    <div className="mt-5 rounded-xl border border-line bg-white p-4 text-black">
+      <p className="text-xs font-bold uppercase tracking-wider text-black/55">Priekšskatījums — tā piemērs izskatās lapā · GPL {pct(e.apr)}</p>
+      <p className="mt-2 text-sm leading-relaxed">{exampleText(e, l.lender || CREDIT_DEFAULTS.lender)} {l.extras ?? CREDIT_DEFAULTS.extras}</p>
+      <p className="mt-3 rounded-lg border-2 border-black py-2 text-center text-lg font-black">{CREDIT_WARNING}</p>
+      <p className="mt-2 text-xs text-black/55">Sociālo tīklu, baneru un portālu reklāmās izmanto šo pašu tekstu un brīdinājumu (≥10% no reklāmas laukuma, melns uz balta, apakšā).</p>
+    </div>
   );
 }

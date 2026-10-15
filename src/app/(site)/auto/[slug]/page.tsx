@@ -8,6 +8,7 @@ import { fromPayment } from '@/lib/leasing';
 import { ekiiForCar } from '@/lib/ekii';
 import { Gallery } from '@/components/site/Gallery';
 import { CarActions, CarContactPanel, ViewPing } from '@/components/site/CarDetailClient';
+import { CreditExample, CreditWarning, aprLabel } from '@/components/site/Credit';
 import { CarCard } from '@/components/site/CarCard';
 import { CarDescription, KeyFacts } from '@/components/site/CarDetails';
 import { AdminEditButton } from '@/components/site/AdminLive';
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!car) return { title: 'Auto nav atrasts', robots: { index: false } };
   const { leasing } = await getSettings();
   const name = `${carName(car)} ${car.year ?? ''}`.trim();
-  const desc = `${name}, ${car.fuel ? FUEL_LABEL[car.fuel] : ''}${car.engine_volume ? ` ${car.engine_volume}` : ''}, ${car.transmission ? GEAR_LABEL[car.transmission].toLowerCase() : ''}, ${km(car.mileage)}. Cena ${money(car.price)}, līzingā no ${fromPayment(car.price, leasing)} €/mēn. ${car.status === 'sold' ? 'Pārdots.' : 'Iespējams līzings arī ar sabojātu kredītvēsturi.'}`;
+  const desc = `${name}, ${car.fuel ? FUEL_LABEL[car.fuel] : ''}${car.engine_volume ? ` ${car.engine_volume}` : ''}, ${car.transmission ? GEAR_LABEL[car.transmission].toLowerCase() : ''}, ${km(car.mileage)}. Cena ${money(car.price)}. ${car.status === 'sold' ? 'Pārdots.' : 'Iespējams līzings, testa brauciens un pārbaude servisā.'}`;
   const img = sortedImages(car)[0]?.url;
   return {
     title: `${name} — ${money(car.price)}${car.status === 'sold' ? ' (pārdots)' : ''}`,
@@ -131,7 +132,13 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
                 {car.old_price && car.old_price > car.price && <p className="num pb-1 text-lg text-mute line-through">{money(car.old_price)}</p>}
                 {car.vat_included && <span className="mb-1.5 rounded-md bg-petrol-soft px-2 py-0.5 text-xs font-semibold text-petrol">Cena ar PVN</span>}
               </div>
-              {car.status !== 'sold' && <p className="num mt-1 text-sm text-ink-2">Līzingā no <b className="text-ink">{monthly} €/mēn.</b></p>}
+              {car.status !== 'sold' && (
+                <div className="mt-2 space-y-2">
+                  <p className="num text-sm text-ink-2">Līzingā no <b className="text-ink">{monthly} €/mēn.</b> · <b className="text-ink">{aprLabel(leasing, car.price)}</b></p>
+                  <CreditExample leasing={leasing} price={car.price} />
+                  <CreditWarning size="sm" />
+                </div>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-2"><CarActions id={car.id} title={`${name} ${car.year ?? ''}`} /><AdminEditButton id={car.id} /></div>
             </div>
             {ev && car.status !== 'sold' && (
@@ -151,7 +158,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
         <div className="min-w-0 space-y-8">
           <KeyFacts car={car} />
 
-          <CarDescription car={car} company={company} monthly={monthly} catalog={equipCatalog} />
+          <CarDescription car={car} company={company} monthly={monthly} apr={aprLabel(leasing, car.price)} catalog={equipCatalog} />
 
           <section aria-labelledby="specs" className="rounded-[24px] border border-line bg-card p-6 sm:p-8">
             <h2 id="specs" className="display-md text-2xl text-ink">Visi tehniskie dati</h2>
