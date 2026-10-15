@@ -1,5 +1,5 @@
 export const HOME_FAQ: [string, string][] = [
-  ['Vai varu saņemt līzingu ar sabojātu kredītvēsturi?', 'Jā. Sadarbojamies ar vairākiem līzinga devējiem, tāpēc varam atrast risinājumu arī tad, ja banka ir atteikusi. Pieteikuma izskatīšana ir bezmaksas.'],
+  ['Kā tiek izvērtēta mana kredītspēja?', 'Lēmumu par līzingu pieņem līzinga devējs pēc tavas kredītspējas izvērtēšanas — tiek vērtēti ienākumi, esošās saistības un kredītvēsture. Pieteikuma izskatīšana ir bezmaksas. Pirms līguma rūpīgi izvērtē kredīta nosacījumus un to, vai ikmēneša maksājums iekļaujas tavā budžetā.'],
   ['Vai līzingu var saņemt, ja strādāju ārzemēs?', 'Jā, līzings pieejams arī ārzemēs strādājošajiem. Nepieciešams apliecināt ienākumus — pastāstīsim, kādi dokumenti derēs.'],
   ['Vai pirmā iemaksa ir obligāta?', 'Nē. Iespējams līzings ar 0% pirmo iemaksu. Ar pirmo iemaksu mēneša maksājums būs zemāks. Tavs vecais auto var kalpot kā pirmā iemaksa.'],
   ['Vai auto var pārbaudīt servisā pirms pirkšanas?', 'Protams. Piedāvājam testa braucienu un iespēju pašam pārliecināties par auto stāvokli servisā pēc tavas izvēles.'],

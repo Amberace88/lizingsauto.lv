@@ -18,7 +18,7 @@ export function Footer({ company }: { company: CompanySettings }) {
         <div>
           <Logo light />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
-            Pārbaudīti lietoti auto no Eiropas ar līzingu visiem — arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem.
+            Pārbaudīti lietoti auto no Eiropas ar iespēju sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem.
           </p>
           <div className="mt-5 flex gap-2">
             <a href={company.facebook} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-white/10 p-2.5 hover:bg-white/20" aria-label="Facebook">
@@ -49,6 +49,7 @@ export function Footer({ company }: { company: CompanySettings }) {
           <p className="mb-3 font-semibold text-white">Pakalpojumi</p>
           <ul className="space-y-2 text-sm">
             <li><Link href="/lizings" className="hover:text-white">Auto līzings</Link></li>
+            <li><Link href="/atbildiga-kreditesana" className="hover:text-white">Atbildīga kreditēšana</Link></li>
             <li><Link href="/garantija" className="hover:text-white">Pagarinātā garantija</Link></li>
             <li><Link href="/kalkulatori" className="hover:text-white">Kalkulatori</Link></li>
             <li><Link href="/parbaudes" className="hover:text-white">Bezmaksas OCTA un TA pārbaude</Link></li>

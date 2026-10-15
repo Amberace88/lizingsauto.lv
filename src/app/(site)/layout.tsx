@@ -10,11 +10,12 @@ import { Analytics } from '@/components/site/Analytics';
 import { Tracker } from '@/components/site/Tracker';
 import { InstallPrompt } from '@/components/site/InstallApp';
 import { SITE_URL } from '@/lib/format';
+import { CreditNotice } from '@/components/site/Credit';
 
 export const revalidate = 60;
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const { company, content, badgeStyle, reviews, analytics } = await getSettings();
+  const { company, content, badgeStyle, reviews, analytics, leasing } = await getSettings();
   const org = {
     '@context': 'https://schema.org',
     '@type': 'AutoDealer',
@@ -48,6 +49,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <NameDayBar />
       <Header phone={company.phone} />
       <main id="saturs">{children}</main>
+      <CreditNotice leasing={leasing} />
       <Footer company={company} />
       <FloatingContact phone={company.phone} whatsapp={company.whatsapp} />
       <CompareBar />

@@ -4,6 +4,8 @@ import { useTrackUse } from '@/lib/track';
 import type { LeasingSettings } from '@/lib/types';
 import { leasingSummary } from '@/lib/leasing';
 import { money, number } from '@/lib/format';
+import { creditExample, pct } from '@/lib/credit';
+import { CreditWarning } from './Credit';
 
 export function Slider({ label, value, min, max, step, onChange, format }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void; format: (v: number) => string }) {
   const fill = `${((value - min) / (max - min || 1)) * 100}%`;
@@ -24,6 +26,7 @@ export function LeasingCalculator({ price, leasing, onApply, compact = false, pr
   const [term, setTerm] = useState(leasing.term);
   useTrackUse('Līzinga kalkulators', [p, downPct, term]);
   const s = useMemo(() => leasingSummary({ price: p, downPct, rate: leasing.rate, term, residualPct: leasing.residualPct, contractFee: leasing.contractFee, monthlyFee: leasing.monthlyFee }), [p, downPct, term, leasing]);
+  const ex = useMemo(() => creditExample(p, leasing, { downPct, term }), [p, downPct, term, leasing]);
 
   return (
     <div className="rounded-2xl border border-line bg-card p-5">
@@ -35,26 +38,32 @@ export function LeasingCalculator({ price, leasing, onApply, compact = false, pr
             <span className="ml-1 text-base font-semibold text-mute">€/mēn.</span>
           </p>
         </div>
-        <span className="price-tag num rounded-lg px-2.5 py-1 text-sm font-bold">{leasing.rate}% gadā</span>
+        <span className="flex flex-col items-end gap-1">
+          <span className="price-tag num rounded-lg px-2.5 py-1 text-sm font-bold">GPL {pct(ex.apr)}</span>
+          <span className="num text-xs font-semibold text-ink-2">likme {pct(leasing.rate)} gadā</span>
+        </span>
       </div>
       <div className="mt-5 space-y-5">
         {priceEditable && <Slider label="Auto cena" value={p} min={1000} max={80000} step={500} onChange={setP} format={money} />}
         <Slider label={`Pirmā iemaksa (${downPct}%)`} value={downPct} min={leasing.minDownPct} max={leasing.maxDownPct} step={5} onChange={setDownPct} format={() => money(s.down)} />
         <Slider label="Termiņš" value={term} min={leasing.minTerm} max={leasing.maxTerm} step={6} onChange={setTerm} format={(v) => `${v} mēn.`} />
       </div>
-      {!compact && (
-        <dl className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm">
-          <div className="flex justify-between"><dt className="text-mute">Finansējuma summa</dt><dd className="num font-semibold">{money(s.financed)}</dd></div>
-          <div className="flex justify-between"><dt className="text-mute">Kopā samaksāsi</dt><dd className="num font-semibold">{money(s.totalPaid)}</dd></div>
-          <div className="flex justify-between"><dt className="text-mute">Procentu izmaksas</dt><dd className="num font-semibold">{money(s.interest)}</dd></div>
-        </dl>
-      )}
+      <dl className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm">
+        <div className="flex justify-between"><dt className="text-mute">Kredīta kopējā summa</dt><dd className="num font-semibold">{money(ex.credit)}</dd></div>
+        <div className="flex justify-between"><dt className="text-mute">Termiņš · aizņēmuma likme</dt><dd className="num font-semibold">{ex.term} mēn. · {pct(ex.rate)}</dd></div>
+        {!!ex.contractFee && <div className="flex justify-between"><dt className="text-mute">Līguma noformēšanas maksa</dt><dd className="num font-semibold">{money(ex.contractFee)}</dd></div>}
+        <div className="flex justify-between"><dt className="text-mute">Kopējā atmaksājamā summa</dt><dd className="num font-semibold">{money(ex.total)}</dd></div>
+        {!compact && <div className="flex justify-between"><dt className="text-mute">Kopā ar pirmo iemaksu</dt><dd className="num font-semibold">{money(ex.totalWithDown)}</dd></div>}
+        {!compact && <div className="flex justify-between"><dt className="text-mute">Procentu un citas izmaksas</dt><dd className="num font-semibold">{money(s.interest)}</dd></div>}
+        <div className="flex justify-between"><dt className="font-semibold text-ink">Gada procentu likme (GPL)</dt><dd className="num font-bold text-ink">{pct(ex.apr)}</dd></div>
+      </dl>
       {onApply && (
         <button onClick={() => onApply({ down: Math.round(s.down), term, monthly: Math.round(s.pmt) })} className="btn btn-signal mt-5 w-full text-base">
           Pieteikties līzingam
         </button>
       )}
-      <p className="mt-3 text-xs leading-relaxed text-mute">Orientējošs aprēķins. Precīzu likmi un nosacījumus nosaka līzinga devējs pēc pieteikuma izvērtēšanas.</p>
+      <p className="mt-3 text-xs leading-relaxed text-mute">Orientējošs aprēķins. Kredītu izsniedz {leasing.lender || 'sadarbības līzinga devēji'}; precīzu likmi un nosacījumus nosaka kredīta devējs pēc kredītspējas izvērtēšanas. {leasing.extras || ''}</p>
+      <CreditWarning size="md" className="mt-3" />
     </div>
   );
 }

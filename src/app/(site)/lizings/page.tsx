@@ -8,8 +8,8 @@ import { Faq } from '@/components/site/Faq';
 import { HOME_FAQ } from '@/lib/faq';
 
 export const metadata: Metadata = {
-  title: 'Auto līzings — arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem',
-  description: 'Auto līzings no 0% pirmās iemaksas. Bezmaksas pieteikuma izskatīšana, lēmums dažu stundu laikā. Līzings arī ar sabojātu kredītvēsturi, ārzemēs strādājošajiem un uzņēmumiem.',
+  title: 'Auto līzings — iespēja sadalīt maksājumu, arī ārzemēs strādājošajiem',
+  description: 'Auto līzings ar iespēju sadalīt maksājumu. Bezmaksas pieteikuma izskatīšana, reprezentatīvais piemērs un GPL. Līzings arī ārzemēs strādājošajiem un uzņēmumiem.',
   alternates: { canonical: '/lizings' },
 };
 
@@ -17,13 +17,13 @@ export default async function LeasingPage() {
   const { leasing } = await getSettings();
   return (
     <>
-      <PageHead crumb="Līzings" title="Līzings, kas pielāgojas tev" lead="Kad esi noskatījis auto, aizpildi pieteikumu. Sadarbojamies ar vairākiem līzinga devējiem, tāpēc atrodam risinājumu arī tad, ja citur atteica." />
+      <PageHead crumb="Līzings" title="Līzings, kas pielāgojas tev" lead="Kad esi noskatījis auto, aizpildi pieteikumu. Sadarbojamies ar vairākiem līzinga devējiem; lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas. Pirms pirkuma izvērtē kredīta nosacījumus." />
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { i: BadgeCheck, t: 'Bezmaksas izskatīšana', d: 'Pieteikums tevi ne pie kā nesaista.' },
-            { i: Percent, t: `Likmes no ${Math.min(3, leasing.rate)}% gadā`, d: 'Izvēlamies izdevīgāko piedāvājumu no vairākiem partneriem.' },
-            { i: Clock, t: 'Lēmums dažu stundu laikā', d: 'Pēc līguma parakstīšanas auto vari saņemt tajā pašā dienā.' },
+            { i: Percent, t: 'Skaidras izmaksas', d: 'Pie katra maksājuma redzams GPL un reprezentatīvais piemērs.' },
+            { i: Clock, t: 'Atbildīga izvērtēšana', d: 'Līzinga devējs izvērtē kredītspēju, lai maksājums būtu tev pa spēkam.' },
             { i: Globe2, t: 'Ārzemēs strādājošajiem', d: 'Ienākumi no ārvalstīm tiek ņemti vērā.' },
             { i: Repeat2, t: 'Vecais auto kā iemaksa', d: 'Tavu auto novērtēsim un ieskaitīsim pirmajā iemaksā.' },
             { i: Building2, t: 'Uzņēmumiem', d: 'Finanšu un operatīvais līzings juridiskām personām, cenas ar PVN.' },
@@ -41,7 +41,7 @@ export default async function LeasingPage() {
           </div>
           <div id="pieteikums" className="scroll-mt-24 rounded-2xl bg-card p-6 shadow-[var(--shadow-lift)] sm:p-8">
             <h2 className="display-md text-2xl text-ink">Līzinga pieteikums</h2>
-            <p className="mb-6 mt-1 text-sm text-ink-2">Aizpildīšana aizņem 2 minūtes. Sazināsimies 24 stundu laikā — parasti ātrāk.</p>
+            <p className="mb-6 mt-1 text-sm text-ink-2">Pieteikuma izskatīšana ir bezmaksas. Sazināsimies darba dienas laikā.</p>
             <LeadForm type="leasing" fields={LEASING_FIELDS} submitLabel="Nosūtīt pieteikumu" />
           </div>
         </div>

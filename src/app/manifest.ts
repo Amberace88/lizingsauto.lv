@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/',
     name: 'Tavs Auto — lietoti auto ar līzingu',
     short_name: 'Tavs Auto',
-    description: 'Pārbaudīti lietoti auto ar līzingu Rīgā — arī ar sabojātu kredītvēsturi. Katalogs, kalkulatori un pieteikumi vienā lietotnē.',
+    description: 'Pārbaudīti lietoti auto ar līzingu Rīgā. Katalogs, kalkulatori un pieteikumi vienā lietotnē.',
     start_url: '/?source=app',
     scope: '/',
     display: 'standalone',

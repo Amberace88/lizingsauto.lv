@@ -63,7 +63,7 @@ export function RadarPageView({ radars, page }: { radars: Radar[]; page?: RadarP
           <Link href="/lizings" className="group rounded-[20px] border border-line bg-card p-6 transition hover:border-ink-2/40">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-signal-soft text-signal"><Wallet className="h-5 w-5" /></span>
             <p className="mt-3 font-bold text-ink">Plāno citu auto?</p>
-            <p className="mt-1 text-sm text-ink-2">Līzings no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi. Pārbaudīti auto Rīgā.</p>
+            <p className="mt-1 text-sm text-ink-2">Pārbaudīti auto Rīgā ar iespēju sadalīt maksājumu līzingā.</p>
             <p className="mt-3 text-sm font-semibold text-signal group-hover:underline">Aprēķināt maksājumu →</p>
           </Link>
         </section>

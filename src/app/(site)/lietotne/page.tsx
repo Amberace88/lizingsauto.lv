@@ -44,7 +44,7 @@ export default function AppPage() {
               </div>
               <div className="grid grid-cols-3 gap-2 p-4">
                 {['Katalogs', 'Līzings', 'Pārdot'].map((x) => <span key={x} className="rounded-lg bg-white/5 px-2 py-6 text-center text-xs font-semibold text-white/70">{x}</span>)}
-                <span className="col-span-3 flex items-center gap-2 rounded-lg bg-signal/15 px-3 py-3 text-xs text-white/80"><Zap className="h-4 w-4 text-signal" /> Līzings no 0% pirmās iemaksas — aprēķini 10 sekundēs</span>
+                <span className="col-span-3 flex items-center gap-2 rounded-lg bg-signal/15 px-3 py-3 text-xs text-white/80"><Zap className="h-4 w-4 text-signal" /> Līzinga kalkulators ar GPL un reprezentatīvo piemēru</span>
               </div>
             </div>
           </div>

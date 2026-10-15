@@ -60,6 +60,7 @@ const nextConfig: NextConfig = {
     // Vecās WordPress lapas adreses → jaunās (SEO saglabāšanai)
     return [
       { source: '/cars/:slug', destination: '/auto/:slug', permanent: true },
+      { source: '/padomi/lizings-ar-sabojatu-kreditvesturi', destination: '/padomi/atbildiga-aiznemsanas-auto-lizings', permanent: true },
       { source: '/cars/:slug/', destination: '/auto/:slug', permanent: true },
       { source: '/catalog', destination: '/katalogs', permanent: true },
       { source: '/catalog/:path*', destination: '/katalogs', permanent: true },

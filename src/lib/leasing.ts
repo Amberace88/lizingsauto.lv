@@ -11,6 +11,10 @@ export const DEFAULT_LEASING: LeasingSettings = {
   residualPct: 0,
   contractFee: 0,
   monthlyFee: 0,
+  exampleAmount: 10000,
+  aprOverride: null,
+  lender: 'Tavs Auto sadarbības līzinga devēji un ESTO LV AS (preču nomaksas kredīts)',
+  extras: 'Līzinga devējs var pieprasīt KASKO apdrošināšanu; tās izmaksas nav iekļautas aprēķinā, jo nav zināmas iepriekš.',
 };
 
 /** Anuitātes maksājums ar iespējamu atlikušo vērtību (balloon). */

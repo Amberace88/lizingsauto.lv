@@ -6,6 +6,7 @@ import { X } from 'lucide-react';
 import type { Car, LeasingSettings } from '@/lib/types';
 import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, carName, carUrl, coverImage, km, money } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
+import { aprLabel } from './Credit';
 import { useCompare } from './favorites';
 
 export function CompareTable({ cars, leasing }: { cars: Car[]; leasing: LeasingSettings }) {
@@ -23,7 +24,7 @@ export function CompareTable({ cars, leasing }: { cars: Car[]; leasing: LeasingS
     );
   const rows: [string, (c: Car) => string][] = [
     ['Cena', (c) => money(c.price)],
-    ['Līzingā no', (c) => `${fromPayment(c.price, leasing)} €/mēn.`],
+    ['Līzingā no', (c) => `${fromPayment(c.price, leasing)} €/mēn. · ${aprLabel(leasing, c.price)}`],
     ['Gads', (c) => String(c.year ?? '—')],
     ['Nobraukums', (c) => km(c.mileage)],
     ['Degviela', (c) => (c.fuel ? FUEL_LABEL[c.fuel] : '—')],

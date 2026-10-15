@@ -71,6 +71,14 @@ export interface LeasingSettings {
   residualPct: number;
   contractFee: number;
   monthlyFee: number;
+  /** Reprezentatīvā piemēra auto cena (kreditēšanas reklāmai) */
+  exampleAmount?: number;
+  /** Ja kredīta devējs norādījis precīzu GPL — tas aizstāj automātisko aprēķinu */
+  aprOverride?: number | null;
+  /** Kredīta devējs(-i), kas izsniedz kredītu */
+  lender?: string;
+  /** Obligātie papildu pakalpojumi (piem., KASKO), kuru izmaksas nav zināmas iepriekš */
+  extras?: string;
 }
 
 export interface CompanySettings {

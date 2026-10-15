@@ -62,7 +62,7 @@ const budget = (n: number): Landing => ({
   group: 'budget',
   title: `Lietoti auto līdz ${n.toLocaleString('lv-LV')} € ar līzingu`,
   h1: `Lietoti auto līdz ${n.toLocaleString('lv-LV')} €`,
-  lead: `Pārbaudīti lietoti auto par cenu līdz ${n.toLocaleString('lv-LV')} €. Līzings no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi — mēneša maksājums redzams katram auto.`,
+  lead: `Pārbaudīti lietoti auto par cenu līdz ${n.toLocaleString('lv-LV')} €. Iespēja sadalīt maksājumu līzingā — aptuvenais mēneša maksājums un GPL redzams katram auto.`,
   criteria: { maxPrice: n },
 });
 
@@ -80,7 +80,7 @@ export const STATIC_LANDINGS: Landing[] = [
   { slug: 'elektroauto', group: 'fuel', title: 'Lietoti elektroauto ar EKII atbalstu un līzingu', h1: 'Lietoti elektroauto', lead: 'Elektroauto ar valsts EKII atbalstu — mēs sakārtojam dokumentus un līzingu. Atbalsts var segt līdz 90% no auto cenas.', criteria: { fuel: 'electric' } },
   { slug: 'hibridi', group: 'fuel', title: 'Lietoti hibrīdauto ar līzingu', h1: 'Lietoti hibrīdi', lead: 'Zems patēriņš pilsētā bez uzlādes rūpēm. Hibrīdi un plug-in hibrīdi ar līzingu.', criteria: { fuel: 'hybrid' } },
   { slug: 'dizelis', group: 'fuel', title: 'Lietoti dīzeļa auto ar līzingu', h1: 'Lietoti dīzeļa auto', lead: 'Ekonomiski auto garākiem braucieniem. Pārbaudīti dīzeļa auto ar līzingu Rīgā.', criteria: { fuel: 'diesel' } },
-  { slug: 'benzins', group: 'fuel', title: 'Lietoti benzīna auto ar līzingu', h1: 'Lietoti benzīna auto', lead: 'Benzīna auto ar līzingu no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi.', criteria: { fuel: 'petrol' } },
+  { slug: 'benzins', group: 'fuel', title: 'Lietoti benzīna auto ar līzingu', h1: 'Lietoti benzīna auto', lead: 'Pārbaudīti benzīna auto ar iespēju sadalīt maksājumu līzingā.', criteria: { fuel: 'petrol' } },
   { slug: 'automats', group: 'feature', title: 'Lietoti auto ar automātisko ātrumkārbu', h1: 'Auto ar automātisko kārbu', lead: 'Ērta braukšana pilsētā — lietoti auto ar automātisko ātrumkārbu un līzingu.', criteria: { gear: 'automatic' } },
   { slug: '4x4-pilnpiedzina', group: 'feature', title: 'Lietoti 4x4 pilnpiedziņas auto ar līzingu', h1: 'Pilnpiedziņas auto 4x4', lead: 'Droša braukšana ziemā un pa grants ceļiem. 4x4 auto ar līzingu Rīgā.', criteria: { drive: 'awd' } },
   { slug: '7-vietigi-auto', group: 'feature', title: 'Lietoti 7 vietīgi auto ar līzingu', h1: '7 vietīgi auto', lead: 'Lielām ģimenēm — 7 vietīgi auto. Goda ģimenēm elektroauto iegādei pieejams palielināts EKII atbalsts.', criteria: { minSeats: 7 } },
@@ -94,7 +94,7 @@ export function makeLanding(make: string): Landing {
     group: 'make',
     title: `Lietoti ${make} auto ar līzingu Rīgā`,
     h1: `Lietoti ${make}`,
-    lead: `Pārbaudīti lietoti ${make} auto no Eiropas. Līzings no 0% pirmās iemaksas, arī ar sabojātu kredītvēsturi un ārzemēs strādājošajiem.`,
+    lead: `Pārbaudīti lietoti ${make} auto no Eiropas. Iespēja sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem.`,
     criteria: { make },
   };
 }
