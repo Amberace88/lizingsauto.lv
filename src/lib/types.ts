@@ -107,7 +107,7 @@ export interface Lead {
   status: 'new' | 'in_progress' | 'done' | 'rejected';
   admin_note: string | null;
   created_at: string;
-  cars?: { title: string; slug: string } | null;
+  cars?: { title: string; slug: string; make?: string; model?: string; year?: number | null; mileage?: number | null; price?: number; car_images?: { url: string; sort: number; is_promo?: boolean }[] } | null;
 }
 
 export interface AdminProfile {

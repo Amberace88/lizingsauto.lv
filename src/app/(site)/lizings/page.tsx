@@ -3,7 +3,9 @@ import { Clock, Globe2, Percent, BadgeCheck, Repeat2, Building2 } from 'lucide-r
 import { getSettings } from '@/lib/data';
 import { PageHead } from '@/components/site/PageHead';
 import { LeasingCalculator } from '@/components/site/LeasingCalculator';
-import { LeadForm, LEASING_FIELDS } from '@/components/site/LeadForm';
+import { LeasingApplication, type PickCar } from '@/components/site/LeasingApplication';
+import { getPublicCars } from '@/lib/data';
+import { coverImage } from '@/lib/format';
 import { Faq } from '@/components/site/Faq';
 import { HOME_FAQ } from '@/lib/faq';
 
@@ -14,7 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function LeasingPage() {
-  const { leasing } = await getSettings();
+  const [{ leasing }, all] = await Promise.all([getSettings(), getPublicCars()]);
+  const cars: PickCar[] = all
+    .filter((c) => c.price > 0)
+    .map((c) => ({ id: c.id, title: `${c.make} ${c.model}${c.title ? ` ${c.title}` : ''}`.slice(0, 90), price: c.price, img: coverImage(c), year: c.year, km: c.mileage, reserved: c.status === 'reserved' }));
   return (
     <>
       <PageHead crumb="Līzings" title="Līzings, kas pielāgojas tev" lead="Kad esi noskatījis auto, aizpildi pieteikumu. Sadarbojamies ar vairākiem līzinga devējiem; lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas. Pirms pirkuma izvērtē kredīta nosacījumus." />
@@ -41,8 +46,8 @@ export default async function LeasingPage() {
           </div>
           <div id="pieteikums" className="scroll-mt-24 rounded-2xl bg-card p-6 shadow-[var(--shadow-lift)] sm:p-8">
             <h2 className="display-md text-2xl text-ink">Līzinga pieteikums</h2>
-            <p className="mb-6 mt-1 text-sm text-ink-2">Pieteikuma izskatīšana ir bezmaksas. Sazināsimies darba dienas laikā.</p>
-            <LeadForm type="leasing" fields={LEASING_FIELDS} submitLabel="Nosūtīt pieteikumu" />
+            <p className="mb-6 mt-1 text-sm text-ink-2">3 soļi: auto un summa, ienākumi, kontakti. Izskatīšana ir bezmaksas un tevi ne pie kā nesaista.</p>
+            <LeasingApplication cars={cars} leasing={leasing} />
           </div>
         </div>
         <section className="mt-20 grid gap-10 lg:grid-cols-[1fr_1.4fr]">

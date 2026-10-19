@@ -118,7 +118,7 @@ export function leadNotification(lead: MailLead, car: Car | null, company: Compa
   if (lead.email) contact.push(['E-pasts', `<a href="mailto:${esc(lead.email)}" style="color:${RED};text-decoration:none">${esc(lead.email)}</a>`]);
   const extra = Object.entries(lead.data)
     .filter(([k, v]) => !['ip_hash', 'kind', 'car'].includes(k) && v !== '' && v != null)
-    .map(([k, v]) => [FIELD_LABEL[k] || k, k === 'page' ? `<a href="${SITE_URL}${esc(v)}" style="color:${INK}">${esc(v)}</a>` : esc(typeof v === 'boolean' ? (v ? 'Jā' : 'Nē') : v)] as [string, string]);
+    .map(([k, v]) => [FIELD_LABEL[k] || k, k === 'page' ? `<a href="${SITE_URL}${esc(v)}" style="color:${INK}">${esc(v)}</a>` : k === 'car_link' && /^https?:\/\//i.test(String(v)) ? `<a href="${esc(v)}" style="color:${RED}">Atvērt sludinājumu</a>` : esc(typeof v === 'boolean' ? (v ? 'Jā' : 'Nē') : v)] as [string, string]);
   const body = `
     <p style="margin:0 0 4px;font-size:14px;color:${MUTE};">${esc(when)} · no lapas ${esc(SITE_HOST)}</p>
     <span style="display:inline-block;margin-top:10px;padding:5px 12px;border-radius:999px;background:#fdecee;color:${RED};font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;">${esc(kind)}</span>

@@ -25,7 +25,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const car = await getCarBySlug(slug);
   if (!car) return { title: 'Auto nav atrasts', robots: { index: false } };
-  const { leasing } = await getSettings();
   const name = `${carName(car)} ${car.year ?? ''}`.trim();
   const desc = `${name}, ${car.fuel ? FUEL_LABEL[car.fuel] : ''}${car.engine_volume ? ` ${car.engine_volume}` : ''}, ${car.transmission ? GEAR_LABEL[car.transmission].toLowerCase() : ''}, ${km(car.mileage)}. Cena ${money(car.price)}. ${car.status === 'sold' ? 'Pārdots.' : 'Iespējams līzings, testa brauciens un pārbaude servisā.'}`;
   const img = sortedImages(car)[0]?.url;
