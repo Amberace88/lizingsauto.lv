@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Heart, Share2, Scale, Check, Phone, MessageCircle } from 'lucide-react';
 import type { LeasingSettings } from '@/lib/types';
 import { LeasingCalculator } from './LeasingCalculator';
-import { LeadForm, LEASING_FIELDS } from './LeadForm';
+import { LeadForm } from './LeadForm';
+import { LeasingApplication } from './LeasingApplication';
 import { useCompare, useFavorites } from './favorites';
 import { supabaseBrowser } from '@/lib/supabase/client';
 
@@ -90,19 +91,17 @@ export function CarContactPanel({ carId, carTitle, price, leasing, phone, whatsa
               </button>
             ))}
           </div>
-          {calc && tab === 'leasing' && (
-            <p className="num mb-4 rounded-lg bg-signal-soft px-3 py-2 text-sm text-ink">
-              Izvēlēts: pirmā iemaksa {calc.down} €, {calc.term} mēn., ~{calc.monthly} €/mēn.
-            </p>
+          {tab === 'leasing' ? (
+            <LeasingApplication key={`l${calc?.down ?? ''}-${calc?.term ?? ''}`} fixedCar={{ id: carId, title: carTitle, price }} leasing={leasing} initial={calc ? { down: calc.down, term: calc.term } : undefined} />
+          ) : (
+            <LeadForm
+              key={tab}
+              type={tab}
+              carId={carId}
+              extra={{ car: carTitle }}
+              submitLabel={tab === 'reserve' ? 'Rezervēt auto' : 'Pieteikt testa braucienu'}
+            />
           )}
-          <LeadForm
-            key={tab}
-            type={tab}
-            carId={carId}
-            fields={tab === 'leasing' ? LEASING_FIELDS : undefined}
-            extra={{ car: carTitle, ...(tab === 'leasing' && calc ? { down: calc.down, term: calc.term, monthly: calc.monthly } : {}) }}
-            submitLabel={tab === 'leasing' ? 'Nosūtīt līzinga pieteikumu' : tab === 'reserve' ? 'Rezervēt auto' : 'Pieteikt testa braucienu'}
-          />
         </div>
       )}
     </div>

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
   // Tikai vienkāršas vērtības no papildu laukiem
   const data: Record<string, string | number | boolean> = {};
-  for (const [k, v] of Object.entries(d.data || {}).slice(0, 30)) {
+  for (const [k, v] of Object.entries(d.data || {}).slice(0, 40)) {
     if (['string', 'number', 'boolean'].includes(typeof v)) data[k.slice(0, 40)] = typeof v === 'string' ? v.slice(0, 500) : (v as number | boolean);
   }
   data.ip_hash = await hashIp(ip);
