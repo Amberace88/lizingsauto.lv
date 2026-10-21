@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { publicText } from '@/lib/credit';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { BatteryCharging } from 'lucide-react';
@@ -74,7 +75,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
     '@context': 'https://schema.org',
     '@type': 'Car',
     name: `${name} ${car.year ?? ''}`.trim(),
-    description: car.description || car.title,
+    description: publicText(car.description) || car.title,
     brand: { '@type': 'Brand', name: car.make },
     model: car.model,
     vehicleModelDate: car.year ? String(car.year) : undefined,

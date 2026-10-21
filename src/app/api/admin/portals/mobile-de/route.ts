@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { convertImage } from '@/lib/image-convert';
+import { publicText } from '@/lib/credit';
 import { requireAdmin } from '@/lib/supabase/admin-guard';
 import type { Car } from '@/lib/types';
 
@@ -87,7 +88,7 @@ export async function POST(req: Request) {
     fuel: car.fuel ? FUEL[car.fuel] : undefined,
     gearbox: car.transmission ? GEAR[car.transmission] : undefined,
     damageUnrepaired: false,
-    description: [car.title, car.description, (car.equipment || []).join(', ')].filter(Boolean).join('\n\n').slice(0, 3000),
+    description: [car.title, publicText(car.description), (car.equipment || []).join(', ')].filter(Boolean).join('\n\n').slice(0, 3000),
     images,
     price: { consumerPriceGross: car.price.toFixed(2), currency: 'EUR', type: 'FIXED', ...(car.vat_included ? { vatRate: '21.00' } : {}) },
     internalNumber: car.id.slice(0, 20),
