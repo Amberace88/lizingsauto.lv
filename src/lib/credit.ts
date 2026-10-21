@@ -117,3 +117,6 @@ export const isCreditCompliant = (text?: string | null) => !text || !BANNED_CRED
 
 /** Ja admin ievadītais teksts satur aizliegtu formulējumu, rādām drošo noklusējumu. */
 export const compliantOr = (text: string | null | undefined, fallback: string) => (text && isCreditCompliant(text) ? text : fallback);
+
+/** Tirgotāja teksts publicēšanai: bez izmaiņām, tikai izlaižot rindas ar aizliegtiem kredīta formulējumiem. */
+export const publicText = (text?: string | null) => (text || '').replace(/\r/g, '').split('\n').filter((l) => isCreditCompliant(l)).join('\n').trim();

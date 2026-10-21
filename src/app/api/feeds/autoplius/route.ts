@@ -1,4 +1,5 @@
 import { supabasePublic } from '@/lib/supabase/public';
+import { publicText } from '@/lib/credit';
 import { PUBLIC_CAR_COLUMNS } from '@/lib/data';
 import type { Car } from '@/lib/types';
 import { AP_BODY, AP_DRIVE, AP_FUEL, AP_GEAR, apColor, carMakeDate, resolveMakeModel, xmlEscape } from '@/lib/autoplius';
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
     } catch {}
     if (!mm.makeId) continue;
     const photos = [...(c.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort).slice(0, 40).map((i) => `<photo>${xmlEscape(i.url)}</photo>`).join('');
-    const desc = [c.title, '', c.description || '', '', (c.equipment || []).map((e) => `- ${e}`).join('\n'), '', `Automobilis Rygoje, Latvijoje. Galimas lizingas. ${SITE_URL}/auto/${c.slug}`].join('\n');
+    const desc = [c.title, '', publicText(c.description), '', (c.equipment || []).map((e) => `- ${e}`).join('\n'), '', `Automobilis Rygoje, Latvijoje. Galimas lizingas. ${SITE_URL}/auto/${c.slug}`].join('\n');
     parts.push(`<cars>
 <external_id>${c.id}</external_id>
 <make_id>${mm.makeId}</make_id>

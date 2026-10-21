@@ -8,6 +8,7 @@ import { BODY_LABEL, FUEL_LABEL, GEAR_LABEL, DRIVE_LABEL, number } from '@/lib/f
 import { Card } from './CarEditor';
 import { useToast } from './Toast';
 import { PORTALS } from './labels';
+import { publicText } from '@/lib/credit';
 
 type Listing = { id?: string; portal: string; enabled: boolean; status: string; external_url: string | null; external_id: string | null; last_error: string | null; last_sync_at: string | null };
 
@@ -22,7 +23,7 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
     if (car.badges?.includes('warranty')) lines.push('Pieejama garantija (iespējams pagarināt līdz 36 mēn.).');
     if (car.badges?.includes('fresh_ta')) lines.push('Svaiga tehniskā apskate.');
     lines.push('');
-    if (car.description?.trim()) lines.push(car.description.replace(/\r/g, '').trim(), '');
+    if (publicText(car.description)) lines.push(publicText(car.description), '');
     if (car.equipment?.length) lines.push(...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
     if (car.consumption) lines.push(`Vidējais patēriņš ap ${car.consumption} l/100 km.`);
     lines.push('Testa brauciens un pārbaude servisā pēc jūsu izvēles.', 'Iespēja sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas.', 'Jūsu vecais auto var būt pirmā iemaksa.', '', 'Brīdinām! Aizņemšanās maksā naudu.', '', `Vairāk bilžu un līzinga kalkulators: ${siteUrl}/auto/${car.slug}`);
