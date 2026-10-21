@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     } catch {}
     if (!mm.makeId) continue;
     const photos = [...(c.car_images || [])].filter((i) => !i.is_promo).sort((a, b) => a.sort - b.sort).slice(0, 40).map((i) => `<photo>${xmlEscape(i.url)}</photo>`).join('');
-    const desc = [c.title, '', c.description || '', '', (c.equipment || []).map((e) => `- ${e}`).join('\n'), '', `Automobilis Rygoje, Latvijoje. Lizingas visiems. ${SITE_URL}/auto/${c.slug}`].join('\n');
+    const desc = [c.title, '', c.description || '', '', (c.equipment || []).map((e) => `- ${e}`).join('\n'), '', `Automobilis Rygoje, Latvijoje. Galimas lizingas. ${SITE_URL}/auto/${c.slug}`].join('\n');
     parts.push(`<cars>
 <external_id>${c.id}</external_id>
 <make_id>${mm.makeId}</make_id>

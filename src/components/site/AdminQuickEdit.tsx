@@ -8,6 +8,7 @@ import type { Car } from '@/lib/types';
 import { STATUS_LABEL } from '@/lib/format';
 import { BadgeOrder } from '@/components/admin/BadgeOrder';
 import { revalidateSite } from '@/components/admin/revalidate';
+import { isCreditCompliant } from '@/lib/credit';
 
 type Draft = Pick<Car, 'status' | 'title' | 'price' | 'old_price' | 'mileage' | 'year' | 'ta_until' | 'description' | 'equipment' | 'badges' | 'featured' | 'slug' | 'make' | 'model' | 'fuel' | 'vat_included' | 'drive' | 'odometer_history'>;
 
@@ -120,7 +121,8 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
               <label className="block"><span className="label">Virsraksts</span><input className="field" value={car.title || ''} onChange={(e) => set('title', e.target.value)} maxLength={160} /></label>
               <label className="block">
                 <span className="label">Apraksts</span>
-                <textarea className="field min-h-[160px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Tukša rinda = jauna rindkopa, rinda ar “-” = saraksts." />
+                <textarea className="field min-h-[160px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Teksts lapā parādās tieši tā, kā ierakstīts." />
+                {!isCreditCompliant(car.description) && <p className="mt-2 rounded-lg bg-signal-soft px-3 py-2 text-xs font-semibold text-signal">Tekstā ir kreditēšanas reklāmā aizliegts formulējums (piem., “sabojāta kredītvēsture”, “banka atteica”, “bez pārbaudēm”, “lēmums minūtēs”). Lūdzu, izņem to — par reklāmu atbild auto placis.</p>}
               </label>
               <label className="block">
                 <span className="label">Aprīkojums un ekstras (katra savā rindā)</span>
