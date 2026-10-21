@@ -49,63 +49,27 @@ export function KeyFacts({ car }: { car: Car }) {
   );
 }
 
-// Standarta tirgotāja teksti, ko rādām atsevišķā blokā — no apraksta tos izlaižam, lai neatkārtotos.
-const BOILER = /testa brauc|tirdzniecībā|pirmo iemaksu|pirmā iemaksa|līzinga iespēj|kredīt\w* vēstur|kredītvēstur|droši zvaniet|spied uz saiti|procentu likm|izdevīgi nosacījumi|pārliecināties par tā stāvokli/i;
-
-function descriptionBlocks(text: string, title: string) {
-  const lines = text.replace(/\r/g, '').split('\n').map((l) => l.trim());
-  const blocks: ({ t: 'p'; v: string } | { t: 'ul'; v: string[] })[] = [];
-  for (const l of lines) {
-    if (!l) continue;
-    if (BOILER.test(l)) continue;
-    if (l.replace(/[.\s]/g, '').toLowerCase() === title.replace(/[.\s]/g, '').toLowerCase()) continue;
-    const bullet = /^[-•–*]\s*/.test(l);
-    const v = l.replace(/^[-•–*]\s*/, '');
-    const last = blocks.at(-1);
-    if (bullet) {
-      if (last?.t === 'ul') last.v.push(v);
-      else blocks.push({ t: 'ul', v: [v] });
-    } else blocks.push({ t: 'p', v });
-  }
-  return blocks;
+/** Apraksts tieši tā, kā to ierakstīja tirgotājs: rindkopas pēc tukšām rindām, rindu pārnesumi saglabāti, nekas netiek izņemts vai pielikts. */
+function descriptionParagraphs(text: string) {
+  return text.replace(/\r/g, '').replace(/\u00a0/g, ' ').split(/\n[ \t]*\n+/).map((p) => p.replace(/^\n+|\s+$/g, '')).filter((p) => p.trim());
 }
 
 /** Apraksts + ekstras pa kategorijām + tirgotāja piedāvājums vienā profesionālā blokā. */
 export function CarDescription({ car, company, monthly, apr, catalog }: { car: Car; company: CompanySettings; monthly: number; apr?: string; catalog?: EquipCatDef[] }) {
   const name = carName(car);
-  const blocks = descriptionBlocks(car.description || '', car.title || '');
+  const paras = descriptionParagraphs(car.description || '');
   const groups = groupEquipment(car.equipment || [], catalog);
   const total = groups.reduce((a, g) => a + g.items.length, 0);
   const sold = car.status === 'sold';
-  // Ja apraksta nav, sagatavojam faktu kopsavilkumu no datiem
-  if (!blocks.length) {
-    const bits = [
-      car.year ? `${car.year}. gads` : null,
-      [car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : null, car.fuel ? FUEL_LABEL[car.fuel].toLowerCase() : null].filter(Boolean).join(' ') || null,
-      car.power_kw ? `${car.power_kw} kW (${Math.round(car.power_kw * 1.36)} ZS)` : null,
-      car.transmission ? GEAR_LABEL[car.transmission].toLowerCase() : null,
-      car.drive ? DRIVE_LABEL[car.drive].toLowerCase() : null,
-      car.mileage != null ? `nobraukums ${number(car.mileage)} km` : null,
-    ].filter(Boolean);
-    blocks.push({ t: 'p', v: `${name}${bits.length ? `, ${bits.join(', ')}` : ''}.` });
-  }
 
   return (
     <section aria-labelledby="apraksts" className="overflow-hidden rounded-[24px] border border-line bg-card">
       <div className="p-6 sm:p-8">
         <p className="text-xs font-bold uppercase tracking-wider text-signal">Par šo auto</p>
         <h2 id="apraksts" className="display-md mt-1 text-2xl text-ink sm:text-3xl">Apraksts un aprīkojums</h2>
-        {blocks.length > 0 && (
-          <div className="prose-car mt-4 max-w-3xl">
-            {blocks.map((b, i) =>
-              b.t === 'p' ? (
-                <p key={i}>{b.v}</p>
-              ) : (
-                <ul key={i} className="mb-4 space-y-1.5">
-                  {b.v.map((x) => <li key={x} className="flex gap-2 text-ink-2"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-signal" />{x}</li>)}
-                </ul>
-              ),
-            )}
+        {paras.length > 0 && (
+          <div className="mt-4 max-w-3xl space-y-3 break-words text-[1rem] leading-relaxed text-ink-2">
+            {paras.map((p, i) => <p key={i} className="whitespace-pre-line">{p}</p>)}
           </div>
         )}
 

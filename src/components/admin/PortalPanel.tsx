@@ -22,6 +22,7 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
     if (car.badges?.includes('warranty')) lines.push('Pieejama garantija (iespējams pagarināt līdz 36 mēn.).');
     if (car.badges?.includes('fresh_ta')) lines.push('Svaiga tehniskā apskate.');
     lines.push('');
+    if (car.description?.trim()) lines.push(car.description.replace(/\r/g, '').trim(), '');
     if (car.equipment?.length) lines.push(...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
     if (car.consumption) lines.push(`Vidējais patēriņš ap ${car.consumption} l/100 km.`);
     lines.push('Testa brauciens un pārbaude servisā pēc jūsu izvēles.', 'Iespēja sadalīt maksājumu līzingā, arī ārzemēs strādājošajiem. Lēmumu pieņem līzinga devējs pēc kredītspējas izvērtēšanas.', 'Jūsu vecais auto var būt pirmā iemaksa.', '', 'Brīdinām! Aizņemšanās maksā naudu.', '', `Vairāk bilžu un līzinga kalkulators: ${siteUrl}/auto/${car.slug}`);

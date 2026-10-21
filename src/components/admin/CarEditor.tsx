@@ -17,6 +17,7 @@ import { EquipPicker } from './EquipCatalog';
 import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
 import { AlertMatches } from './AlertMatches';
+import { isCreditCompliant } from '@/lib/credit';
 
 type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean; is_promo?: boolean };
 type Priv = { purchase_price: number | null; seller_name: string | null; seller_phone: string | null; internal_note: string | null };
@@ -130,7 +131,10 @@ export function CarEditor({ id }: { id?: string }) {
         b.includes('like_new') ? 'Auto ir teicamā stāvoklī.' : '',
       ].filter(Boolean).join(' '),
     ].filter(Boolean);
-    set('description', lines.join('\n\n'));
+    const text = lines.join('\n\n');
+    const cur = (car.description || '').trim();
+    if (!cur) return set('description', text);
+    if (window.confirm('Aprakstā jau ir teksts. Pievienot sagatavoto tekstu beigās? (Esošais teksts netiks mainīts.)')) set('description', `${cur}\n\n${text}`);
   };
 
   async function onFiles(files: FileList | null) {
@@ -380,8 +384,10 @@ export function CarEditor({ id }: { id?: string }) {
             </div>
           </Card>
 
-          <Card title="Apraksts" actions={<button type="button" onClick={autoDescription} className="btn btn-ghost !px-3 !py-1.5 text-sm"><Wand2 className="h-4 w-4" /> Sagatavot tekstu</button>}>
-            <textarea className="field min-h-[200px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Stāvoklis, apkopes vēsture, īpašas priekšrocības. Tukša rinda = jauna rindkopa, rinda ar “-” = saraksts. Testa braucienu, līzingu un apmaiņu lapa parāda automātiski." />
+          <Card title="Apraksts" actions={<button type="button" onClick={autoDescription} className="btn btn-ghost !px-3 !py-1.5 text-sm" title="Sagatavo tekstu no auto datiem. Esošu tekstu nepārraksta."><Wand2 className="h-4 w-4" /> Sagatavot tekstu</button>}>
+            <textarea className="field min-h-[200px]" value={car.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="Stāvoklis, apkopes vēsture, īpašas priekšrocības. Teksts lapā parādās tieši tā, kā ierakstīts — ar tām pašām rindām un rindkopām." />
+            {!isCreditCompliant(car.description) && <p className="mt-2 rounded-lg bg-signal-soft px-3 py-2 text-xs font-semibold text-signal">Tekstā ir kreditēšanas reklāmā aizliegts formulējums (piem., “sabojāta kredītvēsture”, “banka atteica”, “bez pārbaudēm”, “lēmums minūtēs”). Lūdzu, izņem to — par reklāmu atbild auto placis.</p>}
+            <p className="mt-2 text-xs text-mute">Lapā teksts netiek mainīts. Aprīkojumu un ekstras atzīmē sadaļā “Aprīkojums” — tās lapā rādās atsevišķos blokos pa kategorijām.</p>
           </Card>
 
           {!isNew && <PortalPanel car={car as Car} images={visible.filter((i) => !i.is_promo).map((i) => i.url)} />}
