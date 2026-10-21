@@ -1,4 +1,5 @@
 import { CalendarDays, Gauge, Fuel, Zap, Cog, Route, Car as CarIcon, Palette, Users, ClipboardCheck, Leaf, BatteryCharging, MapPin, Repeat2, Wallet, Phone, MessageCircle, ArrowRight, BadgePercent, KeyRound, ShieldCheck, FileText } from 'lucide-react';
+import { isCreditCompliant } from '@/lib/credit';
 import type { Car, CompanySettings } from '@/lib/types';
 import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, carName, number } from '@/lib/format';
 import { groupEquipment, type EquipCatDef } from '@/lib/equipment';
@@ -51,7 +52,9 @@ export function KeyFacts({ car }: { car: Car }) {
 
 /** Apraksts tieši tā, kā to ierakstīja tirgotājs: rindkopas pēc tukšām rindām, rindu pārnesumi saglabāti, nekas netiek izņemts vai pielikts. */
 function descriptionParagraphs(text: string) {
-  return text.replace(/\r/g, '').replace(/\u00a0/g, ' ').split(/\n[ \t]*\n+/).map((p) => p.replace(/^\n+|\s+$/g, '')).filter((p) => p.trim());
+  // Vienīgais izņēmums: rindas ar kreditēšanas reklāmā aizliegtu formulējumu (PTAL 8.³ p.) netiek publicētas.
+  const clean = text.replace(/\r/g, '').replace(/\u00a0/g, ' ').split('\n').filter((l) => isCreditCompliant(l)).join('\n');
+  return clean.split(/\n[ \t]*\n+/).map((p) => p.replace(/^\n+|\s+$/g, '')).filter((p) => p.trim());
 }
 
 /** Apraksts + ekstras pa kategorijām + tirgotāja piedāvājums vienā profesionālā blokā. */

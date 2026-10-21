@@ -101,15 +101,15 @@ export function exampleText(e: CreditExample, lender?: string) {
  * informācija par kredītu personām ar negatīvu kredītvēsturi, viegluma/ātruma uzsvēršana u.c.
  */
 export const BANNED_CREDIT_PHRASES: RegExp[] = [
-  /saboj[aā]t\w*\s+kredītvēstur/i,
-  /negatīv\w*\s+kredītvēstur/i,
-  /slikt\w*\s+kredītvēstur/i,
+  /(saboj|bojāt|bojat|negatīv|slikt|problemātisk)\S*\s+kredīt\S*\s*vēstur/i,
+  /(плох|испорч|негатив)\S*\s+кредитн/i,
+  /kredīt\S*\s*vēstur\S*\s+(nav\s+)?(problēm|šķērsl)/i,
   /banka\s+atteica|bankā\s+atteica|ja\s+banka\s+ir\s+atteikusi|citur\s+atteica/i,
-  /līzings?\s+visiem/i,
+  /līzing\S*(\s+iespēj\S*)?\s+(arī\s+)?visiem|лизинг\S*\s+для\s+всех/i,
   /bez\s+pārbaud/i,
   /lēmums\s+(dažu\s+)?(minūš|stundu)/i,
-  /(apstiprin\w*|kredīt\w*|līzing\w*)\s+(dažās\s+)?minūt/i,
-  /neierobežot\w*\s+kredīt/i,
+  /(apstiprin\S*|kredīt\S*|līzing\S*)\s+(dažās\s+)?minūt/i,
+  /neierobežot\S*\s+kredīt/i,
   /nedomā\s+par\s+naudu|bez\s+raizēm/i,
 ];
 
