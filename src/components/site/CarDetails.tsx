@@ -1,4 +1,5 @@
 import { CalendarDays, Gauge, Fuel, Zap, Cog, Route, Car as CarIcon, Palette, Users, ClipboardCheck, Leaf, BatteryCharging, MapPin, Repeat2, Wallet, Phone, MessageCircle, ArrowRight, BadgePercent, KeyRound, ShieldCheck, FileText } from 'lucide-react';
+import type { SpecKey } from '@/lib/car-fields';
 import { isCreditCompliant } from '@/lib/credit';
 import type { Car, CompanySettings } from '@/lib/types';
 import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, carName, number } from '@/lib/format';
@@ -10,25 +11,25 @@ const mmYYYY = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}.${d.ge
 type Fact = { i: typeof Gauge; k: string; v: string; sub?: string };
 
 /** Galvenie fakti ar ikonām — pārskatāmi uzreiz zem bildēm. */
-export function KeyFacts({ car }: { car: Car }) {
+export function KeyFacts({ car, show = () => true }: { car: Car; show?: (k: SpecKey) => boolean }) {
   const now = new Date();
   const age = car.year ? Math.max(0.5, now.getFullYear() - car.year + now.getMonth() / 12) : null;
   const perYear = car.mileage != null && age ? Math.round(car.mileage / age / 100) * 100 : null;
   const ta = car.ta_until ? new Date(car.ta_until) : null;
   const taMonths = ta ? Math.round((+ta - +now) / (30.4 * 864e5)) : null;
   const facts: (Fact | null)[] = [
-    car.year ? { i: CalendarDays, k: 'Izlaiduma gads', v: String(car.year), sub: car.first_registration ? `1. reģ. ${mmYYYY(new Date(car.first_registration))}` : undefined } : null,
-    car.mileage != null ? { i: Gauge, k: 'Nobraukums', v: `${number(car.mileage)} km`, sub: perYear ? `~${number(perYear)} km gadā` : undefined } : null,
-    car.fuel || car.engine_volume ? { i: Fuel, k: 'Dzinējs', v: [car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : null, car.fuel ? FUEL_LABEL[car.fuel] : null].filter(Boolean).join(' ') } : null,
-    car.power_kw ? { i: Zap, k: 'Jauda', v: `${car.power_kw} kW`, sub: `${Math.round(car.power_kw * 1.36)} ZS` } : null,
+    car.year ? { i: CalendarDays, k: 'Izlaiduma gads', v: String(car.year), sub: show('first_registration') && car.first_registration ? `1. reģ. ${mmYYYY(new Date(car.first_registration))}` : undefined } : null,
+    show('mileage') && car.mileage != null ? { i: Gauge, k: 'Nobraukums', v: `${number(car.mileage)} km`, sub: perYear ? `~${number(perYear)} km gadā` : undefined } : null,
+    car.fuel || car.engine_volume ? { i: Fuel, k: 'Dzinējs', v: [show('engine_volume') && car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : null, car.fuel ? FUEL_LABEL[car.fuel] : null].filter(Boolean).join(' ') } : null,
+    show('power_kw') && car.power_kw ? { i: Zap, k: 'Jauda', v: `${car.power_kw} kW`, sub: `${Math.round(car.power_kw * 1.36)} ZS` } : null,
     car.transmission ? { i: Cog, k: 'Ātrumkārba', v: GEAR_LABEL[car.transmission] } : null,
     car.drive ? { i: Route, k: 'Piedziņa', v: DRIVE_LABEL[car.drive] } : null,
     car.body_type ? { i: CarIcon, k: 'Virsbūve', v: BODY_LABEL[car.body_type] || car.body_type } : null,
-    car.color ? { i: Palette, k: 'Krāsa', v: car.color.charAt(0).toUpperCase() + car.color.slice(1) } : null,
-    car.seats || car.doors ? { i: Users, k: 'Sēdvietas / durvis', v: `${car.seats ?? '—'} / ${car.doors ?? '—'}` } : null,
-    ta ? { i: ClipboardCheck, k: 'Tehniskā apskate', v: `līdz ${mmYYYY(ta)}`, sub: taMonths != null && taMonths > 0 ? `vēl ${taMonths} mēn.` : undefined } : null,
+    show('color') && car.color ? { i: Palette, k: 'Krāsa', v: car.color.charAt(0).toUpperCase() + car.color.slice(1) } : null,
+    show('doors') && car.doors ? { i: Users, k: 'Sēdvietas / durvis', v: `${car.seats ?? '—'} / ${car.doors}` } : show('seats') && car.seats ? { i: Users, k: 'Sēdvietas', v: String(car.seats) } : null,
+    show('ta_until') && ta ? { i: ClipboardCheck, k: 'Tehniskā apskate', v: `līdz ${mmYYYY(ta)}`, sub: taMonths != null && taMonths > 0 ? `vēl ${taMonths} mēn.` : undefined } : null,
     car.battery_kwh ? { i: BatteryCharging, k: 'Baterija', v: `${car.battery_kwh} kWh`, sub: car.range_km ? `līdz ${car.range_km} km` : undefined } : null,
-    car.consumption ? { i: Leaf, k: 'Vid. patēriņš', v: `${car.consumption} l/100 km`, sub: car.euro_class || undefined } : car.euro_class ? { i: Leaf, k: 'Ekoloģija', v: car.euro_class } : null,
+    show('consumption') && car.consumption ? { i: Leaf, k: 'Vid. patēriņš', v: `${car.consumption.toLocaleString('lv-LV')} l/100 km`, sub: (show('euro_class') && car.euro_class) || undefined } : show('euro_class') && car.euro_class ? { i: Leaf, k: 'Ekoloģija', v: car.euro_class } : null,
   ];
   const list = facts.filter(Boolean) as Fact[];
   if (!list.length) return null;

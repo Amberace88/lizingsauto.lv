@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ExternalLink, Loader2, Save, X, Check, ChevronsUp } from 'lucide-react';
@@ -9,6 +9,7 @@ import { STATUS_LABEL } from '@/lib/format';
 import { BadgeOrder } from '@/components/admin/BadgeOrder';
 import { revalidateSite } from '@/components/admin/revalidate';
 import { isCreditCompliant } from '@/lib/credit';
+import { DateInput, useCarFields } from '@/components/admin/SpecFields';
 
 type Draft = Pick<Car, 'status' | 'title' | 'price' | 'old_price' | 'mileage' | 'year' | 'ta_until' | 'description' | 'equipment' | 'badges' | 'featured' | 'slug' | 'make' | 'model' | 'fuel' | 'vat_included' | 'drive' | 'odometer_history'>;
 
@@ -22,11 +23,14 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
   const [eq, setEq] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const [cfg] = useCarFields();
+  const orig = useRef('');
 
   useEffect(() => {
     sb.from('cars').select(FIELDS).eq('id', id).single().then(({ data, error }: { data: Draft | null; error: { message: string } | null }) => {
       if (error || !data) return setMsg({ ok: false, t: error?.message || 'Auto nav atrasts' });
       setCar(data);
+      orig.current = qKey(data, data.equipment || []);
       setEq((data.equipment || []).join('\n'));
     });
     const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -58,10 +62,17 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
       featured: car.featured,
       ...(car.status === 'sold' ? { sold_at: new Date().toISOString() } : {}),
     };
+    let bumped = false;
+    if (cfg.bumpOnEdit && (car.status === 'published' || car.status === 'reserved') && qKey(car, equipment) !== orig.current) {
+      const { data: first } = await sb.from('cars').select('id,sort').order('sort', { ascending: true }).limit(1).maybeSingle();
+      const f = first as { id: string; sort: number } | null;
+      if (f && f.id !== id) { (patch as Record<string, unknown>).sort = f.sort - 1; bumped = true; }
+    }
     const { error } = await sb.from('cars').update(patch).eq('id', id);
     setSaving(false);
     if (error) return setMsg({ ok: false, t: error.message });
-    setMsg({ ok: true, t: 'Saglabāts — lapa atjaunojas' });
+    orig.current = qKey(car, equipment);
+    setMsg({ ok: true, t: bumped ? 'Saglabāts — auto tagad pirmais katalogā' : 'Saglabāts — lapa atjaunojas' });
     revalidateSite([car.slug]);
     setTimeout(() => router.refresh(), 700);
   }
@@ -116,7 +127,7 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
                 <label><span className="label">Vecā cena, €</span><input className="field num" inputMode="numeric" value={car.old_price ?? ''} onChange={(e) => set('old_price', num(e.target.value))} placeholder="nosvītrotā" /></label>
                 <label><span className="label">Nobraukums, km</span><input className="field num" inputMode="numeric" value={car.mileage ?? ''} onChange={(e) => set('mileage', num(e.target.value))} /></label>
                 <label><span className="label">Izlaiduma gads</span><input className="field num" inputMode="numeric" value={car.year ?? ''} onChange={(e) => set('year', num(e.target.value))} /></label>
-                <label className="col-span-2 sm:col-span-1"><span className="label">Tehniskā apskate līdz</span><input type="date" className="field" value={car.ta_until || ''} onChange={(e) => set('ta_until', e.target.value || null)} /></label>
+                <label className="col-span-2 sm:col-span-1"><span className="label">Tehniskā apskate līdz</span><DateInput value={car.ta_until} onChange={(v) => set('ta_until', v)} /></label>
               </div>
               <label className="block"><span className="label">Virsraksts</span><input className="field" value={car.title || ''} onChange={(e) => set('title', e.target.value)} maxLength={160} /></label>
               <label className="block">
@@ -148,3 +159,5 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
     </AnimatePresence>
   );
 }
+
+const qKey = (c: Draft, equipment: string[]) => JSON.stringify([c.title, c.price, c.old_price, c.mileage, c.year, c.ta_until || null, c.description, equipment, c.badges]);

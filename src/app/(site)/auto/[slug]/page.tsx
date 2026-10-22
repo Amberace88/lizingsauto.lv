@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { fieldVisible, type SpecKey } from '@/lib/car-fields';
 import { publicText } from '@/lib/credit';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
@@ -42,7 +43,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const car = await getCarBySlug(slug);
   if (!car) notFound();
   if (car.slug !== slug) permanentRedirect(carUrl(car));
-  const [{ leasing, company, ekii, warranty, badgeStyle, equipCatalog }, all] = await Promise.all([getSettings(), getPublicCars()]);
+  const [{ leasing, company, ekii, warranty, badgeStyle, equipCatalog, carFields }, all] = await Promise.all([getSettings(), getPublicCars()]);
   const images = sortedImages(car).map((i) => i.url);
   const badges = carBadges(car, badgeStyle.order);
   const name = carName(car);
@@ -50,25 +51,29 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const ev = ekiiForCar(ekii, car);
   const similar = similarCars(all, car);
 
+  const show = (k: SpecKey) => fieldVisible(carFields, k, car.fuel);
   const specs: [string, string | null][] = [
     ['Marka', car.make],
     ['Modelis', car.model],
     ['Izlaiduma gads', car.year ? String(car.year) : null],
-    ['Nobraukums', car.mileage != null ? km(car.mileage) : null],
+    ['Nobraukums', show('mileage') && car.mileage != null ? km(car.mileage) : null],
     ['Degviela', car.fuel ? FUEL_LABEL[car.fuel] : null],
-    ['Dzinēja tilpums', car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : null],
-    ['Jauda', car.power_kw ? `${car.power_kw} kW (${Math.round(car.power_kw * 1.36)} ZS)` : null],
+    ['Dzinēja tilpums', show('engine_volume') && car.engine_volume ? `${car.engine_volume.toFixed(1)} l` : null],
+    ['Jauda', show('power_kw') && car.power_kw ? `${car.power_kw} kW (${Math.round(car.power_kw * 1.36)} ZS)` : null],
     ['Baterija', car.battery_kwh ? `${car.battery_kwh} kWh` : null],
     ['Nobraukums ar uzlādi', car.range_km ? `līdz ${car.range_km} km` : null],
     ['Ātrumkārba', car.transmission ? GEAR_LABEL[car.transmission] : null],
     ['Piedziņa', car.drive ? DRIVE_LABEL[car.drive] : null],
     ['Virsbūve', car.body_type ? BODY_LABEL[car.body_type] || car.body_type : null],
-    ['Krāsa', car.color],
-    ['Durvis / sēdvietas', car.doors || car.seats ? `${car.doors ?? '—'} / ${car.seats ?? '—'}` : null],
-    ['Vid. patēriņš', car.consumption ? `${car.consumption} l/100 km` : null],
-    ['CO₂', car.co2 ? `${car.co2} g/km` : null],
-    ['Tehniskā apskate līdz', car.ta_until ? new Date(car.ta_until).toLocaleDateString('lv-LV') : null],
-    ['VIN', car.vin],
+    ['Krāsa', show('color') ? car.color : null],
+    ...(show('doors') ? ([['Durvis', car.doors ? String(car.doors) : null]] as [string, string | null][]) : []),
+    ['Sēdvietas', show('seats') && car.seats ? String(car.seats) : null],
+    ['Vid. patēriņš', show('consumption') && car.consumption ? `${car.consumption} l/100 km` : null],
+    ['CO₂', show('co2') && car.co2 ? `${car.co2} g/km` : null],
+    ['Pirmā reģistrācija', show('first_registration') && car.first_registration ? new Date(car.first_registration).toLocaleDateString('lv-LV') : null],
+    ...(show('euro_class') ? ([['Euro klase', car.euro_class || null]] as [string, string | null][]) : []),
+    ['Tehniskā apskate līdz', show('ta_until') && car.ta_until ? new Date(car.ta_until).toLocaleDateString('lv-LV') : null],
+    ['VIN', show('vin') ? car.vin : null],
   ];
 
   const ld = {
@@ -156,7 +161,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
         </div>
 
         <div className="min-w-0 space-y-8">
-          <KeyFacts car={car} />
+          <KeyFacts car={car} show={show} />
 
           <CarDescription car={car} company={company} monthly={monthly} apr={aprLabel(leasing, car.price)} catalog={equipCatalog} />
 

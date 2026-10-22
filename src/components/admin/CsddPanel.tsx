@@ -1,4 +1,5 @@
 'use client';
+import { DateInput } from './SpecFields';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ClipboardPaste, ExternalLink, Gauge, Plus, ShieldQuestion, Trash2 } from 'lucide-react';
 import type { Car } from '@/lib/types';
@@ -107,7 +108,7 @@ export function CsddPanel({ car, onChange }: { car: Partial<Car>; onChange: <K e
             <tbody>
               {sorted.map((r) => (
                 <tr key={r.date + r.km} className="border-t border-line">
-                  <td className="py-1.5">{editing ? <input type="date" className="field !py-1" value={r.date} onChange={(e) => apply(rows.map((x) => (x === r ? { ...x, date: e.target.value } : x)))} /> : new Date(r.date).toLocaleDateString('lv-LV')}</td>
+                  <td className="py-1.5">{editing ? <DateInput value={r.date} onChange={(v) => v && apply(rows.map((x) => (x === r ? { ...x, date: v } : x)))} /> : new Date(r.date).toLocaleDateString('lv-LV')}</td>
                   <td className="num py-1.5 text-right">{editing ? <input className="field num !py-1 text-right" inputMode="numeric" value={r.km} onChange={(e) => apply(rows.map((x) => (x === r ? { ...x, km: Number(e.target.value.replace(/\D/g, '')) || 0 } : x)))} /> : number(r.km)}</td>
                   <td className="text-right">{editing && <button type="button" onClick={() => apply(rows.filter((x) => x !== r))} className="rounded p-1.5 text-mute hover:text-bad" aria-label="Dzēst rindu"><Trash2 className="h-4 w-4" /></button>}</td>
                 </tr>
