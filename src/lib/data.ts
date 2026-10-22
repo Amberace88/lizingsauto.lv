@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { normalizeCarFields } from './car-fields';
 import { supabasePublic } from './supabase/public';
 import type { Car, CompanySettings, LeasingSettings } from './types';
 import type { Radar } from './radars';
@@ -28,7 +29,7 @@ export const PUBLIC_CAR_COLUMNS =
 const CAR_FIELDS = `${PUBLIC_CAR_COLUMNS}, car_images(id,url,sort,car_id,is_promo)`;
 
 export const getSettings = cache(async () => {
-  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty', 'badges', 'equipment', 'reviews', 'analytics']);
+  const { data } = await supabasePublic.from('settings').select('key,value').in('key', ['leasing', 'company', 'content', 'ekii', 'warranty', 'badges', 'equipment', 'reviews', 'analytics', 'car_fields']);
   const map = Object.fromEntries((data || []).map((r) => [r.key, r.value]));
   return {
     leasing: { ...DEFAULT_LEASING, ...(map.leasing || {}) } as LeasingSettings,
@@ -38,6 +39,7 @@ export const getSettings = cache(async () => {
     badgeStyle: normalizeBadgeStyle(map.badges),
     equipCatalog: normalizeEquipCatalog(map.equipment),
     reviews: parseReviews(map.reviews),
+    carFields: normalizeCarFields(map.car_fields),
     analytics: {
       ga4Id: /^G-[A-Z0-9]{4,15}$/.test(String(map.analytics?.ga4Id || '').trim()) ? String(map.analytics.ga4Id).trim() : '',
       metaPixelId: /^\d{6,20}$/.test(String(map.analytics?.metaPixelId || '').trim()) ? String(map.analytics.metaPixelId).trim() : '',

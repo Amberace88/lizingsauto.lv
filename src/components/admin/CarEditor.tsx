@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, ImagePlus, Loader2, Save, Star, Trash2, Wand2, X, ExternalLink, GripVertical } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
-import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, SITE_HOST, type BadgeStyle } from '@/lib/format';
+import { DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, SITE_HOST, type BadgeStyle } from '@/lib/format';
 import { DEFAULT_LEASING, fromPayment } from '@/lib/leasing';
 import { BadgeOverlay } from '@/components/site/CarCard';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
@@ -18,6 +18,8 @@ import { BadgeOrder } from './BadgeOrder';
 import { CsddPanel } from './CsddPanel';
 import { AlertMatches } from './AlertMatches';
 import { isCreditCompliant } from '@/lib/credit';
+import { parseNum } from '@/lib/car-fields';
+import { FieldsCustomizer, SpecGrid, useCarFields } from './SpecFields';
 
 type Img = { id?: string; url: string; storage_path?: string | null; sort: number; uploading?: boolean; removed?: boolean; is_promo?: boolean };
 type Priv = { purchase_price: number | null; seller_name: string | null; seller_phone: string | null; internal_note: string | null };
@@ -53,6 +55,9 @@ export function CarEditor({ id }: { id?: string }) {
   const dragFrom = useRef<number | null>(null);
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>(normalizeBadgeStyle());
   const badgeOrder = badgeStyle.order;
+  const [fieldsCfg, setFieldsCfg] = useCarFields();
+  const [customize, setCustomize] = useState(false);
+  const snapshot = useRef('');
 
   useEffect(() => {
     sb.from('settings').select('value').eq('key', 'badges').maybeSingle().then(({ data }: { data: { value: unknown } | null }) => setBadgeStyle(normalizeBadgeStyle(data?.value)));
@@ -73,7 +78,9 @@ export function CarEditor({ id }: { id?: string }) {
       }
       const { car_images, ...rest } = data as Car;
       setCar(rest);
-      setImgs([...(car_images || [])].sort((a, b) => a.sort - b.sort).map((i) => ({ ...i })));
+      const sortedImgs = [...(car_images || [])].sort((a, b) => a.sort - b.sort);
+      snapshot.current = contentKey(rest, sortedImgs.map((i) => i.url));
+      setImgs(sortedImgs.map((i) => ({ ...i })));
       if (p) setPriv(p as Priv);
       setLoading(false);
     })();
@@ -96,7 +103,7 @@ export function CarEditor({ id }: { id?: string }) {
       return next;
     });
   };
-  const num = (v: string) => (v === '' ? null : Number(v.replace(',', '.')));
+  const num = (v: string) => parseNum(v) ?? null;
 
   const autoTitle = () => {
     const parts = [
@@ -193,8 +200,17 @@ export function CarEditor({ id }: { id?: string }) {
         const { error } = await sb.from('cars').insert({ ...payload, sort: ((first as { sort: number } | null)?.sort ?? 1) - 1, id: carId.current, published_at: payload.status === 'published' ? new Date().toISOString() : null });
         if (error) throw error;
       } else {
+        // Mainīts auto (cena, apraksts, ekstras, bildes…) pēc noklusējuma kļūst pirmais katalogā
+        const changed = contentKey(payload, visible.map((i) => i.url)) !== snapshot.current;
+        if (fieldsCfg.bumpOnEdit && changed && (payload.status === 'published' || payload.status === 'reserved')) {
+          const { data: first } = await sb.from('cars').select('id,sort').order('sort', { ascending: true }).limit(1).maybeSingle();
+          const f = first as { id: string; sort: number } | null;
+          if (f && f.id !== carId.current) payload.sort = f.sort - 1;
+        }
         const { error } = await sb.from('cars').update(payload).eq('id', carId.current);
         if (error) throw error;
+        snapshot.current = contentKey(payload, visible.map((i) => i.url));
+        if (payload.sort != null) setCar((c) => ({ ...c, sort: payload.sort }));
       }
       // Bildes
       const removed = imgs.filter((i) => i.removed && i.id);
@@ -315,31 +331,11 @@ export function CarEditor({ id }: { id?: string }) {
           </Card>
 
           <Card title="Tehniskie dati">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <F label="Degviela"><Select value={car.fuel} onChange={(v) => set('fuel', v as Car['fuel'])} options={FUEL_LABEL} /></F>
-              <F label="Ātrumkārba"><Select value={car.transmission} onChange={(v) => set('transmission', v as Car['transmission'])} options={GEAR_LABEL} /></F>
-              <F label="Virsbūve"><Select value={car.body_type} onChange={(v) => set('body_type', v)} options={BODY_LABEL} /></F>
-              <F label="Piedziņa"><Select value={car.drive} onChange={(v) => set('drive', (v || null) as Car['drive'])} options={DRIVE_LABEL} allowEmpty /></F>
-              <F label="Nobraukums, km"><input className="field num" inputMode="numeric" value={car.mileage ?? ''} onChange={(e) => set('mileage', num(e.target.value))} /></F>
-              <F label="Dzinēja tilpums, l"><input className="field num" inputMode="decimal" value={car.engine_volume ?? ''} onChange={(e) => set('engine_volume', num(e.target.value))} placeholder="2.0" /></F>
-              <F label="Jauda, kW"><input className="field num" inputMode="numeric" value={car.power_kw ?? ''} onChange={(e) => set('power_kw', num(e.target.value))} /></F>
-              <F label="Patēriņš, l/100 km"><input className="field num" inputMode="decimal" value={car.consumption ?? ''} onChange={(e) => set('consumption', num(e.target.value))} /></F>
-              <F label="CO₂, g/km"><input className="field num" inputMode="numeric" value={car.co2 ?? ''} onChange={(e) => set('co2', num(e.target.value))} /></F>
-              {car.fuel === 'electric' || car.fuel === 'plugin_hybrid' ? (
-                <>
-                  <F label="Baterija, kWh"><input className="field num" inputMode="decimal" value={car.battery_kwh ?? ''} onChange={(e) => set('battery_kwh', num(e.target.value))} /></F>
-                  <F label="Nobraukums ar uzlādi, km"><input className="field num" inputMode="numeric" value={car.range_km ?? ''} onChange={(e) => set('range_km', num(e.target.value))} /></F>
-                </>
-              ) : null}
-              <F label="Krāsa"><input className="field" value={car.color || ''} onChange={(e) => set('color', e.target.value)} /></F>
-              <F label="Durvis"><input className="field num" inputMode="numeric" value={car.doors ?? ''} onChange={(e) => set('doors', num(e.target.value))} /></F>
-              <F label="Sēdvietas"><input className="field num" inputMode="numeric" value={car.seats ?? ''} onChange={(e) => set('seats', num(e.target.value))} /></F>
-              <F label="Euro klase"><input className="field" value={car.euro_class || ''} onChange={(e) => set('euro_class', e.target.value)} placeholder="Euro 6" /></F>
-              <F label="VIN"><input className="field uppercase" maxLength={17} value={car.vin || ''} onChange={(e) => set('vin', e.target.value.toUpperCase())} /></F>
-              <F label="Valsts numurs" hint="Lapā netiek rādīts"><input className="field uppercase" value={car.reg_number || ''} onChange={(e) => set('reg_number', e.target.value.toUpperCase())} /></F>
-              <F label="Pirmā reģistrācija"><input type="date" className="field" value={car.first_registration || ''} onChange={(e) => set('first_registration', e.target.value || null)} /></F>
-              <F label="Tehniskā apskate līdz"><input type="date" className="field" value={car.ta_until || ''} onChange={(e) => set('ta_until', e.target.value || null)} /></F>
-            </div>
+            {customize ? (
+              <FieldsCustomizer value={fieldsCfg} onSaved={setFieldsCfg} onClose={() => setCustomize(false)} />
+            ) : (
+              <SpecGrid car={car} set={set} settings={fieldsCfg} onCustomize={() => setCustomize(true)} />
+            )}
           </Card>
 
           {!isNew && car.status === 'published' && <AlertMatches car={car} />}
@@ -433,7 +429,7 @@ export function CarEditor({ id }: { id?: string }) {
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 backdrop-blur lg:left-64">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <p className="hidden text-sm text-mute sm:block">{dirty ? 'Ir nesaglabātas izmaiņas' : 'Viss saglabāts'}</p>
+          <p className="hidden text-sm text-mute sm:block">{dirty ? `Ir nesaglabātas izmaiņas${!isNew && fieldsCfg.bumpOnEdit && (car.status === 'published' || car.status === 'reserved') ? ' · pēc saglabāšanas auto būs pirmais katalogā' : ''}` : 'Viss saglabāts'}</p>
           <div className="ml-auto flex gap-2">
             {car.status !== 'published' && (
               <button onClick={() => save('published')} className="btn btn-signal" disabled={saving}>Publicēt</button>
@@ -493,4 +489,13 @@ function IconBtn({ onClick, label, danger, children }: { onClick: () => void; la
       {children}
     </button>
   );
+}
+
+/** Saturs, kura izmaiņas paceļ auto katalogā (statuss un secība neskaitās). */
+function contentKey(c: Partial<Car>, imgs: string[]) {
+  const { status, sort, views, updated_at, created_at, published_at, sold_at, featured, ...rest } = c as Car;
+  void status; void sort; void views; void updated_at; void created_at; void published_at; void sold_at; void featured;
+  const r = rest as Record<string, unknown>;
+  delete r.car_images;
+  return JSON.stringify(Object.keys(r).sort().map((k) => [k, r[k] ?? null])) + imgs.join('|');
 }

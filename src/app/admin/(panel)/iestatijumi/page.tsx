@@ -14,6 +14,7 @@ import { DEFAULT_WARRANTY } from '@/lib/warranty';
 import { normalizeBadgeStyle, type BadgeStyle } from '@/lib/format';
 import { BadgeDesigner } from '@/components/admin/BadgeOrder';
 import { EquipCatalogEditor, useEquipCatalog } from '@/components/admin/EquipCatalog';
+import { FieldsCustomizer, useCarFields } from '@/components/admin/SpecFields';
 
 type Def = { key: string; label: string; type?: 'number' | 'text' | 'textarea' | 'bool'; hint?: string };
 const SECTIONS: { key: string; title: string; hint: string; tech?: boolean; fields: Def[] }[] = [
@@ -117,6 +118,7 @@ export default function SettingsPage() {
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
   const eq = useEquipCatalog();
+  const [carFields, setCarFields] = useCarFields();
   const [eqSaving, setEqSaving] = useState(false);
 
   useEffect(() => {
@@ -181,6 +183,9 @@ export default function SettingsPage() {
             </div>
           </Card>
         ))}
+        <Card title="Auto tehnisko datu lauki" hint="Kuri lauki redzami auto redaktorā un auto lapā, un kādā secībā. Piem., ja nevajag CO₂, Euro klasi vai durvis — izslēdz tos.">
+          <FieldsCustomizer value={carFields} onSaved={setCarFields} />
+        </Card>
         <Card title="Aprīkojuma katalogs" hint="Kategorijas un ekstras, ko redz auto redaktorā un pēc kurām lapā sagrupējas aprīkojums. Pievieno, pārdēvē, kārto (velc) un dzēs.">
           {eq.catalog && <EquipCatalogEditor value={eq.catalog} onChange={eq.setCatalog} />}
           <div className="mt-5 flex justify-end">
