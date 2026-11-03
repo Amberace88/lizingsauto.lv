@@ -6,7 +6,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUp, ArrowDown, ImagePlus, Loader2, Save, Star, Trash2, Wand2, X, ExternalLink, GripVertical } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import type { Car } from '@/lib/types';
-import { DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, carBadges, money, normalizeBadgeStyle, slugify, SITE_HOST, type BadgeStyle } from '@/lib/format';
+import { DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, STATUS_LABEL, money, slugify, SITE_HOST } from '@/lib/format';
+import { carBadges, normalizeBadgeStyle, type BadgeStyle } from '@/lib/badges';
 import { DEFAULT_LEASING, fromPayment } from '@/lib/leasing';
 import { BadgeOverlay } from '@/components/site/CarCard';
 import { BadgeStyleProvider } from '@/components/site/BadgeOrderContext';
@@ -54,7 +55,6 @@ export function CarEditor({ id }: { id?: string }) {
   const [eqInput, setEqInput] = useState('');
   const dragFrom = useRef<number | null>(null);
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle>(normalizeBadgeStyle());
-  const badgeOrder = badgeStyle.order;
   const [fieldsCfg, setFieldsCfg] = useCarFields();
   const [customize, setCustomize] = useState(false);
   const snapshot = useRef('');
@@ -124,7 +124,7 @@ export function CarEditor({ id }: { id?: string }) {
       car.transmission ? `${GEAR_LABEL[car.transmission].toLowerCase()} ātrumkārba` : '',
       car.drive ? DRIVE_LABEL[car.drive].toLowerCase() : '',
     ].filter(Boolean);
-    const b = car.badges || [];
+    const b = carBadges(car, badgeStyle);
     const eq = (car.equipment || []).slice(0, 8);
     const lines = [
       `${car.make} ${car.model}${car.year ? `, ${car.year}. gads` : ''}${tech.length ? ` — ${tech.join(', ')}` : ''}.`,
@@ -249,7 +249,7 @@ export function CarEditor({ id }: { id?: string }) {
     }
   }
 
-  const badges = useMemo(() => carBadges({ badges: car.badges || [], fuel: car.fuel || null, old_price: car.old_price || null, price: car.price || 0, vat_included: !!car.vat_included, drive: car.drive || null, odometer_history: car.odometer_history || null }, badgeOrder), [car, badgeOrder]);
+  const badges = useMemo(() => carBadges(car, badgeStyle), [car, badgeStyle]);
 
   if (loading) return <div className="grid place-items-center p-20"><Loader2 className="h-6 w-6 animate-spin text-mute" /></div>;
 
@@ -408,7 +408,7 @@ export function CarEditor({ id }: { id?: string }) {
                   <BadgeOverlay badges={badges} />
                 </div>
               )}
-              <BadgeOrder car={car} defaultOrder={badgeOrder} onChange={(b) => set('badges', b)} />
+              <BadgeOrder car={car} style={badgeStyle} onChange={(b) => set('badges', b)} />
             </BadgeStyleProvider>
           </Card>
 

@@ -10,10 +10,11 @@ import { BadgeOrder } from '@/components/admin/BadgeOrder';
 import { revalidateSite } from '@/components/admin/revalidate';
 import { isCreditCompliant } from '@/lib/credit';
 import { DateInput, useCarFields } from '@/components/admin/SpecFields';
+import { useBadgeStyle } from './BadgeOrderContext';
 
-type Draft = Pick<Car, 'status' | 'title' | 'price' | 'old_price' | 'mileage' | 'year' | 'ta_until' | 'description' | 'equipment' | 'badges' | 'featured' | 'slug' | 'make' | 'model' | 'fuel' | 'vat_included' | 'drive' | 'odometer_history'>;
+type Draft = Pick<Car, 'status' | 'title' | 'price' | 'old_price' | 'mileage' | 'year' | 'ta_until' | 'description' | 'equipment' | 'badges' | 'featured' | 'slug' | 'make' | 'model' | 'fuel' | 'vat_included' | 'drive' | 'odometer_history' | 'seats' | 'body_type' | 'transmission' | 'co2' | 'published_at' | 'created_at'>;
 
-const FIELDS = 'id,slug,status,title,make,model,price,old_price,mileage,year,ta_until,description,equipment,badges,featured,fuel,vat_included,drive,odometer_history';
+const FIELDS = 'id,slug,status,title,make,model,price,old_price,mileage,year,ta_until,description,equipment,badges,featured,fuel,vat_included,drive,odometer_history,seats,body_type,transmission,co2,published_at,created_at';
 
 /** Ātrā rediģēšana tieši publiskajā lapā (tikai adminiem; saglabāšanu aizsargā RLS). */
 export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => void }) {
@@ -24,6 +25,7 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [cfg] = useCarFields();
+  const badgeStyle = useBadgeStyle();
   const orig = useRef('');
 
   useEffect(() => {
@@ -142,7 +144,7 @@ export function AdminQuickEdit({ id, onClose }: { id: string; onClose: () => voi
               </label>
               <div>
                 <span className="label">Zīmes uz bildes</span>
-                <BadgeOrder car={car as Partial<Car>} onChange={(b) => set('badges', b)} />
+                <BadgeOrder car={car as Partial<Car>} style={badgeStyle} onChange={(b) => set('badges', b)} />
               </div>
             </>
           )}

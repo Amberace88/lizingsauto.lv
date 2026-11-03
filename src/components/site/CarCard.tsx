@@ -3,8 +3,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Heart, Gauge, Fuel, Calendar, Cog } from 'lucide-react';
 import type { Car, LeasingSettings } from '@/lib/types';
-import { BADGES, badgeTextColor, carBadges, type BadgePosition, carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
+import { carName, carUrl, coverImage, FUEL_LABEL, GEAR_LABEL, money, number } from '@/lib/format';
 import { fromPayment } from '@/lib/leasing';
+import { badgeTextColor, carBadges, type BadgePosition } from '@/lib/badges';
 import { aprLabel } from './Credit';
 import { useFavorites } from './favorites';
 import { useBadgeStyle } from './BadgeOrderContext';
@@ -21,17 +22,19 @@ const TONE: Record<string, string> = {
 const SHAPE = { pill: 'rounded-full', rounded: 'rounded-md', square: 'rounded-[3px]' } as const;
 
 export function BadgeChips({ badges, max = 99, size = 'sm', className = 'flex flex-wrap gap-1.5' }: { badges: string[]; max?: number; size?: 'sm' | 'md'; className?: string }) {
-  const { colors, shape } = useBadgeStyle();
+  const { colors, shape, defs } = useBadgeStyle();
   const shown = badges.slice(0, max);
   const rest = badges.length - shown.length;
   const cls = size === 'md' ? 'px-2.5 py-1 text-[0.72rem] sm:px-3 sm:py-1.5 sm:text-[0.8rem]' : 'px-2.5 py-1 text-[0.72rem] leading-tight';
   return (
     <div className={className}>
       {shown.map((b) => {
+        const d = defs[b];
+        if (!d) return null;
         const c = colors[b];
         return (
-          <span key={b} className={`${c ? '' : TONE[BADGES[b].tone]} ${cls} ${SHAPE[shape]} whitespace-nowrap font-semibold shadow-sm backdrop-blur-sm`} style={c ? { backgroundColor: c, color: badgeTextColor(c) } : undefined}>
-            {BADGES[b].label}
+          <span key={b} className={`${c ? '' : TONE[d.tone]} ${cls} ${SHAPE[shape]} whitespace-nowrap font-semibold shadow-sm backdrop-blur-sm`} style={c ? { backgroundColor: c, color: badgeTextColor(c) } : undefined}>
+            {d.label}
           </span>
         );
       })}
@@ -42,7 +45,7 @@ export function BadgeChips({ badges, max = 99, size = 'sm', className = 'flex fl
 
 /** Zīmju slānis uz bildes — novietojums pēc admina iestatījumiem. */
 export function BadgeOverlay({ badges, variant = 'card', ribbon = false }: { badges: string[]; variant?: 'card' | 'gallery'; ribbon?: boolean }) {
-  const { position } = useBadgeStyle();
+  const { position, max } = useBadgeStyle();
   if (!badges.length) return null;
   const g = variant === 'gallery';
   const box: Record<BadgePosition, string> = g
@@ -66,7 +69,7 @@ export function BadgeOverlay({ badges, variant = 'card', ribbon = false }: { bad
   };
   return (
     <div className={`pointer-events-none absolute z-10 ${box[position]}`}>
-      <BadgeChips badges={badges} size={g ? 'md' : 'sm'} className={flow[position]} />
+      <BadgeChips badges={badges} max={g ? Math.max(max, 6) : max} size={g ? 'md' : 'sm'} className={flow[position]} />
     </div>
   );
 }
@@ -82,7 +85,7 @@ export function StatusRibbon({ status }: { status: string }) {
 
 export function CarCard({ car, leasing, priority = false }: { car: Car; leasing: LeasingSettings; priority?: boolean }) {
   const img = coverImage(car);
-  const badges = carBadges(car, useBadgeStyle().order);
+  const badges = carBadges(car, useBadgeStyle());
   const { has, toggle } = useFavorites();
   const fav = has(car.id);
   const monthly = fromPayment(car.price, leasing);

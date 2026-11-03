@@ -6,7 +6,8 @@ import type { Radar } from './radars';
 import { DEFAULT_LEASING } from './leasing';
 import { DEFAULT_EKII, type EkiiSettings } from './ekii';
 import { DEFAULT_WARRANTY, type WarrantySettings } from './warranty';
-import { normalizeBadgeStyle } from './format';
+import { normalizeBadgeStyle } from './badges';
+
 import { normalizeEquipCatalog } from './equipment';
 
 export const DEFAULT_COMPANY: CompanySettings = {
@@ -36,7 +37,7 @@ export const getSettings = cache(async () => {
     company: { ...DEFAULT_COMPANY, ...(map.company || {}) } as CompanySettings,
     content: (map.content || {}) as Record<string, string>,
     ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings,
-    badgeStyle: normalizeBadgeStyle(map.badges),
+    badgeStyle: { ...normalizeBadgeStyle(map.badges), ekii: { ...DEFAULT_EKII, ...(map.ekii || {}) } as EkiiSettings },
     equipCatalog: normalizeEquipCatalog(map.equipment),
     reviews: parseReviews(map.reviews),
     carFields: normalizeCarFields(map.car_fields),

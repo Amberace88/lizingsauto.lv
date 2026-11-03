@@ -11,7 +11,8 @@ import { revalidateSite } from '@/components/admin/revalidate';
 import { DEFAULT_LEASING } from '@/lib/leasing';
 import { DEFAULT_EKII } from '@/lib/ekii';
 import { DEFAULT_WARRANTY } from '@/lib/warranty';
-import { normalizeBadgeStyle, type BadgeStyle } from '@/lib/format';
+import { normalizeBadgeStyle, serializeBadgeStyle, type BadgeCar, type BadgeStyle } from '@/lib/badges';
+
 import { BadgeDesigner } from '@/components/admin/BadgeOrder';
 import { EquipCatalogEditor, useEquipCatalog } from '@/components/admin/EquipCatalog';
 import { FieldsCustomizer, useCarFields } from '@/components/admin/SpecFields';
@@ -117,6 +118,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState('');
   const [badgeStyle, setBadgeStyle] = useState<BadgeStyle | null>(null);
   const [previewImg, setPreviewImg] = useState<string | null>(null);
+  const [badgeCars, setBadgeCars] = useState<BadgeCar[]>([]);
   const eq = useEquipCatalog();
   const [carFields, setCarFields] = useCarFields();
   const [eqSaving, setEqSaving] = useState(false);
@@ -132,6 +134,8 @@ export default function SettingsPage() {
       setBadgeStyle(normalizeBadgeStyle((data || []).find((r: { key: string }) => r.key === 'badges')?.value));
       const { data: img } = await sb.from('car_images').select('url,cars!inner(status)').eq('cars.status', 'published').eq('sort', 0).eq('is_promo', false).limit(1).maybeSingle();
       if (img?.url) setPreviewImg(img.url as string);
+      const { data: cs } = await sb.from('cars').select('badges,fuel,old_price,price,vat_included,drive,odometer_history,body_type,transmission,seats,mileage,year,ta_until,published_at,created_at,featured,equipment,description,title,co2').in('status', ['published', 'reserved']);
+      setBadgeCars((cs as BadgeCar[]) || []);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -139,7 +143,7 @@ export default function SettingsPage() {
   async function save(key: string, tech?: boolean) {
     if (key === 'content' && Object.values(vals![key]).some((v) => typeof v === 'string' && !isCreditCompliant(v))) return toast('Teksts satur kreditēšanas reklāmā aizliegtu formulējumu — izlabo sarkani iezīmēto lauku.', 'err');
     setSaving(key);
-    const value = key === 'badges' ? badgeStyle : vals![key];
+    const value = key === 'badges' ? serializeBadgeStyle(badgeStyle!) : vals![key];
     const { error } = await sb.from('settings').upsert({ key, value, is_public: !tech, technical: !!tech, updated_at: new Date().toISOString() });
     setSaving('');
     if (error) return toast(error.message, 'err');
@@ -193,7 +197,7 @@ export default function SettingsPage() {
           </div>
         </Card>
         <Card title="Zīmes uz auto bildēm" hint="Novietojums, forma, krāsas un svarīguma secība visā lapā. Konkrētam auto secību var mainīt arī auto kartītē.">
-          {badgeStyle && <BadgeDesigner value={badgeStyle} onChange={setBadgeStyle} previewImg={previewImg} />}
+          {badgeStyle && <BadgeDesigner value={badgeStyle} onChange={setBadgeStyle} previewImg={previewImg} cars={badgeCars} />}
           <div className="mt-5 flex justify-end">
             <button onClick={() => save('badges')} className="btn btn-primary" disabled={saving === 'badges'}>{saving === 'badges' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Saglabāt</button>
           </div>
