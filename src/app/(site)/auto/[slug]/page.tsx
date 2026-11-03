@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { BatteryCharging } from 'lucide-react';
 import { getCarBySlug, getPublicCars, getSettings, similarCars } from '@/lib/data';
-import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, SITE_URL, STATUS_LABEL, carBadges, carName, carUrl, km, money, sortedImages } from '@/lib/format';
+import { BODY_LABEL, DRIVE_LABEL, FUEL_LABEL, GEAR_LABEL, SITE_URL, STATUS_LABEL, carName, carUrl, km, money, sortedImages } from '@/lib/format';
+import { carBadges } from '@/lib/badges';
 import { fromPayment } from '@/lib/leasing';
 import { ekiiForCar } from '@/lib/ekii';
 import { Gallery } from '@/components/site/Gallery';
@@ -45,7 +46,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   if (car.slug !== slug) permanentRedirect(carUrl(car));
   const [{ leasing, company, ekii, warranty, badgeStyle, equipCatalog, carFields }, all] = await Promise.all([getSettings(), getPublicCars()]);
   const images = sortedImages(car).map((i) => i.url);
-  const badges = carBadges(car, badgeStyle.order);
+  const badges = carBadges(car, badgeStyle);
   const name = carName(car);
   const monthly = fromPayment(car.price, leasing);
   const ev = ekiiForCar(ekii, car);

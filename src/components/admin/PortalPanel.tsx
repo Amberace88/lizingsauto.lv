@@ -9,6 +9,7 @@ import { Card } from './CarEditor';
 import { useToast } from './Toast';
 import { PORTALS } from './labels';
 import { publicText } from '@/lib/credit';
+import { hasBadge } from '@/lib/badges';
 
 type Listing = { id?: string; portal: string; enabled: boolean; status: string; external_url: string | null; external_id: string | null; last_error: string | null; last_sync_at: string | null };
 
@@ -20,8 +21,8 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
   const lines: string[] = [];
   if (lang === 'lv') {
     lines.push(`${car.make} ${car.model}${car.year ? `, ${car.year}` : ''}. ${car.title}`);
-    if (car.badges?.includes('warranty')) lines.push('Pieejama garantija (iespējams pagarināt līdz 36 mēn.).');
-    if (car.badges?.includes('fresh_ta')) lines.push('Svaiga tehniskā apskate.');
+    if (hasBadge(car, 'warranty')) lines.push('Pieejama garantija (iespējams pagarināt līdz 36 mēn.).');
+    if (hasBadge(car, 'fresh_ta')) lines.push('Svaiga tehniskā apskate.');
     lines.push('');
     if (publicText(car.description)) lines.push(publicText(car.description), '');
     if (car.equipment?.length) lines.push(...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
@@ -30,8 +31,8 @@ export function ssText(car: Car, lang: 'lv' | 'ru', siteUrl: string) {
   } else {
     lines.push(`${car.make} ${car.model}${car.year ? `, ${car.year}` : ''}. ${car.fuel ? RU_FUEL[car.fuel] : ''}${car.engine_volume ? ` ${car.engine_volume.toFixed(1)}` : ''}${car.transmission ? `, ${RU_GEAR[car.transmission].toLowerCase()}` : ''}${car.power_kw ? `, ${car.power_kw} кВт` : ''}.`);
     if (car.body_type) lines.push(`Кузов: ${RU_BODY[car.body_type] || car.body_type}${car.mileage != null ? `, пробег ${car.mileage.toLocaleString('lv-LV')} км` : ''}.`);
-    if (car.badges?.includes('warranty')) lines.push('Доступна гарантия (возможно продление до 36 мес.).');
-    if (car.badges?.includes('fresh_ta')) lines.push('Свежий техосмотр.');
+    if (hasBadge(car, 'warranty')) lines.push('Доступна гарантия (возможно продление до 36 мес.).');
+    if (hasBadge(car, 'fresh_ta')) lines.push('Свежий техосмотр.');
     lines.push('');
     if (car.equipment?.length) lines.push('Комплектация:', ...car.equipment.slice(0, 30).map((e) => `- ${e}`), '');
     lines.push('Тест-драйв и проверка в сервисе на ваш выбор.', 'Возможность разделить платёж в лизинг, в том числе работающим за границей. Решение принимает лизингодатель после оценки кредитоспособности.', 'Ваш старый автомобиль может быть первым взносом.', '', 'Brīdinām! Aizņemšanās maksā naudu. / Предупреждаем! Заимствование стоит денег.', '', `Больше фото и калькулятор лизинга: ${siteUrl}/auto/${car.slug}`);
